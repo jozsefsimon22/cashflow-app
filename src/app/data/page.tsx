@@ -165,7 +165,10 @@ export default function DataPage() {
       <SidebarInset>
         <main className="p-4 sm:p-6 md:p-8">
           <div className="flex justify-between items-center mb-8">
-              <h1 className="text-3xl font-bold font-headline text-foreground">Imported Data</h1>
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <h1 className="text-3xl font-bold font-headline text-foreground">Imported Data</h1>
+              </div>
               <div className="flex items-center gap-2">
                 {isClient && data && (
                     <Button variant="destructive" onClick={() => setIsAlertOpen(true)}>
@@ -173,7 +176,6 @@ export default function DataPage() {
                       Clear Data
                     </Button>
                 )}
-                <SidebarTrigger />
               </div>
           </div>
           

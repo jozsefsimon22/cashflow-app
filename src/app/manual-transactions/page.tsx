@@ -137,8 +137,10 @@ export default function ManualTransactionsPage() {
       <SidebarInset>
         <main className="p-4 sm:p-6 md:p-8">
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold font-headline text-foreground">Manual Transactions</h1>
-                <SidebarTrigger />
+                <div className="flex items-center gap-4">
+                  <SidebarTrigger />
+                  <h1 className="text-3xl font-bold font-headline text-foreground">Manual Transactions</h1>
+                </div>
             </div>
             
             <Card>

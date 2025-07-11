@@ -215,15 +215,15 @@ export default function Home() {
       <main className="p-4 sm:p-6 md:p-8">
         <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
+                <SidebarTrigger />
                 <h1 className="text-3xl font-bold font-headline text-foreground">Dashboard</h1>
-                {isClient && (data || manualTransactions.length > 0) && (
-                  <div className="flex items-center space-x-2">
-                    <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
-                    <Label htmlFor="exclusions-toggle" className="text-sm">Apply Exclusions</Label>
-                  </div>
-                )}
             </div>
-            <SidebarTrigger />
+            {isClient && (data || manualTransactions.length > 0) && (
+              <div className="flex items-center space-x-2">
+                <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
+                <Label htmlFor="exclusions-toggle" className="text-sm">Apply Exclusions</Label>
+              </div>
+            )}
         </div>
         <div className="space-y-8">
           {isClient && forecastData ? (
