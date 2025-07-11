@@ -205,7 +205,7 @@ export default function ManualTransactionsPage() {
                                 <FormControl>
                                     <RadioGroup
                                     onValueChange={field.onChange}
-                                    defaultValue={field.value}
+                                    value={field.value}
                                     className="flex items-center space-x-4"
                                     >
                                     <FormItem className="flex items-center space-x-2 space-y-0">
@@ -296,7 +296,7 @@ export default function ManualTransactionsPage() {
                     </Form>
                     <div className="mt-6">
                     <h4 className="text-md font-medium mb-2">Your Manual Transactions</h4>
-                    <div className="border rounded-lg max-h-60 overflow-auto">
+                    <div className="border rounded-lg max-h-[60vh] overflow-auto">
                         <Table>
                             <TableHeader>
                             <TableRow>
@@ -345,5 +345,3 @@ export default function ManualTransactionsPage() {
     </>
   );
 }
-
-    
