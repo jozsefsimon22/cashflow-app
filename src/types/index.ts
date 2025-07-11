@@ -24,6 +24,7 @@ export interface ColumnConfig {
   amount: string;
   status: string;
   date: string;
+  dateClosed: string;
   dateFormat: string;
 }
 

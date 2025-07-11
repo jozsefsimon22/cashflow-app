@@ -105,12 +105,16 @@ export default function DocumentationPage() {
                   <li><strong>Due Date</strong>: The date the payment is due. Various formats are supported (e.g., YYYY-MM-DD, DD/MM/YYYY).</li>
                   <li><strong>Date</strong>: The transaction date. This is used as a fallback if the 'Due Date' for a row is empty.</li>
                   <li><strong>Amount</strong>: The transaction amount as a number.</li>
-                  <li><strong>Status</strong>: The current state of the transaction (e.g., 'Open', 'Paid In Full').</li>
+                  <li><strong>Status</strong>: The current state of the transaction (e.g., 'Open', 'Paid In Full'). This column is optional.</li>
+                  <li><strong>Date Closed</strong>: The date a transaction was closed. Used to infer status if the 'Status' column is missing.</li>
                 </ul>
                 <div className="p-4 bg-secondary/50 rounded-lg">
                   <h4 className="font-semibold text-foreground mb-2">Status-Based Filtering</h4>
                   <p className="text-muted-foreground">
                     The application automatically filters your data to ensure the forecast is accurate. Only transactions with a status of <strong>'Open'</strong> or <strong>'Pending Approval'</strong> will be included in the cash flow analysis on the dashboard.
+                  </p>
+                   <p className="text-muted-foreground mt-3">
+                    If the 'Status' column is not provided in your file, the app will try to infer it. If a row has a 'Date Closed', its status will be set to 'Paid In Full' (excluded). Otherwise, it will be set to 'Open' (included).
                   </p>
                   <div className="flex flex-wrap gap-2 mt-3">
                       <Badge variant="secondary">Included: Open</Badge>

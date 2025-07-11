@@ -20,7 +20,7 @@ interface FileUploaderProps {
 
 interface ValidationResult {
   column: string;
-  status: 'Passed' | 'Failed';
+  status: 'Passed' | 'Failed' | 'Optional';
   message: string;
 }
 
@@ -42,7 +42,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
   };
 
   const parseDate = (dateValue: any): Date | null => {
-    if (dateValue === null || dateValue === undefined || dateValue === '') return null;
+    if (dateValue === null || dateValue === undefined || dateValue === '' || String(dateValue).trim() === '') return null;
 
     // Use a specific format from settings first if it's not auto
     if (typeof dateValue === 'string' && columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
@@ -107,26 +107,48 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false, defval: null });
 
         const requiredColumns = [
-          { name: 'Type', configKey: 'type' },
-          { name: 'Document Number', configKey: 'documentNumber' },
-          { name: 'Name', configKey: 'name' },
-          { name: 'Due Date', configKey: 'dueDate' },
-          { name: 'Amount', configKey: 'amount' },
-          { name: 'Status', configKey: 'status' },
-          { name: 'Date (Fallback)', configKey: 'date' },
+          { name: 'Type', configKey: 'type', optional: false },
+          { name: 'Document Number', configKey: 'documentNumber', optional: false },
+          { name: 'Name', configKey: 'name', optional: false },
+          { name: 'Due Date', configKey: 'dueDate', optional: false },
+          { name: 'Amount', configKey: 'amount', optional: false },
+          { name: 'Status', configKey: 'status', optional: true },
+          { name: 'Date (Fallback)', configKey: 'date', optional: false },
+          { name: 'Date Closed', configKey: 'dateClosed', optional: true },
         ];
         
         const firstRow = json[0] || {};
         const availableColumns = Object.keys(firstRow);
         
+        let statusColumnFound = false;
+
         const currentValidationResults: ValidationResult[] = requiredColumns.map(col => {
           const userColumnName = columnConfig[col.configKey as keyof ColumnConfig];
-          if (availableColumns.includes(String(userColumnName))) {
+          const found = availableColumns.includes(String(userColumnName));
+
+          if (col.configKey === 'status' && found) {
+            statusColumnFound = true;
+          }
+
+          if (found) {
             return { column: `${col.name} (as '${userColumnName}')`, status: 'Passed', message: 'Column found.' };
           } else {
+            if (col.optional) {
+              return { column: `${col.name} (expected '${userColumnName}')`, status: 'Optional', message: `Column not found. This is optional.` };
+            }
             return { column: `${col.name} (expected '${userColumnName}')`, status: 'Failed', message: 'Column not found in the uploaded file.' };
           }
         });
+
+        // Special check for status inference dependency
+        if (!statusColumnFound && !availableColumns.includes(String(columnConfig.dateClosed))) {
+            const statusValidation = currentValidationResults.find(r => r.column.startsWith('Status'));
+            if(statusValidation) {
+              statusValidation.status = 'Failed';
+              statusValidation.message = `Column not found, and the fallback 'Date Closed' column (expected '${columnConfig.dateClosed}') was also not found. One of them is required.`;
+            }
+        }
+
         setValidationResults(currentValidationResults);
 
         const missingColumns = currentValidationResults.filter(r => r.status === 'Failed').map(r => r.column);
@@ -139,6 +161,19 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
             const dueDateValue = row[columnConfig.dueDate];
             const dateValue = row[columnConfig.date];
             const typeValue = row[columnConfig.type];
+            let statusValue = row[columnConfig.status];
+
+            // Status inference logic
+            if (!statusColumnFound) {
+                const dateClosedValue = row[columnConfig.dateClosed];
+                const dateClosed = parseDate(dateClosedValue);
+                if (dateClosed) {
+                    statusValue = 'Paid In Full';
+                } else {
+                    statusValue = 'Open';
+                }
+            }
+
 
             let dueDate = parseDate(dueDateValue);
             if (dueDate === null) {
@@ -163,7 +198,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
                 'Name': row[columnConfig.name],
                 'Due Date': dueDate,
                 'Amount': amount,
-                'Status': row[columnConfig.status],
+                'Status': statusValue,
             };
         });
 
@@ -230,12 +265,14 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
                 <div>
                   {result.status === 'Passed' ? (
                     <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                  ) : result.status === 'Optional' ? (
+                    <CheckCircle className="w-5 h-5 text-muted-foreground/50 mt-0.5" />
                   ) : (
                     <XCircle className="w-5 h-5 text-destructive mt-0.5" />
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className={cn("font-medium", result.status === 'Failed' && "text-destructive")}>
+                  <p className={cn("font-medium", result.status === 'Failed' && "text-destructive", result.status === 'Optional' && 'text-muted-foreground')}>
                     {result.column}: {result.status}
                   </p>
                   <p className="text-muted-foreground">{result.message}</p>

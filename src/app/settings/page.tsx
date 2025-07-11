@@ -9,7 +9,7 @@ import type { ColumnConfig } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ const formSchema = z.object({
   amount: z.string().min(1, "Column name cannot be empty."),
   status: z.string().min(1, "Column name cannot be empty."),
   date: z.string().min(1, "Column name cannot be empty."),
+  dateClosed: z.string().min(1, "Column name cannot be empty."),
   dateFormat: z.string(),
 });
 
@@ -197,10 +198,29 @@ export default function SettingsPage() {
                       name="status"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Status Column</FormLabel>
+                          <FormLabel>Status Column (Optional)</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="e.g., 'Payment Status'" />
                           </FormControl>
+                           <FormDescription>
+                            If not found, status will be inferred from the 'Date Closed' column.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="dateClosed"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date Closed Column (for Status inference)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 'Closed On'" />
+                          </FormControl>
+                           <FormDescription>
+                            Used to determine status if the 'Status' column is not found.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

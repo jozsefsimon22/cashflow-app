@@ -19,6 +19,7 @@ const defaultConfig: ColumnConfig = {
   amount: 'Amount',
   status: 'Status',
   date: 'Date',
+  dateClosed: 'Date Closed',
   dateFormat: 'auto',
 };
 
