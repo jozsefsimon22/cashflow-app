@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo, useState, useEffect } from "react";
 import Link from 'next/link';
 import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,9 +16,16 @@ type SortKey = keyof CashFlowItem;
 export default function DataPage() {
   const { data } = useContext(SettingsContext);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'ascending' | 'descending' } | null>({ key: 'Due Date', direction: 'ascending' });
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const sortedData = useMemo(() => {
-    let sortableItems = data ? [...data] : [];
+    if (!isClient || !data) return [];
+    let sortableItems = [...data];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -31,7 +38,7 @@ export default function DataPage() {
       });
     }
     return sortableItems;
-  }, [data, sortConfig]);
+  }, [data, sortConfig, isClient]);
 
   const requestSort = (key: SortKey) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -96,7 +103,7 @@ export default function DataPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedData && sortedData.length > 0 ? (
+                  {isClient && sortedData.length > 0 ? (
                     sortedData.map((item, index) => (
                       <TableRow key={index}>
                         <TableCell>
@@ -113,7 +120,7 @@ export default function DataPage() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                        No data has been imported yet. Go to the home page to upload a file.
+                        {isClient ? "No data has been imported yet. Go to the home page to upload a file." : "Loading data..."}
                       </TableCell>
                     </TableRow>
                   )}
@@ -126,4 +133,3 @@ export default function DataPage() {
     </main>
   );
 }
-
