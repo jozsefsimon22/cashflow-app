@@ -17,6 +17,7 @@ export interface WeeklySummary {
   weekStart: Date;
   invoices: number;
   bills: number;
+  balance: number;
   details: CashFlowItem[];
 }
 

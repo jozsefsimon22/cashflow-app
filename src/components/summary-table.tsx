@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useContext } from 'react';
 import type { CashFlowItem, WeeklySummary, WeeklyDetails } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { addWeeks, startOfWeek, isWithinInterval, endOfWeek, format, parse } from 'date-fns';
+import { addWeeks, startOfWeek, endOfWeek, format } from 'date-fns';
 import { ListTodo } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { SettingsContext } from '@/context/settings-context';
 
 interface SummaryTableProps {
   data: CashFlowItem[];
@@ -19,6 +19,8 @@ const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 
 export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
   const [isClient, setIsClient] = useState(false);
+  const { startingBalance } = useContext(SettingsContext);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -27,6 +29,7 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
     if (!isClient) return [];
     const today = new Date();
     const weeklySummaries: WeeklySummary[] = [];
+    let runningBalance = startingBalance;
 
     for (let i = 0; i < 12; i++) {
         const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
@@ -34,7 +37,9 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
 
         const weekItems = data.filter(item => {
             const dueDate = item['Due Date'];
-            return dueDate && dueDate >= weekStart && dueDate <= weekEnd;
+            if (!dueDate) return false;
+            const comparisonDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+            return comparisonDate >= weekStart && comparisonDate <= weekEnd;
         });
 
         const invoices = weekItems
@@ -44,6 +49,8 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
         const bills = weekItems
             .filter(item => OUTFLOW_TYPES.includes(item.Type))
             .reduce((sum, item) => sum + item.RemainingAmount, 0);
+        
+        runningBalance += invoices - bills;
 
         weeklySummaries.push({
             week: `w/c ${format(weekStart, 'dd/MM')}`,
@@ -51,12 +58,13 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
             weekStart,
             invoices,
             bills,
+            balance: runningBalance,
             details: weekItems,
         });
     }
 
     return weeklySummaries;
-  }, [data, isClient]);
+  }, [data, isClient, startingBalance]);
 
   const handleRowClick = (week: WeeklySummary) => {
     if (!week.weekStart) return;
@@ -96,12 +104,13 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
                 <TableHead>Week</TableHead>
                 <TableHead className="text-right">Inflow</TableHead>
                 <TableHead className="text-right">Outflow</TableHead>
+                <TableHead className="text-right">Balance</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {summaryData.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                         No data for the next 12 weeks.
                     </TableCell>
                 </TableRow>
@@ -111,6 +120,7 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
                   <TableCell className="font-medium">{week.weekLabel}</TableCell>
                   <TableCell className="text-right font-semibold text-primary">{formatCurrency(week.invoices)}</TableCell>
                   <TableCell className="text-right font-semibold text-destructive">{formatCurrency(week.bills)}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(week.balance)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
