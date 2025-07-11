@@ -35,7 +35,7 @@ const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 type GroupedItems = {
   [name: string]: {
     total: number;
-    items: (CashFlowItem | ManualTransaction)[];
+    items: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
   };
 };
 
