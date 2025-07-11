@@ -52,6 +52,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const savedData = sessionStorage.getItem('cashFlowData');
       if (savedData) {
         const parsedData = JSON.parse(savedData);
+        // Correctly parse date strings back into Date objects
         const dataWithDates = parsedData.map((item: any) => ({
           ...item,
           'Due Date': item['Due Date'] ? new Date(item['Due Date']) : null,
@@ -69,28 +70,39 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const setColumnConfig = (newConfig: ColumnConfig) => {
     setColumnConfigState(newConfig);
-    try {
-      localStorage.setItem('columnConfig', JSON.stringify(newConfig));
-    } catch (error) {
-      console.error("Failed to save columnConfig to localStorage", error);
+    if(typeof window !== 'undefined'){
+      try {
+        localStorage.setItem('columnConfig', JSON.stringify(newConfig));
+      } catch (error) {
+        console.error("Failed to save columnConfig to localStorage", error);
+      }
     }
   };
 
   const setData = (newData: CashFlowItem[] | null) => {
     setDataState(newData);
-    try {
-      if (newData) {
-        sessionStorage.setItem('cashFlowData', JSON.stringify(newData));
-      } else {
-        sessionStorage.removeItem('cashFlowData');
+    if(typeof window !== 'undefined'){
+      try {
+        if (newData) {
+          sessionStorage.setItem('cashFlowData', JSON.stringify(newData));
+        } else {
+          sessionStorage.removeItem('cashFlowData');
+        }
+      } catch (error) {
+        console.error("Failed to save cashFlowData to sessionStorage", error);
       }
-    } catch (error) {
-      console.error("Failed to save cashFlowData to sessionStorage", error);
     }
+  };
+  
+  const providerValue = {
+    columnConfig,
+    setColumnConfig,
+    data: isInitialized ? data : null, // Prevent returning server-side rendered data before client-side hydration
+    setData
   };
 
   return (
-    <SettingsContext.Provider value={{ columnConfig, setColumnConfig, data, setData }}>
+    <SettingsContext.Provider value={providerValue}>
       {children}
     </SettingsContext.Provider>
   );
