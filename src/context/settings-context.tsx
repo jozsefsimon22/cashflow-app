@@ -13,6 +13,8 @@ interface SettingsContextType {
   setStartingBalance: (balance: number) => void;
   manualTransactions: ManualTransaction[];
   setManualTransactions: (transactions: ManualTransaction[]) => void;
+  excludedNames: string[];
+  setExcludedNames: (names: string[]) => void;
 }
 
 const defaultConfig: ColumnConfig = {
@@ -37,6 +39,8 @@ export const SettingsContext = createContext<SettingsContextType>({
   setStartingBalance: () => {},
   manualTransactions: [],
   setManualTransactions: () => {},
+  excludedNames: [],
+  setExcludedNames: () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -44,10 +48,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [data, setDataState] = useState<CashFlowItem[] | null>(null);
   const [startingBalance, setStartingBalanceState] = useState<number>(0);
   const [manualTransactions, setManualTransactionsState] = useState<ManualTransaction[]>([]);
+  const [excludedNames, setExcludedNamesState] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    // Load config from localStorage on initial client-side mount
     try {
       const savedConfig = localStorage.getItem('columnConfig');
       if (savedConfig) {
@@ -66,16 +70,18 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         }));
         setManualTransactionsState(transactionsWithDates);
       }
+      const savedExcludedNames = localStorage.getItem('excludedNames');
+      if (savedExcludedNames) {
+        setExcludedNamesState(JSON.parse(savedExcludedNames));
+      }
     } catch (error) {
       console.error("Failed to parse settings from localStorage", error);
     }
 
-    // Load data from sessionStorage on initial client-side mount
     try {
       const savedData = sessionStorage.getItem('cashFlowData');
       if (savedData) {
         const parsedData = JSON.parse(savedData);
-        // Correctly parse date strings back into Date objects
         const dataWithDates = parsedData.map((item: any) => ({
           ...item,
           'Due Date': item['Due Date'] ? new Date(item['Due Date']) : null,
@@ -139,6 +145,16 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const setExcludedNames = (names: string[]) => {
+    setExcludedNamesState(names);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('excludedNames', JSON.stringify(names));
+      } catch (error) {
+        console.error("Failed to save excluded names to localStorage", error);
+      }
+    }
+  };
   
   const providerValue = {
     columnConfig,
@@ -149,6 +165,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setStartingBalance,
     manualTransactions,
     setManualTransactions,
+    excludedNames,
+    setExcludedNames,
   };
 
   return (

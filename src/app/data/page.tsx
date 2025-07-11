@@ -205,6 +205,14 @@ export default function DataPage() {
             </SidebarMenuItem>
              <SidebarMenuItem>
               <SidebarMenuButton asChild>
+                <Link href="/exclusions">
+                  <XCircle />
+                  <span>Exclusions</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild>
                 <Link href="/documentation">
                   <BookOpen />
                   <span>Documentation</span>
@@ -378,5 +386,3 @@ export default function DataPage() {
     </>
   );
 }
-
-    

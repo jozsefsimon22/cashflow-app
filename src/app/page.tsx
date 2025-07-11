@@ -6,7 +6,7 @@ import type { CashFlowItem, ManualTransaction, WeeklyDetails } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -70,7 +70,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[]): CashFlo
 };
 
 export default function Home() {
-  const { data, startingBalance, manualTransactions } = useContext(SettingsContext);
+  const { data, startingBalance, manualTransactions, excludedNames } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
 
@@ -80,10 +80,17 @@ export default function Home() {
 
   const forecastData = useMemo(() => {
     if (!data) return null;
-    const fileData = data.filter(item => item.Status && INCLUDED_STATUSES.includes(item.Status));
+    
+    const excludedNamesSet = new Set(excludedNames);
+
+    const fileData = data.filter(item => 
+      item.Status && 
+      INCLUDED_STATUSES.includes(item.Status) &&
+      !excludedNamesSet.has(item.Name)
+    );
     const manualData = generateForecastItems(manualTransactions);
     return [...fileData, ...manualData];
-  }, [data, manualTransactions]);
+  }, [data, manualTransactions, excludedNames]);
   
   const handleWeekSelect = (weekData: WeeklyDetails) => {
     setSelectedWeek(weekData);
@@ -173,6 +180,14 @@ export default function Home() {
                 <span>Settings</span>
               </Link>
              </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/exclusions">
+                <XCircle />
+                <span>Exclusions</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -365,5 +380,3 @@ export default function Home() {
     </>
   );
 }
-
-    

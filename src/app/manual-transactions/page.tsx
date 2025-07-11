@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { Database, GanttChartSquare, LayoutDashboard, Settings, BookOpen, Repeat, CalendarIcon, Trash2, PlusCircle, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { Database, GanttChartSquare, LayoutDashboard, Settings, BookOpen, Repeat, CalendarIcon, Trash2, PlusCircle, ArrowUpCircle, ArrowDownCircle, XCircle } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -114,6 +114,14 @@ export default function ManualTransactionsPage() {
                 <Link href="/settings">
                   <Settings />
                   <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/exclusions">
+                  <XCircle />
+                  <span>Exclusions</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -321,5 +329,3 @@ export default function ManualTransactionsPage() {
     </>
   );
 }
-
-    
