@@ -155,9 +155,9 @@ export default function SettingsPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[200px]">Required Field</TableHead>
+                            <TableHead className="w-[180px]">Required Field</TableHead>
                             <TableHead>Your Column Name</TableHead>
-                            <TableHead className="w-[400px]">Description & Format</TableHead>
+                            <TableHead className="w-[45%]">Description & Format</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
