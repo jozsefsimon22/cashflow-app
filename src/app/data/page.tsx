@@ -28,6 +28,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
+const INFLOW_TYPES: (CashFlowItem['Type'])[] = ['Invoice', 'Bill Credit'];
+const OUTFLOW_TYPES: (CashFlowItem['Type'])[] = ['Bill', 'Credit Memo'];
+
 type SortKey = keyof CashFlowItem;
 
 export default function DataPage() {
@@ -123,6 +126,16 @@ export default function DataPage() {
         </Button>
       </TableHead>
     );
+  };
+
+  const getTypeClassName = (type: CashFlowItem['Type']) => {
+    if (INFLOW_TYPES.includes(type)) {
+      return 'bg-primary/20 text-primary';
+    }
+    if (OUTFLOW_TYPES.includes(type)) {
+      return 'bg-destructive/20 text-destructive';
+    }
+    return 'bg-muted text-muted-foreground';
   };
 
 
@@ -258,7 +271,7 @@ export default function DataPage() {
                         return (
                           <TableRow key={index} className={!isIncluded ? 'bg-muted/50' : ''}>
                             <TableCell>
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getTypeClassName(item.Type)}`}>
                                 {item.Type}
                               </span>
                             </TableCell>

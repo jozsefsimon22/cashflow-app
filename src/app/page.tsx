@@ -24,6 +24,9 @@ import { format } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
+const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
+const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
+
 
 type GroupedItems = {
   [name: string]: {
@@ -64,8 +67,8 @@ export default function Home() {
   
   const summaryMetrics = useMemo(() => {
     if (!forecastData) return { totalReceivables: 0, totalPayables: 0, currentBalance: 0 };
-    const totalReceivables = forecastData.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.Amount, 0);
-    const totalPayables = forecastData.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.Amount, 0);
+    const totalReceivables = forecastData.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.Amount, 0);
+    const totalPayables = forecastData.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.Amount, 0);
     const currentBalance = totalReceivables - totalPayables;
     return { totalReceivables, totalPayables, currentBalance };
   }, [forecastData]);
@@ -84,8 +87,8 @@ export default function Home() {
       }, {});
     };
 
-    const inflowItems = selectedWeek.details.filter(item => item.Type === 'Invoice');
-    const outflowItems = selectedWeek.details.filter(item => item.Type === 'Bill');
+    const inflowItems = selectedWeek.details.filter(item => INFLOW_TYPES.includes(item.Type));
+    const outflowItems = selectedWeek.details.filter(item => OUTFLOW_TYPES.includes(item.Type));
 
     return {
       inflow: groupItems(inflowItems),
@@ -201,7 +204,7 @@ export default function Home() {
                   </CardTitle>
                   <CardDescription>
                     Upload an Excel file (.xlsx, .xls, .csv). Use the settings to map your columns if they don't match the defaults.
-                    The 'Type' column should contain 'Invoice' (for incoming cash) or 'Bill' (for outgoing cash).
+                    The 'Type' column should contain 'Invoice', 'Bill', 'Bill Credit', or 'Credit Memo'.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -234,7 +237,7 @@ export default function Home() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-lg font-bold text-primary">
                 <ArrowUpCircle className="w-6 h-6" />
-                <span>Inflow (Invoices)</span>
+                <span>Inflow</span>
               </div>
               <p className="text-2xl font-bold font-mono text-primary">{formatCurrency(selectedWeek?.invoicesDue || 0)}</p>
               <Accordion type="single" collapsible className="w-full">
@@ -252,6 +255,7 @@ export default function Home() {
                           <TableHeader>
                             <TableRow>
                               <TableHead>Document #</TableHead>
+                              <TableHead>Type</TableHead>
                               <TableHead className="text-right">Amount</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -259,6 +263,7 @@ export default function Home() {
                             {group.items.map((item, index) => (
                               <TableRow key={`in-detail-${index}`}>
                                 <TableCell>{item['Document Number']}</TableCell>
+                                <TableCell>{item.Type}</TableCell>
                                 <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
                               </TableRow>
                             ))}
@@ -268,7 +273,7 @@ export default function Home() {
                     </AccordionItem>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No invoices this week.</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">No inflow this week.</p>
                 )}
               </Accordion>
             </div>
@@ -277,7 +282,7 @@ export default function Home() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-lg font-bold text-destructive">
                 <ArrowDownCircle className="w-6 h-6" />
-                <span>Outflow (Bills)</span>
+                <span>Outflow</span>
               </div>
               <p className="text-2xl font-bold font-mono text-destructive">{formatCurrency(selectedWeek?.billsDue || 0)}</p>
               <Accordion type="single" collapsible className="w-full">
@@ -295,6 +300,7 @@ export default function Home() {
                           <TableHeader>
                             <TableRow>
                               <TableHead>Document #</TableHead>
+                              <TableHead>Type</TableHead>
                               <TableHead className="text-right">Amount</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -302,6 +308,7 @@ export default function Home() {
                             {group.items.map((item, index) => (
                               <TableRow key={`out-detail-${index}`}>
                                 <TableCell>{item['Document Number']}</TableCell>
+                                <TableCell>{item.Type}</TableCell>
                                 <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
                               </TableRow>
                             ))}
@@ -311,7 +318,7 @@ export default function Home() {
                     </AccordionItem>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No bills this week.</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">No outflow this week.</p>
                 )}
               </Accordion>
             </div>

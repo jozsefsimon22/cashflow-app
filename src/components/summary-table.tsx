@@ -14,6 +14,9 @@ interface SummaryTableProps {
   onWeekSelect: (weekData: WeeklyDetails) => void;
 }
 
+const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
+const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
+
 export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -35,11 +38,11 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
         });
 
         const invoices = weekItems
-            .filter(item => item.Type === 'Invoice')
+            .filter(item => INFLOW_TYPES.includes(item.Type))
             .reduce((sum, item) => sum + item.Amount, 0);
         
         const bills = weekItems
-            .filter(item => item.Type === 'Bill')
+            .filter(item => OUTFLOW_TYPES.includes(item.Type))
             .reduce((sum, item) => sum + item.Amount, 0);
 
         weeklySummaries.push({
@@ -86,7 +89,7 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
           <ListTodo className="w-6 h-6" />
           Weekly Summary
         </CardTitle>
-        <CardDescription>Total invoices and bills for the next 12 weeks. Click a row for details.</CardDescription>
+        <CardDescription>Total inflow and outflow for the next 12 weeks. Click a row for details.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="max-h-[400px] overflow-y-auto pr-2">
@@ -94,8 +97,8 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
             <TableHeader className="sticky top-0 bg-card z-10">
               <TableRow>
                 <TableHead>Week</TableHead>
-                <TableHead className="text-right">Invoices</TableHead>
-                <TableHead className="text-right">Bills</TableHead>
+                <TableHead className="text-right">Inflow</TableHead>
+                <TableHead className="text-right">Outflow</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

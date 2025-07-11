@@ -15,6 +15,9 @@ interface BalanceChartProps {
   onWeekSelect: (weekData: WeeklyDetails) => void;
 }
 
+const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
+const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
+
 export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
   const [isClient, setIsClient] = useState(false);
 
@@ -38,8 +41,8 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
                 return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
             });
 
-        const totalInvoices = weekItems.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.Amount, 0);
-        const totalBills = weekItems.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.Amount, 0);
+        const totalInvoices = weekItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.Amount, 0);
+        const totalBills = weekItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.Amount, 0);
         
         runningBalance += totalInvoices - totalBills;
 
@@ -62,11 +65,11 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
       color: "hsl(var(--primary))",
     },
      invoicesDue: {
-      label: "Invoices",
+      label: "Inflow",
       color: "hsl(var(--primary))",
     },
     billsDue: {
-      label: "Bills",
+      label: "Outflow",
       color: "hsl(var(--destructive))",
     },
   };
@@ -107,11 +110,11 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
                     </p>
                     <hr className="my-2 border-border" />
                     <p className="flex justify-between">
-                        <span className="text-primary font-semibold">Weekly Invoices:</span>
+                        <span className="text-primary font-semibold">Weekly Inflow:</span>
                         <span className="font-mono text-primary">{formatCurrency(weekData.invoicesDue)}</span>
                     </p>
                     <p className="flex justify-between">
-                        <span className="text-destructive font-semibold">Weekly Bills:</span>
+                        <span className="text-destructive font-semibold">Weekly Outflow:</span>
                         <span className="font-mono text-destructive">{formatCurrency(weekData.billsDue)}</span>
                     </p>
                  </div>

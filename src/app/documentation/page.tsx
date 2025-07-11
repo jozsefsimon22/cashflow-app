@@ -93,7 +93,13 @@ export default function DocumentationPage() {
               <CardContent className="space-y-4">
                 <p className="text-muted-foreground">The application requires the following columns by default (these can be re-mapped in Settings):</p>
                 <ul className="list-disc list-inside space-y-2 pl-4 text-muted-foreground">
-                  <li><strong>Type</strong>: Must contain either 'Invoice' (for money coming in) or 'Bill' (for money going out).</li>
+                  <li>
+                    <strong>Type</strong>: Must contain one of 'Invoice', 'Bill', 'Bill Credit', or 'Credit Memo'.
+                    <ul className="list-['-_'] list-inside pl-4 mt-1">
+                        <li><strong>Inflows</strong> (money in): 'Invoice', 'Bill Credit'</li>
+                        <li><strong>Outflows</strong> (money out): 'Bill', 'Credit Memo'</li>
+                    </ul>
+                  </li>
                   <li><strong>Document Number</strong>: A unique identifier for the transaction (e.g., invoice number).</li>
                   <li><strong>Name</strong>: The name of the client or vendor.</li>
                   <li><strong>Due Date</strong>: The date the payment is due. Various formats are supported (e.g., YYYY-MM-DD, DD/MM/YYYY).</li>

@@ -24,6 +24,8 @@ interface ValidationResult {
   message: string;
 }
 
+const VALID_TYPES = ['Invoice', 'Bill', 'Bill Credit', 'Credit Memo'];
+
 export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -136,6 +138,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         const typedData: CashFlowItem[] = json.map((row, index) => {
             const dueDateValue = row[columnConfig.dueDate];
             const dateValue = row[columnConfig.date];
+            const typeValue = row[columnConfig.type];
 
             let dueDate = parseDate(dueDateValue);
             if (dueDate === null) {
@@ -150,12 +153,12 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
             if(amount === null){
               throw new Error(`Invalid number format in row ${index + 2} for column '${columnConfig.amount}'.`);
             }
-            if(row[columnConfig.type] !== 'Invoice' && row[columnConfig.type] !== 'Bill'){
-              throw new Error(`Invalid value in row ${index + 2} for column '${columnConfig.type}'. Must be 'Invoice' or 'Bill'.`);
+            if(!VALID_TYPES.includes(typeValue)){
+              throw new Error(`Invalid value in row ${index + 2} for column '${columnConfig.type}'. Must be one of: ${VALID_TYPES.join(', ')}.`);
             }
             
             return {
-                'Type': row[columnConfig.type],
+                'Type': typeValue,
                 'Document Number': row[columnConfig.documentNumber],
                 'Name': row[columnConfig.name],
                 'Due Date': dueDate,
