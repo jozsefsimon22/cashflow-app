@@ -8,8 +8,9 @@ import { z } from "zod";
 import type { ColumnConfig } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
@@ -166,7 +167,7 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="max-w-sm space-y-2">
-                    <FormLabel htmlFor="starting-balance">Current Bank Balance (£)</FormLabel>
+                    <Label htmlFor="starting-balance">Current Bank Balance (£)</Label>
                     <div className="relative">
                        <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
