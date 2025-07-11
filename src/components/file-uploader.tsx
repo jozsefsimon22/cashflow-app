@@ -45,6 +45,12 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
     if (dateValue instanceof Date) {
         return isValid(dateValue) ? dateValue : null;
     }
+
+    // Use a specific format from settings first if it's not auto
+    if (typeof dateValue === 'string' && columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
+      const parsed = parse(dateValue, columnConfig.dateFormat, new Date());
+      if (isValid(parsed)) return parsed;
+    }
     
     // It's an ISO 8601 string
     if (typeof dateValue === 'string') {
@@ -56,21 +62,17 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
     if (typeof dateValue === 'number') {
         // Excel stores dates as days since 1900-01-01.
         // JS stores dates as ms since 1970-01-01.
-        // The offset is 25569 days.
+        // The offset is 25569 days for Windows, 24107 for Mac 1904. We assume Windows.
         const excelEpoch = new Date(Date.UTC(1899, 11, 30));
         const jsDate = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
         if (isValid(jsDate)) return jsDate;
     }
 
-    // Use a specific format from settings
-    if (columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
-      const parsed = parse(String(dateValue), columnConfig.dateFormat, new Date());
-      if (isValid(parsed)) return parsed;
+    // Last resort, try Date constructor as a fallback for other string formats
+    if (typeof dateValue === 'string') {
+        const generalParsed = new Date(dateValue);
+        if (isValid(generalParsed)) return generalParsed;
     }
-
-    // Last resort, try Date constructor
-    const generalParsed = new Date(dateValue);
-    if (isValid(generalParsed)) return generalParsed;
 
     return null;
   };
