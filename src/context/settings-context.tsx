@@ -81,6 +81,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         const transactionsWithDates = parsed.map((t: any) => ({
           ...t,
           startDate: new Date(t.startDate),
+          endDate: t.endDate ? new Date(t.endDate) : undefined,
         }));
         setManualTransactionsState(transactionsWithDates);
       }

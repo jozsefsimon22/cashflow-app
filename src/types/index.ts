@@ -24,6 +24,9 @@ export interface ManualTransaction {
   startDate: Date;
   frequency: 'once' | 'weekly' | 'fortnightly' | 'monthly' | 'quarterly';
   pastDueHandling?: 'auto-paid' | 'manual';
+  endCondition: 'never' | 'date' | 'occurrences';
+  endDate?: Date;
+  occurrences?: number;
 }
 
 export interface ManualTransactionOccurrence {

@@ -8,7 +8,7 @@ import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDo
 import { SettingsContext } from "@/context/settings-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, startOfWeek, endOfWeek, isWithinInterval, isBefore } from 'date-fns';
-import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/app-sidebar';
 import { cn } from '@/lib/utils';
 import {
@@ -73,6 +73,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], paidOccu
   const paidSet = new Set(paidOccurrences.map(p => `${p.transactionId}-${p.dueDate.toISOString()}`));
   
   manualTransactions.forEach(t => {
+    let occurrenceCount = 0;
     if (t.frequency === 'once') {
         if (t.startDate >= today) {
             items.push({ ...t, dueDate: t.startDate });
@@ -83,6 +84,13 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], paidOccu
     let currentDate = t.startDate;
     let i = 0;
     while (currentDate <= forecastEndDate && i < 1000) {
+      if (t.endCondition === 'date' && t.endDate && currentDate > t.endDate) {
+        break;
+      }
+      if (t.endCondition === 'occurrences' && t.occurrences && occurrenceCount >= t.occurrences) {
+        break;
+      }
+      
       const isPast = isBefore(currentDate, today);
       const isPaid = paidSet.has(`${t.id}-${currentDate.toISOString()}`);
       
@@ -96,6 +104,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], paidOccu
           }
       }
 
+      occurrenceCount++;
       switch (t.frequency) {
         case 'weekly': currentDate = addWeeks(currentDate, 1); break;
         case 'fortnightly': currentDate = addWeeks(currentDate, 2); break;
@@ -373,7 +382,6 @@ export default function WeeklyViewPage() {
       <main className="p-4 sm:p-6 md:p-8">
         <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
-              
               <h1 className="text-3xl font-bold font-headline text-foreground">Weekly View</h1>
             </div>
             {isClient && (data || manualTransactions.length > 0) && (

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/app-sidebar';
 import { History, ArrowUpCircle, ArrowDownCircle, CheckCircle, ArrowUpDown, ArrowLeft } from 'lucide-react';
 import type { ManualTransaction, ManualTransactionOccurrence } from "@/types";
@@ -39,7 +39,16 @@ const generateAllOccurrences = (manualTransactions: ManualTransaction[], paidOcc
 
         let currentDate = t.startDate;
         let i = 0;
+        let occurrenceCount = 0;
+
         while (currentDate <= forecastEndDate && i < 1000) {
+            if (t.endCondition === 'date' && t.endDate && currentDate > t.endDate) {
+                break;
+            }
+            if (t.endCondition === 'occurrences' && t.occurrences && occurrenceCount >= t.occurrences) {
+                break;
+            }
+
             items.push({
                 ...t,
                 dueDate: currentDate,
@@ -47,6 +56,7 @@ const generateAllOccurrences = (manualTransactions: ManualTransaction[], paidOcc
                 isPast: isBefore(currentDate, today),
             });
 
+            occurrenceCount++;
             switch (t.frequency) {
                 case 'weekly': currentDate = addWeeks(currentDate, 1); break;
                 case 'fortnightly': currentDate = addWeeks(currentDate, 2); break;

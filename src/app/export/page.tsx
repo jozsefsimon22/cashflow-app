@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/app-sidebar';
 import { Download } from 'lucide-react';
 import type { CashFlowItem, ManualTransaction } from '@/types';
@@ -24,11 +24,27 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], forecast
   const items: (ManualTransaction & { dueDate: Date })[] = [];
   
   manualTransactions.forEach(t => {
+    let occurrenceCount = 0;
+    if (t.frequency === 'once') {
+        if (t.startDate <= forecastEndDate) {
+            items.push({ ...t, dueDate: t.startDate });
+        }
+        return;
+    }
+
     let currentDate = t.startDate;
     let i = 0;
     while (currentDate <= forecastEndDate && i < 1000) {
+      if (t.endCondition === 'date' && t.endDate && currentDate > t.endDate) {
+        break;
+      }
+      if (t.endCondition === 'occurrences' && t.occurrences && occurrenceCount >= t.occurrences) {
+        break;
+      }
+
       items.push({ ...t, dueDate: currentDate });
-      if (t.frequency === 'once') break;
+      
+      occurrenceCount++;
       switch (t.frequency) {
         case 'weekly': currentDate = addWeeks(currentDate, 1); break;
         case 'fortnightly': currentDate = addWeeks(currentDate, 2); break;
@@ -190,7 +206,6 @@ export default function ExportPage() {
         <main className="p-4 sm:p-6 md:p-8">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
-              
               <h1 className="text-3xl font-bold font-headline text-foreground">Export Data</h1>
             </div>
           </div>

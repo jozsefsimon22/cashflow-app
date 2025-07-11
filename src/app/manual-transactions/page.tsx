@@ -18,7 +18,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { Repeat, CalendarIcon, Trash2, PlusCircle, ArrowUpCircle, ArrowDownCircle, Pencil, History } from 'lucide-react';
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/app-sidebar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -31,6 +31,9 @@ const manualTransactionSchema = z.object({
   startDate: z.date({ required_error: "A start date is required." }),
   frequency: z.enum(["once", "weekly", "fortnightly", "monthly", "quarterly"]),
   pastDueHandling: z.enum(['auto-paid', 'manual']).optional(),
+  endCondition: z.enum(['never', 'date', 'occurrences']),
+  endDate: z.date().optional(),
+  occurrences: z.coerce.number().optional(),
 }).refine(data => {
     if (data.frequency !== 'once' && !data.pastDueHandling) {
         return false;
@@ -39,6 +42,22 @@ const manualTransactionSchema = z.object({
 }, {
     message: "You must select a handling method for past due recurring items.",
     path: ["pastDueHandling"],
+}).refine(data => {
+    if (data.frequency !== 'once' && data.endCondition === 'date' && !data.endDate) {
+        return false;
+    }
+    return true;
+}, {
+    message: "End date is required.",
+    path: ["endDate"],
+}).refine(data => {
+    if (data.frequency !== 'once' && data.endCondition === 'occurrences' && (!data.occurrences || data.occurrences <= 0)) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Number of occurrences must be positive.",
+    path: ["occurrences"],
 });
 
 
@@ -54,12 +73,19 @@ export default function ManualTransactionsPage() {
       amount: 0,
       frequency: "once",
       pastDueHandling: 'auto-paid',
+      endCondition: 'never',
+      occurrences: undefined,
     },
   });
   
   const watchedFrequency = useWatch({
     control: manualTransactionForm.control,
     name: 'frequency',
+  });
+  
+  const watchedEndCondition = useWatch({
+    control: manualTransactionForm.control,
+    name: 'endCondition',
   });
 
   const resetForm = () => {
@@ -70,32 +96,47 @@ export default function ManualTransactionsPage() {
       startDate: undefined,
       frequency: "once",
       pastDueHandling: 'auto-paid',
+      endCondition: 'never',
+      endDate: undefined,
+      occurrences: undefined,
     });
+    setEditingTransactionId(null);
   }
 
   const onManualTransactionSubmit = (values: z.infer<typeof manualTransactionSchema>) => {
-    const finalValues = { ...values };
+    const finalValues: Partial<ManualTransaction> = { ...values };
+    
     if (values.frequency === 'once') {
         delete finalValues.pastDueHandling;
+        finalValues.endCondition = 'never';
+        delete finalValues.endDate;
+        delete finalValues.occurrences;
+    } else {
+       if (values.endCondition === 'never') {
+          delete finalValues.endDate;
+          delete finalValues.occurrences;
+       } else if (values.endCondition === 'date') {
+          delete finalValues.occurrences;
+       } else if (values.endCondition === 'occurrences') {
+          delete finalValues.endDate;
+       }
     }
 
+
     if (editingTransactionId) {
-      // Update existing transaction
       setManualTransactions(
         manualTransactions.map(t =>
-          t.id === editingTransactionId ? { id: t.id, ...finalValues } : t
+          t.id === editingTransactionId ? { ...t, ...finalValues } as ManualTransaction : t
         )
       );
       toast({
         title: "Transaction Updated",
         description: "Your manual transaction has been successfully updated.",
       });
-      setEditingTransactionId(null);
     } else {
-      // Add new transaction
       const newTransaction: ManualTransaction = {
-        id: new Date().toISOString(), // simple unique id
-        ...finalValues,
+        id: new Date().toISOString(),
+        ...finalValues as Omit<ManualTransaction, 'id'>,
       };
       setManualTransactions([...manualTransactions, newTransaction]);
       toast({
@@ -112,11 +153,11 @@ export default function ManualTransactionsPage() {
     manualTransactionForm.reset({
       ...transaction,
       pastDueHandling: transaction.pastDueHandling || 'auto-paid',
+      endCondition: transaction.endCondition || 'never',
     });
   };
   
   const handleCancelEdit = () => {
-    setEditingTransactionId(null);
     resetForm();
   };
 
@@ -138,7 +179,6 @@ export default function ManualTransactionsPage() {
         <main className="p-4 sm:p-6 md:p-8">
             <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-4">
-                  
                   <h1 className="text-3xl font-bold font-headline text-foreground">Manual Transactions</h1>
                 </div>
             </div>
@@ -274,7 +314,8 @@ export default function ManualTransactionsPage() {
                             />
                         </div>
                         {watchedFrequency !== 'once' && (
-                             <FormField
+                          <div className="space-y-6">
+                            <FormField
                                 control={manualTransactionForm.control}
                                 name="pastDueHandling"
                                 render={({ field }) => (
@@ -304,6 +345,79 @@ export default function ManualTransactionsPage() {
                                     </FormItem>
                                 )}
                             />
+                            <FormField
+                                control={manualTransactionForm.control}
+                                name="endCondition"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-3 pt-2">
+                                        <FormLabel>When does this transaction end?</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 pt-2"
+                                            >
+                                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                                    <FormControl><RadioGroupItem value="never" /></FormControl>
+                                                    <FormLabel className="font-normal">Never</FormLabel>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                                    <FormControl><RadioGroupItem value="date" /></FormControl>
+                                                    <FormLabel className="font-normal">On a specific date</FormLabel>
+                                                </FormItem>
+                                                <FormItem className="flex items-center space-x-2 space-y-0">
+                                                    <FormControl><RadioGroupItem value="occurrences" /></FormControl>
+                                                    <FormLabel className="font-normal">After a number of occurrences</FormLabel>
+                                                </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            {watchedEndCondition === 'date' && (
+                                <FormField
+                                    control={manualTransactionForm.control}
+                                    name="endDate"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col max-w-xs">
+                                            <FormLabel>End Date</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant={"outline"}
+                                                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                                        >
+                                                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                            {watchedEndCondition === 'occurrences' && (
+                                <FormField
+                                    control={manualTransactionForm.control}
+                                    name="occurrences"
+                                    render={({ field }) => (
+                                        <FormItem className="max-w-xs">
+                                            <FormLabel>Number of Occurrences</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" placeholder="e.g., 12" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
+                          </div>
                         )}
                         <div className="flex justify-end gap-2">
                            {editingTransactionId && (
@@ -336,6 +450,7 @@ export default function ManualTransactionsPage() {
                                 <TableHead>Type</TableHead>
                                 <TableHead>First Due</TableHead>
                                 <TableHead>Frequency</TableHead>
+                                <TableHead>Ends</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                             </TableHeader>
@@ -352,6 +467,14 @@ export default function ManualTransactionsPage() {
                                 </TableCell>
                                 <TableCell>{format(t.startDate, "dd/MM/yyyy")}</TableCell>
                                 <TableCell className="capitalize">{t.frequency}</TableCell>
+                                <TableCell>
+                                  {t.frequency === 'once' ? 'N/A' :
+                                    t.endCondition === 'never' ? 'Never' :
+                                    t.endCondition === 'date' && t.endDate ? `On ${format(t.endDate, "dd/MM/yy")}` :
+                                    t.endCondition === 'occurrences' ? `After ${t.occurrences} times` :
+                                    'Never'
+                                  }
+                                </TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => handleEditClick(t)}>
                                       <Pencil className="w-4 h-4" />
@@ -363,7 +486,7 @@ export default function ManualTransactionsPage() {
                                 </TableRow>
                             )) : (
                                 <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
+                                <TableCell colSpan={7} className="text-center text-muted-foreground h-24">
                                     No manual transactions added yet.
                                 </TableCell>
                                 </TableRow>
