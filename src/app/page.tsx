@@ -367,7 +367,7 @@ export default function Home() {
       </main>
     </SidebarInset>
     <Dialog open={!!selectedWeek} onOpenChange={() => setSelectedWeek(null)}>
-        <DialogContent className="max-w-6xl">
+        <DialogContent className="max-w-7xl">
           <DialogHeader>
             <DialogTitle>Details for {selectedWeek?.weekLabel}</DialogTitle>
             <DialogDescription>
