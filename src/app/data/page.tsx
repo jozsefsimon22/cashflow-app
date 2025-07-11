@@ -204,14 +204,6 @@ export default function DataPage() {
               </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                    <Link href="/recurring-history">
-                        <History />
-                        <span>Recurring History</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/exclusions">
                   <XCircle />

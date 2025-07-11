@@ -218,18 +218,10 @@ export default function RecurringHistoryPage() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild>
+                            <SidebarMenuButton asChild isActive>
                                 <Link href="/manual-transactions">
                                     <Repeat />
                                     <span>Manual Transactions</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                           <SidebarMenuButton asChild isActive>
-                                <Link href="/recurring-history">
-                                    <History />
-                                    <span>Recurring History</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

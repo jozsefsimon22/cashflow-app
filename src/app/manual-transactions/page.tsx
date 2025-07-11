@@ -175,14 +175,6 @@ export default function ManualTransactionsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                    <Link href="/recurring-history">
-                        <History />
-                        <span>Recurring History</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/exclusions">
@@ -400,7 +392,15 @@ export default function ManualTransactionsPage() {
                     </form>
                     </Form>
                     <div className="mt-6">
-                    <h4 className="text-md font-medium mb-2">Your Manual Transactions</h4>
+                        <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-md font-medium">Your Manual Transactions</h4>
+                            <Button variant="outline" asChild>
+                                <Link href="/recurring-history">
+                                    <History className="mr-2 h-4 w-4" />
+                                    View Recurring History
+                                </Link>
+                            </Button>
+                        </div>
                     <div className="border rounded-lg max-h-[50vh] overflow-auto">
                         <Table>
                             <TableHeader>
