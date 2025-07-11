@@ -4,15 +4,20 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, ManualTransaction } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown } from 'lucide-react';
+import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins } from 'lucide-react';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, startOfWeek, endOfWeek } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
@@ -26,12 +31,12 @@ interface WeeklyBreakdown {
   manualOutflows: ManualTransaction[];
   totalInflow: number;
   totalOutflow: number;
+  netFlow: number;
 }
 
-const generateForecastItems = (manualTransactions: ManualTransaction[]): (ManualTransaction & { weekStartDate: Date })[] => {
-  const items: (ManualTransaction & { weekStartDate: Date })[] = [];
-  const forecastEndDate = addWeeks(startOfToday(), 13);
-
+const generateForecastItems = (manualTransactions: ManualTransaction[], forecastEndDate: Date): (ManualTransaction & { dueDate: Date })[] => {
+  const items: (ManualTransaction & { dueDate: Date })[] = [];
+  
   manualTransactions.forEach(t => {
     let currentDate = t.startDate;
     let i = 0;
@@ -39,7 +44,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[]): (Manual
       if (currentDate >= startOfToday()) {
         items.push({
           ...t,
-          weekStartDate: startOfWeek(currentDate, { weekStartsOn: 1 })
+          dueDate: currentDate
         });
       }
 
@@ -77,7 +82,8 @@ export default function WeeklyViewPage() {
       !excludedNamesSet.has(item.Name)
     ) : [];
 
-    const manualData = generateForecastItems(manualTransactions)
+    const forecastEndDate = addWeeks(startOfToday(), 13);
+    const manualData = generateForecastItems(manualTransactions, forecastEndDate)
         .filter(item => !excludedNamesSet.has(item.name));
 
     const breakdown: WeeklyBreakdown[] = [];
@@ -97,8 +103,8 @@ export default function WeeklyViewPage() {
 
         // Filter manual data for the week
         const weekManualData = manualData.filter(item => {
-            const startDate = item.startDate;
-            const comparisonDate = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+            const dueDate = item.dueDate;
+            const comparisonDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
             return comparisonDate >= weekStart && comparisonDate <= weekEnd;
         });
 
@@ -115,15 +121,19 @@ export default function WeeklyViewPage() {
 
         const manualInflowTotal = manualInflows.reduce((sum, item) => sum + item.amount, 0);
         const manualOutflowTotal = manualOutflows.reduce((sum, item) => sum + item.amount, 0);
+        
+        const totalInflow = accountsReceivable + manualInflowTotal;
+        const totalOutflow = accountsPayable + manualOutflowTotal;
 
         breakdown.push({
-            weekLabel: `w/c ${format(weekStart, 'dd/MM/yyyy')}`,
+            weekLabel: `w/c ${format(weekStart, 'dd/MM')}`,
             accountsReceivable,
             accountsPayable,
             manualInflows,
             manualOutflows,
-            totalInflow: accountsReceivable + manualInflowTotal,
-            totalOutflow: accountsPayable + manualOutflowTotal,
+            totalInflow,
+            totalOutflow,
+            netFlow: totalInflow - totalOutflow,
         });
     }
 
@@ -135,8 +145,33 @@ export default function WeeklyViewPage() {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
       currency: 'GBP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
+  
+  const ManualTransactionTooltip = ({ transactions }: { transactions: ManualTransaction[] }) => {
+    if (transactions.length === 0) return null;
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className="ml-2">{transactions.length}</Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="p-2 space-y-1">
+              {transactions.map(t => (
+                <div key={t.id} className="flex justify-between text-xs gap-4">
+                  <span>{t.name}</span>
+                  <span className="font-mono">{formatCurrency(t.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )
+  }
 
   return (
     <>
@@ -224,86 +259,95 @@ export default function WeeklyViewPage() {
                     12-Week Transaction Breakdown
                 </CardTitle>
                 <CardDescription>
-                    A detailed look at your expected inflows and outflows for each of the next 12 weeks.
+                    A detailed look at your expected inflows and outflows for each of the next 12 weeks. All figures are in GBP.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 {isClient && (data || manualTransactions.length > 0) ? (
-                    <Accordion type="single" collapsible className="w-full space-y-2">
-                    {weeklyBreakdown.map((week, index) => (
-                        <AccordionItem value={`item-${index}`} key={index} className="border rounded-lg px-4 bg-background">
-                            <AccordionTrigger>
-                                <div className="flex justify-between items-center w-full">
-                                    <span className="font-semibold text-lg">{week.weekLabel}</span>
-                                    <div className="flex gap-4 sm:gap-8 items-center font-mono text-right">
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-sm text-muted-foreground">Inflow</span>
-                                            <span className="font-semibold text-primary">{formatCurrency(week.totalInflow)}</span>
+                    <div className="overflow-x-auto">
+                        <Table className="min-w-max">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[200px] font-bold text-foreground sticky left-0 bg-card z-10">Category</TableHead>
+                                    {weeklyBreakdown.map((week, index) => (
+                                        <TableHead key={index} className="text-right w-36 font-semibold">{week.weekLabel}</TableHead>
+                                    ))}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow className="bg-primary/5">
+                                    <TableCell colSpan={13} className="font-bold text-primary sticky left-0 bg-primary/5 z-10">
+                                        <div className="flex items-center gap-2">
+                                            <ArrowUpCircle className="w-5 h-5" /> Inflow
                                         </div>
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-sm text-muted-foreground">Outflow</span>
-                                            <span className="font-semibold text-destructive">{formatCurrency(week.totalOutflow)}</span>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                       <div className="flex items-center gap-2">
+                                            <Package className="w-4 h-4 text-muted-foreground"/> Accounts Receivable
                                         </div>
-                                    </div>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                                    {/* Inflow Details */}
-                                    <div className="space-y-3">
-                                        <h4 className="font-semibold text-primary flex items-center gap-2"><ArrowUpCircle className="w-5 h-5"/>Inflow Details</h4>
-                                        <div className="p-4 border rounded-md bg-secondary/30">
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-2">
-                                                   <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                                                   <span className="font-medium">Accounts Receivable</span>
-                                                </div>
-                                                <span className="font-mono">{formatCurrency(week.accountsReceivable)}</span>
-                                            </div>
+                                    </TableCell>
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono">{formatCurrency(week.accountsReceivable)}</TableCell>)}
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                        <div className="flex items-center gap-2">
+                                            <Repeat className="w-4 h-4 text-muted-foreground"/> Manual Inflows
+                                            <ManualTransactionTooltip transactions={weeklyBreakdown.flatMap(w => w.manualInflows)} />
                                         </div>
-                                        {week.manualInflows.length > 0 && (
-                                            <div className="p-4 border rounded-md bg-secondary/30 space-y-2">
-                                                <h5 className="font-medium flex items-center gap-2"><Repeat className="w-4 h-4 text-muted-foreground"/>Manual Inflows</h5>
-                                                {week.manualInflows.map(t => (
-                                                    <div key={t.id} className="flex justify-between items-center text-sm">
-                                                        <span>{t.name} <Badge variant="outline" className="capitalize ml-2">{t.frequency}</Badge></span>
-                                                        <span className="font-mono">{formatCurrency(t.amount)}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        {week.totalInflow === 0 && <p className="text-sm text-muted-foreground text-center py-4">No inflows this week.</p>}
-                                    </div>
-                                    {/* Outflow Details */}
-                                     <div className="space-y-3">
-                                        <h4 className="font-semibold text-destructive flex items-center gap-2"><ArrowDownCircle className="w-5 h-5"/>Outflow Details</h4>
-                                        <div className="p-4 border rounded-md bg-secondary/30">
-                                            <div className="flex justify-between items-center">
-                                                <div className="flex items-center gap-2">
-                                                    <TrendingDown className="w-4 h-4 text-muted-foreground" />
-                                                    <span className="font-medium">Accounts Payable</span>
-                                                </div>
-                                                <span className="font-mono">{formatCurrency(week.accountsPayable)}</span>
-                                            </div>
+                                    </TableCell>
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono">{formatCurrency(week.manualInflows.reduce((sum, t) => sum + t.amount, 0))}</TableCell>)}
+                                </TableRow>
+                                <TableRow className="bg-secondary">
+                                    <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Inflow</TableCell>
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono font-bold text-primary">{formatCurrency(week.totalInflow)}</TableCell>)}
+                                </TableRow>
+
+                                <TableRow className="bg-destructive/5">
+                                    <TableCell colSpan={13} className="font-bold text-destructive sticky left-0 bg-destructive/5 z-10">
+                                        <div className="flex items-center gap-2">
+                                            <ArrowDownCircle className="w-5 h-5" /> Outflow
                                         </div>
-                                        {week.manualOutflows.length > 0 && (
-                                            <div className="p-4 border rounded-md bg-secondary/30 space-y-2">
-                                                <h5 className="font-medium flex items-center gap-2"><Repeat className="w-4 h-4 text-muted-foreground"/>Manual Outflows</h5>
-                                                {week.manualOutflows.map(t => (
-                                                    <div key={t.id} className="flex justify-between items-center text-sm">
-                                                        <span>{t.name} <Badge variant="outline" className="capitalize ml-2">{t.frequency}</Badge></span>
-                                                        <span className="font-mono">{formatCurrency(t.amount)}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                        {week.totalOutflow === 0 && <p className="text-sm text-muted-foreground text-center py-4">No outflows this week.</p>}
-                                    </div>
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
-                    </Accordion>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                        <div className="flex items-center gap-2">
+                                            <Package className="w-4 h-4 text-muted-foreground"/> Accounts Payable
+                                        </div>
+                                    </TableCell>
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono">{formatCurrency(week.accountsPayable)}</TableCell>)}
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                       <div className="flex items-center gap-2">
+                                            <Repeat className="w-4 h-4 text-muted-foreground"/> Manual Outflows
+                                            <ManualTransactionTooltip transactions={weeklyBreakdown.flatMap(w => w.manualOutflows)} />
+                                        </div>
+                                    </TableCell>
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono">{formatCurrency(week.manualOutflows.reduce((sum, t) => sum + t.amount, 0))}</TableCell>)}
+                                </TableRow>
+                                <TableRow className="bg-secondary">
+                                    <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Outflow</TableCell>
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono font-bold text-destructive">{formatCurrency(week.totalOutflow)}</TableCell>)}
+                                </TableRow>
+
+                                <TableRow className="border-t-2 border-border">
+                                    <TableCell className="font-bold text-foreground sticky left-0 bg-card z-10">
+                                        <div className="flex items-center gap-2">
+                                            <Coins className="w-5 h-5" /> Net Cash Flow
+                                        </div>
+                                    </TableCell>
+                                    {weeklyBreakdown.map((week, index) => (
+                                        <TableCell key={index} className={cn("text-right font-mono font-bold", week.netFlow >= 0 ? "text-primary" : "text-destructive")}>
+                                            {formatCurrency(week.netFlow)}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
                 ) : (
                    <div className="text-center text-muted-foreground py-10">
                         <p>No data available to display.</p>
@@ -318,3 +362,5 @@ export default function WeeklyViewPage() {
     </>
   );
 }
+
+    
