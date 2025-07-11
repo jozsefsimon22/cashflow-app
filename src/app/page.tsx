@@ -4,7 +4,7 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, WeeklyDetails } from '@/types';
 import { FileUploader } from '@/components/file-uploader';
-import { BalanceChart } from '@/components/invoice-chart';
+import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare } from 'lucide-react';
@@ -49,9 +49,9 @@ export default function Home() {
   };
   
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-GB', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'GBP',
     }).format(amount);
   };
   
