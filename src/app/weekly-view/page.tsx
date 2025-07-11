@@ -4,7 +4,7 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, ManualTransaction } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins } from 'lucide-react';
+import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins, Download } from 'lucide-react';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -315,6 +315,14 @@ export default function WeeklyViewPage() {
               </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/export">
+                  <Download />
+                  <span>Export</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/documentation">
