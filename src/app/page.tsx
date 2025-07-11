@@ -6,7 +6,7 @@ import type { CashFlowItem, ManualTransaction, WeeklyDetails } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle, CalendarDays, Info, Download } from 'lucide-react';
+import { Database, ArrowUpCircle, ArrowDownCircle, GanttChartSquare, Wallet, TrendingUp, TrendingDown, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -20,7 +20,8 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroupLabel } from '@/components/ui/sidebar';
+import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -209,91 +210,7 @@ export default function Home() {
 
   return (
     <>
-    <Sidebar>
-      <SidebarHeader>
-        <div className="flex items-center gap-2">
-            <div className="bg-primary p-2 rounded-lg">
-                <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-semibold font-headline text-foreground">VizFlow</h1>
-        </div>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarMenu>
-          <SidebarGroupLabel>Analysis</SidebarGroupLabel>
-          <SidebarMenuItem>
-             <SidebarMenuButton asChild isActive>
-              <Link href="/">
-                <LayoutDashboard />
-                <span>Dashboard</span>
-              </Link>
-             </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-             <SidebarMenuButton asChild>
-              <Link href="/weekly-view">
-                <CalendarDays />
-                <span>Weekly View</span>
-              </Link>
-             </SidebarMenuButton>
-          </SidebarMenuItem>
-          
-          <SidebarGroupLabel>Data Management</SidebarGroupLabel>
-          <SidebarMenuItem>
-             <SidebarMenuButton asChild>
-              <Link href="/data">
-                <Database />
-                <span>Imported Data</span>
-              </Link>
-             </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-             <SidebarMenuButton asChild>
-                <Link href="/manual-transactions">
-                  <Repeat />
-                  <span>Manual Transactions</span>
-                </Link>
-             </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/exclusions">
-                <XCircle />
-                <span>Exclusions</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          
-          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
-           <SidebarMenuItem>
-             <SidebarMenuButton asChild>
-              <Link href="/settings">
-                <Settings />
-                <span>Settings</span>
-              </Link>
-             </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-             <SidebarMenuButton asChild>
-                <Link href="/export">
-                  <Download />
-                  <span>Export</span>
-                </Link>
-             </SidebarMenuButton>
-          </SidebarMenuItem>
-          
-          <SidebarGroupLabel>Support</SidebarGroupLabel>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/documentation">
-                <BookOpen />
-                <span>Documentation</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarContent>
-    </Sidebar>
+    <AppSidebar activePage="dashboard" />
     <SidebarInset>
       <main className="p-4 sm:p-6 md:p-8">
         <div className="flex justify-between items-center mb-8">
@@ -315,7 +232,7 @@ export default function Home() {
                   <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Current Bank Balance</CardTitle>
-                          <Landmark className="h-4 w-4 text-muted-foreground" />
+                          <GanttChartSquare className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
                           <div className="text-2xl font-bold">{formatCurrency(startingBalance)}</div>

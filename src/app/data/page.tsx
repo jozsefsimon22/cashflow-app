@@ -21,11 +21,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroupLabel } from '@/components/ui/sidebar';
+import { SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileUploader } from "@/components/file-uploader";
+import { AppSidebar } from "@/components/app-sidebar";
 
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
@@ -160,91 +161,7 @@ export default function DataPage() {
 
   return (
     <>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-              <div className="bg-primary p-2 rounded-lg">
-                  <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
-              </div>
-              <h1 className="text-xl font-semibold font-headline text-foreground">VizFlow</h1>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarGroupLabel>Analysis</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/">
-                  <LayoutDashboard />
-                  <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/weekly-view">
-                  <CalendarDays />
-                  <span>Weekly View</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive>
-                <Link href="/data">
-                  <Database />
-                  <span>Imported Data</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/manual-transactions">
-                  <Repeat />
-                  <span>Manual Transactions</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/exclusions">
-                  <XCircle />
-                  <span>Exclusions</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarGroupLabel>Configuration</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/settings">
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/export">
-                  <Download />
-                  <span>Export</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarGroupLabel>Support</SidebarGroupLabel>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/documentation">
-                  <BookOpen />
-                  <span>Documentation</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
+      <AppSidebar activePage="data" />
       <SidebarInset>
         <main className="p-4 sm:p-6 md:p-8">
           <div className="flex justify-between items-center mb-8">

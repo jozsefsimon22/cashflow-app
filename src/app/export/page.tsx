@@ -7,8 +7,9 @@ import * as XLSX from 'xlsx';
 import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroupLabel, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download } from 'lucide-react';
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from '@/components/app-sidebar';
+import { Download } from 'lucide-react';
 import type { CashFlowItem, ManualTransaction } from '@/types';
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
@@ -183,91 +184,7 @@ export default function ExportPage() {
 
   return (
     <>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <div className="bg-primary p-2 rounded-lg">
-              <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-semibold font-headline text-foreground">VizFlow</h1>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarGroupLabel>Analysis</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/">
-                  <LayoutDashboard />
-                  <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/weekly-view">
-                  <CalendarDays />
-                  <span>Weekly View</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/data">
-                  <Database />
-                  <span>Imported Data</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/manual-transactions">
-                  <Repeat />
-                  <span>Manual Transactions</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/exclusions">
-                  <XCircle />
-                  <span>Exclusions</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarGroupLabel>Configuration</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/settings">
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive>
-                <Link href="/export">
-                  <Download />
-                  <span>Export</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarGroupLabel>Support</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/documentation">
-                  <BookOpen />
-                  <span>Documentation</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
+      <AppSidebar activePage="export" />
       <SidebarInset>
         <main className="p-4 sm:p-6 md:p-8">
           <div className="flex justify-between items-center mb-8">

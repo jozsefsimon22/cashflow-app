@@ -10,9 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroupLabel, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, Trash2, Search, PlusCircle, CalendarDays, Download } from 'lucide-react';
-import { Badge } from "@/components/ui/badge";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from '@/components/app-sidebar';
+import { XCircle, Trash2, Search, PlusCircle } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ExclusionsPage() {
@@ -80,91 +80,7 @@ export default function ExclusionsPage() {
 
   return (
     <>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <div className="bg-primary p-2 rounded-lg">
-              <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-semibold font-headline text-foreground">VizFlow</h1>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarGroupLabel>Analysis</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/">
-                  <LayoutDashboard />
-                  <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/weekly-view">
-                  <CalendarDays />
-                  <span>Weekly View</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/data">
-                  <Database />
-                  <span>Imported Data</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/manual-transactions">
-                  <Repeat />
-                  <span>Manual Transactions</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive>
-                <Link href="/exclusions">
-                  <XCircle />
-                  <span>Exclusions</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarGroupLabel>Configuration</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/settings">
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/export">
-                  <Download />
-                  <span>Export</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            <SidebarGroupLabel>Support</SidebarGroupLabel>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/documentation">
-                  <BookOpen />
-                  <span>Documentation</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarContent>
-      </Sidebar>
+      <AppSidebar activePage="exclusions" />
       <SidebarInset>
         <main className="p-4 sm:p-6 md:p-8">
           <div className="flex justify-between items-center mb-8">
