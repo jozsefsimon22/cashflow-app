@@ -16,6 +16,7 @@ const defaultConfig: ColumnConfig = {
   name: 'Name',
   dueDate: 'Due Date',
   amount: 'Amount',
+  status: 'Status',
   dateFormat: 'auto',
 };
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, FileSpreadsheet, BarChart, MousePointerClick, Settings2, DatabaseZap } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export default function DocumentationPage() {
   return (
@@ -90,14 +91,28 @@ export default function DocumentationPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-muted-foreground">The application requires the following columns by default:</p>
+                <p className="text-muted-foreground">The application requires the following columns by default (these can be re-mapped in Settings):</p>
                 <ul className="list-disc list-inside space-y-2 pl-4 text-muted-foreground">
                   <li><strong>Type</strong>: Must contain either 'Invoice' (for money coming in) or 'Bill' (for money going out).</li>
                   <li><strong>Document Number</strong>: A unique identifier for the transaction (e.g., invoice number).</li>
                   <li><strong>Name</strong>: The name of the client or vendor.</li>
                   <li><strong>Due Date</strong>: The date the payment is due. Various formats are supported (e.g., YYYY-MM-DD, DD/MM/YYYY).</li>
                   <li><strong>Amount</strong>: The transaction amount as a number.</li>
+                  <li><strong>Status</strong>: The current state of the transaction (e.g., 'Open', 'Paid In Full').</li>
                 </ul>
+                <div className="p-4 bg-secondary/50 rounded-lg">
+                  <h4 className="font-semibold text-foreground mb-2">Status-Based Filtering</h4>
+                  <p className="text-muted-foreground">
+                    The application automatically filters your data based on the <strong>Status</strong> column to ensure the forecast is accurate. Only transactions with the following statuses will be included in the cash flow analysis:
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                      <Badge variant="secondary">Open</Badge>
+                      <Badge variant="secondary">Pending Approval</Badge>
+                  </div>
+                   <p className="text-muted-foreground mt-3">
+                    All other statuses (e.g., 'Paid In Full', 'Cancelled', 'Rejected') will be excluded.
+                  </p>
+                </div>
               </CardContent>
             </Card>
 

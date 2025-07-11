@@ -5,6 +5,7 @@ export interface CashFlowItem {
   Name: string;
   'Due Date': Date;
   Amount: number;
+  Status: string;
 }
 
 export interface WeeklySummary {
@@ -21,6 +22,7 @@ export interface ColumnConfig {
   name: string;
   dueDate: string;
   amount: string;
+  status: string;
   dateFormat: string;
 }
 

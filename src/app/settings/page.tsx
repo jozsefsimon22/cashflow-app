@@ -23,6 +23,7 @@ const formSchema = z.object({
   name: z.string().min(1, "Column name cannot be empty."),
   dueDate: z.string().min(1, "Column name cannot be empty."),
   amount: z.string().min(1, "Column name cannot be empty."),
+  status: z.string().min(1, "Column name cannot be empty."),
   dateFormat: z.string(),
 });
 
@@ -172,6 +173,19 @@ export default function SettingsPage() {
                           <FormLabel>Amount Column</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="e.g., 'Total'" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status Column</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 'Payment Status'" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

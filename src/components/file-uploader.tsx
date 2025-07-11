@@ -24,6 +24,8 @@ interface ValidationResult {
   message: string;
 }
 
+const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
+
 export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -98,11 +100,11 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', cellText: true });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: true, defval: null });
+        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false, defval: null });
 
         const requiredColumns = [
           { name: 'Type', configKey: 'type' },
@@ -110,6 +112,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
           { name: 'Name', configKey: 'name' },
           { name: 'Due Date', configKey: 'dueDate' },
           { name: 'Amount', configKey: 'amount' },
+          { name: 'Status', configKey: 'status' },
         ];
         
         const firstRow = json[0] || {};
@@ -131,7 +134,12 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
            throw new Error(`The uploaded file is missing required columns. Please check the validation details below.`);
         }
 
-        const typedData: CashFlowItem[] = json.map((row, index) => {
+        const filteredJson = json.filter(row => {
+          const status = row[columnConfig.status];
+          return INCLUDED_STATUSES.includes(status);
+        });
+
+        const typedData: CashFlowItem[] = filteredJson.map((row, index) => {
             const dueDate = parseDate(row[columnConfig.dueDate]);
             const amount = parseAmount(row[columnConfig.amount]);
 
@@ -151,13 +159,14 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
                 'Name': row[columnConfig.name],
                 'Due Date': dueDate,
                 'Amount': amount,
+                'Status': row[columnConfig.status],
             };
         });
 
         onDataUploaded(typedData);
         toast({
           title: "Success!",
-          description: `${file.name} processed successfully.`,
+          description: `${file.name} processed successfully. ${filteredJson.length} of ${json.length} rows included.`,
         });
       } catch (error) {
         console.error("File parsing error:", error);
