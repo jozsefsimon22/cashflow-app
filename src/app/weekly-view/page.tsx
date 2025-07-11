@@ -142,13 +142,17 @@ export default function WeeklyViewPage() {
     const overdueFileData = fileData.filter(item => item['Due Date'] && isBefore(item['Due Date'], today));
     const overdueManualData = allManualData.filter(item => isBefore(item.dueDate, today));
 
-    const overdueArItems = overdueFileData.filter(item => INFLOW_TYPES.includes(item.Type));
-    const overdueApItems = overdueFileData.filter(item => OUTFLOW_TYPES.includes(item.Type));
+    const overdueInvoices = overdueFileData.filter(item => item.Type === 'Invoice');
+    const overdueCreditMemos = overdueFileData.filter(item => item.Type === 'Credit Memo');
+    const overdueBills = overdueFileData.filter(item => item.Type === 'Bill');
+    const overdueBillCredits = overdueFileData.filter(item => item.Type === 'Bill Credit');
+
     const overdueManualInflows = overdueManualData.filter(t => t.type === 'inflow');
     const overdueManualOutflows = overdueManualData.filter(t => t.type === 'outflow');
     
-    const overdueAR = overdueArItems.reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const overdueAP = overdueApItems.reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const overdueAR = overdueInvoices.reduce((sum, item) => sum + item.RemainingAmount, 0) - overdueCreditMemos.reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const overdueAP = overdueBills.reduce((sum, item) => sum + item.RemainingAmount, 0) - overdueBillCredits.reduce((sum, item) => sum + item.RemainingAmount, 0);
+    
     const overdueManualInflowTotal = overdueManualInflows.reduce((sum, item) => sum + item.amount, 0);
     const overdueManualOutflowTotal = overdueManualOutflows.reduce((sum, item) => sum + item.amount, 0);
 
@@ -163,8 +167,8 @@ export default function WeeklyViewPage() {
       accountsPayable: overdueAP,
       manualInflows: overdueManualInflows,
       manualOutflows: overdueManualOutflows,
-      arItems: overdueArItems,
-      apItems: overdueApItems,
+      arItems: [...overdueInvoices, ...overdueCreditMemos],
+      apItems: [...overdueBills, ...overdueBillCredits],
       totalInflow: overdueTotalInflow,
       totalOutflow: overdueTotalOutflow,
       netFlow: overdueNetFlow,
@@ -189,11 +193,13 @@ export default function WeeklyViewPage() {
             return isWithinInterval(item.dueDate, { start: weekStart, end: weekEnd });
         });
 
-        const arItems = weekFileData.filter(item => INFLOW_TYPES.includes(item.Type));
-        const apItems = weekFileData.filter(item => OUTFLOW_TYPES.includes(item.Type));
+        const invoices = weekFileData.filter(item => item.Type === 'Invoice');
+        const creditMemos = weekFileData.filter(item => item.Type === 'Credit Memo');
+        const bills = weekFileData.filter(item => item.Type === 'Bill');
+        const billCredits = weekFileData.filter(item => item.Type === 'Bill Credit');
 
-        const accountsReceivable = arItems.reduce((sum, item) => sum + item.RemainingAmount, 0);
-        const accountsPayable = apItems.reduce((sum, item) => sum + item.RemainingAmount, 0);
+        const accountsReceivable = invoices.reduce((sum, item) => sum + item.RemainingAmount, 0) - creditMemos.reduce((sum, item) => sum + item.RemainingAmount, 0);
+        const accountsPayable = bills.reduce((sum, item) => sum + item.RemainingAmount, 0) - billCredits.reduce((sum, item) => sum + item.RemainingAmount, 0);
         
         const manualInflows = weekManualData.filter(t => t.type === 'inflow');
         const manualOutflows = weekManualData.filter(t => t.type === 'outflow');
@@ -212,8 +218,8 @@ export default function WeeklyViewPage() {
             accountsPayable,
             manualInflows,
             manualOutflows,
-            arItems,
-            apItems,
+            arItems: [...invoices, ...creditMemos],
+            apItems: [...bills, ...billCredits],
             totalInflow,
             totalOutflow,
             netFlow: netFlow,
@@ -246,7 +252,16 @@ export default function WeeklyViewPage() {
     return dialogDetails.items.reduce((acc: GroupedItems, item) => {
         const isManual = 'frequency' in item;
         const name = isManual ? item.name : item.Name || 'Unnamed';
-        const amount = isManual ? item.amount : item.RemainingAmount;
+        
+        let amount;
+        if (isManual) {
+            amount = item.amount;
+        } else {
+            const cashFlowItem = item as CashFlowItem;
+            amount = (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') 
+                ? -cashFlowItem.RemainingAmount 
+                : cashFlowItem.RemainingAmount;
+        }
 
         if (!acc[name]) {
           acc[name] = { total: 0, items: [] };
@@ -517,14 +532,24 @@ export default function WeeklyViewPage() {
                           <TableBody>
                             {group.items.map((item, index) => {
                                 const isManual = 'frequency' in item;
-                                const id = isManual ? `manual-${item.id}` : item['Document Number'];
-                                const type = isManual ? (item.type === 'inflow' ? 'Manual Inflow' : 'Manual Outflow') : item.Type;
-                                const amount = isManual ? item.amount : (item as CashFlowItem).RemainingAmount;
+                                const id = isManual ? 'Recurring' : (item as CashFlowItem)['Document Number'];
+                                const type = isManual ? (item.type === 'inflow' ? 'Manual Inflow' : 'Manual Outflow') : (item as CashFlowItem).Type;
+                                
+                                let amount;
+                                if (isManual) {
+                                    amount = item.amount;
+                                } else {
+                                    const cashFlowItem = item as CashFlowItem;
+                                    amount = cashFlowItem.RemainingAmount;
+                                }
+                                
+                                const amountDisplay = (type === 'Credit Memo' || type === 'Bill Credit') ? -amount : amount;
+
                                 return (
                                     <TableRow key={`${id}-${index}`}>
-                                        <TableCell>{isManual ? 'Recurring' : id}</TableCell>
+                                        <TableCell>{id}</TableCell>
                                         <TableCell>{type}</TableCell>
-                                        <TableCell className="text-right font-mono">{formatCurrency(amount)}</TableCell>
+                                        <TableCell className="text-right font-mono">{formatCurrency(amountDisplay)}</TableCell>
                                     </TableRow>
                                 )
                             })}
@@ -543,5 +568,3 @@ export default function WeeklyViewPage() {
     </>
   );
 }
-
-    
