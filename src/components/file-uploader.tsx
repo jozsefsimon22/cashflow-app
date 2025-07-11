@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef } from 'react';
@@ -40,18 +41,18 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
 
   const parseDate = (dateValue: any): Date | null => {
     if (!dateValue) return null;
+
+    // Use a specific format from settings first if it's not auto
+    if (typeof dateValue === 'string' && columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
+        const parsed = parse(dateValue, columnConfig.dateFormat.replace(/yyyy/g, 'yyyy').replace(/dd/g, 'dd'), new Date());
+        if (isValid(parsed)) return parsed;
+    }
     
-    // It's already a date object
+    // It's already a date object (less likely now, but good fallback)
     if (dateValue instanceof Date) {
         return isValid(dateValue) ? dateValue : null;
     }
 
-    // Use a specific format from settings first if it's not auto
-    if (typeof dateValue === 'string' && columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
-      const parsed = parse(dateValue, columnConfig.dateFormat, new Date());
-      if (isValid(parsed)) return parsed;
-    }
-    
     // It's an ISO 8601 string
     if (typeof dateValue === 'string') {
         const parsedISO = parseISO(dateValue);
@@ -97,11 +98,11 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
     reader.onload = (e) => {
       try {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false, defval: null });
+        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: true, defval: null });
 
         const requiredColumns = [
           { name: 'Type', configKey: 'type' },
