@@ -295,13 +295,20 @@ export default function WeeklyViewPage() {
       const getName = (item: (CashFlowItem | (ManualTransaction & { dueDate: Date }))): string => {
         if (!item) return '';
         const isManual = 'frequency' in item;
-        return isManual ? (item as ManualTransaction).name : (item as CashFlowItem).Name;
+        const name = isManual ? (item as ManualTransaction).name : (item as CashFlowItem).Name;
+        return name || '';
       }
 
       const sortedArray = Object.entries(grouped).sort(([, a], [, b]) => {
         if (sortConfig.key === 'name') {
-            const nameA = getName(a.items[0]) || '';
-            const nameB = getName(b.items[0]) || '';
+            let nameA = getName(a.items[0]);
+            let nameB = getName(b.items[0]);
+            
+            // Strip CUS prefix for sorting if it exists
+            const cusPrefixRegex = /^CUS\d{1,5}\s+/;
+            nameA = nameA.replace(cusPrefixRegex, '');
+            nameB = nameB.replace(cusPrefixRegex, '');
+
             return sortConfig.direction === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
         } else { // 'amount'
             return sortConfig.direction === 'asc' ? a.total - b.total : b.total - a.total;
@@ -625,5 +632,3 @@ export default function WeeklyViewPage() {
     </>
   );
 }
-
-    
