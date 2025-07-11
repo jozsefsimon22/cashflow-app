@@ -1,0 +1,102 @@
+"use client";
+
+import { useMemo, useEffect, useState } from 'react';
+import type { CashFlowItem, WeeklySummary } from '@/types';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { addWeeks, startOfWeek, isWithinInterval, endOfWeek, getWeek } from 'date-fns';
+import { ListTodo } from 'lucide-react';
+
+interface SummaryTableProps {
+  data: CashFlowItem[];
+}
+
+export function SummaryTable({ data }: SummaryTableProps) {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const summaryData = useMemo((): WeeklySummary[] => {
+    if (!isClient) return [];
+    const today = new Date();
+    const weeklySummaries: WeeklySummary[] = [];
+
+    for (let i = 0; i < 12; i++) {
+        const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
+
+        const weekItems = data.filter(item => {
+            const dueDate = new Date(item['Due Date']);
+            return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
+        });
+
+        const receivables = weekItems
+            .filter(item => item.Type === 'Receivable')
+            .reduce((sum, item) => sum + item.Amount, 0);
+        
+        const payables = weekItems
+            .filter(item => item.Type === 'Payable')
+            .reduce((sum, item) => sum + item.Amount, 0);
+
+        weeklySummaries.push({
+            week: getWeek(weekStart, { weekStartsOn: 1 }),
+            weekLabel: `Week ${getWeek(weekStart, { weekStartsOn: 1 })}`,
+            receivables,
+            payables,
+        });
+    }
+
+    return weeklySummaries;
+  }, [data, isClient]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="font-headline flex items-center gap-2">
+          <ListTodo className="w-6 h-6" />
+          Weekly Summary
+        </CardTitle>
+        <CardDescription>Total receivables and payables for the next 12 weeks.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="max-h-[400px] overflow-y-auto pr-2">
+          <Table>
+            <TableHeader className="sticky top-0 bg-card z-10">
+              <TableRow>
+                <TableHead>Week</TableHead>
+                <TableHead className="text-right">Receivables</TableHead>
+                <TableHead className="text-right">Payables</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {summaryData.length === 0 && (
+                <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                        No data for the next 12 weeks.
+                    </TableCell>
+                </TableRow>
+              )}
+              {summaryData.map((week) => (
+                <TableRow key={week.week}>
+                  <TableCell className="font-medium">{week.weekLabel}</TableCell>
+                  <TableCell className="text-right font-semibold text-primary">{formatCurrency(week.receivables)}</TableCell>
+                  <TableCell className="text-right font-semibold text-destructive">{formatCurrency(week.payables)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
