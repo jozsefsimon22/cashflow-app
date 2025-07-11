@@ -272,11 +272,11 @@ export default function WeeklyViewPage() {
 
     const grouped = dialogDetails.items.reduce((acc: GroupedItems, item) => {
         const isManual = 'frequency' in item;
-        const name = isManual ? item.name : item.Name || 'Unnamed';
+        const name = isManual ? (item as ManualTransaction).name : (item as CashFlowItem).Name || 'Unnamed';
         
         let amount;
         if (isManual) {
-            amount = item.amount;
+            amount = (item as ManualTransaction).amount;
         } else {
             const cashFlowItem = item as CashFlowItem;
             amount = (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') 
@@ -292,9 +292,16 @@ export default function WeeklyViewPage() {
         return acc;
       }, {});
 
+      const getName = (item: (CashFlowItem | ManualTransaction)): string => {
+        if (!item) return '';
+        return 'frequency' in item ? item.name : item.Name;
+      }
+
       const sortedArray = Object.entries(grouped).sort(([, a], [, b]) => {
         if (sortConfig.key === 'name') {
-            return sortConfig.direction === 'asc' ? a.items[0].name.localeCompare(b.items[0].name) : b.items[0].name.localeCompare(a.items[0].name);
+            const nameA = getName(a.items[0]) || '';
+            const nameB = getName(b.items[0]) || '';
+            return sortConfig.direction === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
         } else { // 'amount'
             return sortConfig.direction === 'asc' ? a.total - b.total : b.total - a.total;
         }
