@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download, History, ArrowUpCircle, ArrowDownCircle, CheckCircle } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download, History, ArrowUpCircle, ArrowDownCircle, CheckCircle, ArrowUpDown } from 'lucide-react';
 import type { ManualTransaction, ManualTransactionOccurrence } from "@/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,9 @@ interface Occurrence extends ManualTransaction {
     isPaid: boolean;
     isPast: boolean;
 }
+
+type SortKey = keyof Occurrence | 'name';
+type SortDirection = 'asc' | 'desc';
 
 const generateAllOccurrences = (manualTransactions: ManualTransaction[], paidOccurrences: ManualTransactionOccurrence[]): Occurrence[] => {
     const items: Occurrence[] = [];
@@ -60,6 +63,9 @@ export default function RecurringHistoryPage() {
     const { manualTransactions, paidManualOccurrences, setPaidManualOccurrences } = useContext(SettingsContext);
     const { toast } = useToast();
     const [showPaid, setShowPaid] = useState(false);
+    const [isGrouped, setIsGrouped] = useState(true);
+    const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'dueDate', direction: 'asc' });
+
 
     const allOccurrences = useMemo(() => {
         return generateAllOccurrences(manualTransactions, paidManualOccurrences);
@@ -74,6 +80,7 @@ export default function RecurringHistoryPage() {
     }, [allOccurrences, showPaid]);
 
     const groupedOccurrences = useMemo(() => {
+        if (!isGrouped) return {};
         return filteredOccurrences.reduce((acc, item) => {
             if (!acc[item.name]) {
                 acc[item.name] = [];
@@ -81,7 +88,26 @@ export default function RecurringHistoryPage() {
             acc[item.name].push(item);
             return acc;
         }, {} as Record<string, Occurrence[]>);
-    }, [filteredOccurrences]);
+    }, [filteredOccurrences, isGrouped]);
+    
+    const requestSort = (key: SortKey) => {
+        let direction: SortDirection = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const sortedFlatOccurrences = useMemo(() => {
+        if (isGrouped) return [];
+        return [...filteredOccurrences].sort((a, b) => {
+            if (sortConfig.key === 'name') {
+                return a.name.localeCompare(b.name) * (sortConfig.direction === 'asc' ? 1 : -1);
+            }
+            // Default to sorting by dueDate
+            return (a.dueDate.getTime() - b.dueDate.getTime()) * (sortConfig.direction === 'asc' ? 1 : -1);
+        });
+    }, [filteredOccurrences, isGrouped, sortConfig]);
 
     const handleMarkAsPaid = (transactionId: string, dueDate: Date) => {
         const newPaidOccurrence: ManualTransactionOccurrence = { transactionId, dueDate };
@@ -106,6 +132,49 @@ export default function RecurringHistoryPage() {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(amount);
     };
+    
+    const RenderStatusBadge = ({ item }: { item: Occurrence }) => {
+      if (item.isPaid) {
+        return <Badge variant="secondary" className="bg-green-500/20 text-green-700">Paid</Badge>;
+      }
+      if (item.isPast) {
+        return item.pastDueHandling === 'manual' ? 
+          <Badge variant="destructive">Overdue</Badge> : 
+          <Badge variant="secondary">Auto-Paid (Past)</Badge>;
+      }
+      return <Badge variant="outline">Upcoming</Badge>;
+    };
+
+    const RenderActionButtons = ({ item }: { item: Occurrence }) => {
+        if (item.isPast && item.pastDueHandling === 'manual' && !item.isPaid) {
+            return (
+                <Button size="sm" onClick={() => handleMarkAsPaid(item.id, item.dueDate)}>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Mark as Paid
+                </Button>
+            );
+        }
+        if (item.isPaid) {
+            return (
+                <Button size="sm" variant="outline" onClick={() => handleMarkAsUnpaid(item.id, item.dueDate)}>
+                    Mark as Unpaid
+                </Button>
+            );
+        }
+        return null;
+    };
+    
+    const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => {
+        const isSorted = sortConfig?.key === sortKey;
+        return (
+          <TableHead>
+            <Button variant="ghost" onClick={() => requestSort(sortKey)}>
+              {children}
+              <ArrowUpDown className={`ml-2 h-4 w-4 ${isSorted ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+            </Button>
+          </TableHead>
+        );
+      };
 
     return (
         <>
@@ -210,87 +279,116 @@ export default function RecurringHistoryPage() {
                                     Manage Recurring Payments
                                 </CardTitle>
                                 <CardDescription>
-                                    View all past and future occurrences of your recurring manual transactions, grouped by description. For items set to manual handling, you can mark past due items as paid.
+                                    View all past and future occurrences of your recurring manual transactions. For items set to manual handling, you can mark past due items as paid.
                                 </CardDescription>
                             </div>
-                            <div className="flex items-center space-x-2 pt-1">
-                                <Switch
-                                    id="show-paid-toggle"
-                                    checked={showPaid}
-                                    onCheckedChange={setShowPaid}
-                                />
-                                <Label htmlFor="show-paid-toggle">Show Paid</Label>
+                            <div className="flex items-center gap-x-4 gap-y-2 flex-wrap justify-end">
+                                <div className="flex items-center space-x-2">
+                                    <Switch
+                                        id="group-toggle"
+                                        checked={isGrouped}
+                                        onCheckedChange={setIsGrouped}
+                                    />
+                                    <Label htmlFor="group-toggle">Group by Desc</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Switch
+                                        id="show-paid-toggle"
+                                        checked={showPaid}
+                                        onCheckedChange={setShowPaid}
+                                    />
+                                    <Label htmlFor="show-paid-toggle">Show Paid</Label>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent>
                              <div className="max-h-[70vh] overflow-y-auto">
-                                {Object.keys(groupedOccurrences).length > 0 ? (
-                                    <Accordion type="multiple" className="w-full">
-                                        {Object.entries(groupedOccurrences).map(([name, items]) => (
-                                            <AccordionItem value={name} key={name}>
-                                                <AccordionTrigger>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={cn("inline-flex items-center gap-1.5 capitalize", items[0].type === 'inflow' ? 'text-primary' : 'text-destructive')}>
-                                                            {items[0].type === 'inflow' ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
-                                                        </span>
-                                                        <span className="font-semibold">{name}</span>
-                                                        <span className="text-muted-foreground font-mono">({formatCurrency(items[0].amount)})</span>
-                                                    </div>
-                                                </AccordionTrigger>
-                                                <AccordionContent>
-                                                    <Table>
-                                                        <TableHeader>
-                                                            <TableRow>
-                                                                <TableHead>Due Date</TableHead>
-                                                                <TableHead>Status</TableHead>
-                                                                <TableHead className="text-right">Action</TableHead>
-                                                            </TableRow>
-                                                        </TableHeader>
-                                                        <TableBody>
-                                                            {items.map((item) => (
-                                                                <TableRow key={`${item.id}-${item.dueDate.toISOString()}`} className={cn(item.isPaid && "bg-green-500/10", item.isPast && !item.isPaid && item.pastDueHandling === 'manual' && "bg-destructive/10")}>
-                                                                    <TableCell>{format(item.dueDate, "dd/MM/yyyy")}</TableCell>
-                                                                    <TableCell>
-                                                                        {item.isPaid ? (
-                                                                            <Badge variant="secondary" className="bg-green-500/20 text-green-700">Paid</Badge>
-                                                                        ) : item.isPast ? (
-                                                                            item.pastDueHandling === 'manual' ? (
-                                                                                <Badge variant="destructive">Overdue</Badge>
-                                                                            ) : (
-                                                                                <Badge variant="secondary">Auto-Paid (Past)</Badge>
-                                                                            )
-                                                                        ) : (
-                                                                            <Badge variant="outline">Upcoming</Badge>
-                                                                        )}
-                                                                    </TableCell>
-                                                                    <TableCell className="text-right">
-                                                                        {item.isPast && item.pastDueHandling === 'manual' && !item.isPaid && (
-                                                                            <Button size="sm" onClick={() => handleMarkAsPaid(item.id, item.dueDate)}>
-                                                                                <CheckCircle className="w-4 h-4 mr-2" />
-                                                                                Mark as Paid
-                                                                            </Button>
-                                                                        )}
-                                                                        {item.isPaid && (
-                                                                            <Button size="sm" variant="outline" onClick={() => handleMarkAsUnpaid(item.id, item.dueDate)}>
-                                                                                Mark as Unpaid
-                                                                            </Button>
-                                                                        )}
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        ))}
-                                    </Accordion>
+                                {isGrouped ? (
+                                    <>
+                                        {Object.keys(groupedOccurrences).length > 0 ? (
+                                            <Accordion type="multiple" className="w-full">
+                                                {Object.entries(groupedOccurrences).map(([name, items]) => (
+                                                    <AccordionItem value={name} key={name}>
+                                                        <AccordionTrigger>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={cn("inline-flex items-center gap-1.5 capitalize", items[0].type === 'inflow' ? 'text-primary' : 'text-destructive')}>
+                                                                    {items[0].type === 'inflow' ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
+                                                                </span>
+                                                                <span className="font-semibold">{name}</span>
+                                                                <span className="text-muted-foreground font-mono">({formatCurrency(items[0].amount)})</span>
+                                                            </div>
+                                                        </AccordionTrigger>
+                                                        <AccordionContent>
+                                                            <Table>
+                                                                <TableHeader>
+                                                                    <TableRow>
+                                                                        <TableHead>Due Date</TableHead>
+                                                                        <TableHead>Status</TableHead>
+                                                                        <TableHead className="text-right">Action</TableHead>
+                                                                    </TableRow>
+                                                                </TableHeader>
+                                                                <TableBody>
+                                                                    {items.map((item) => (
+                                                                        <TableRow key={`${item.id}-${item.dueDate.toISOString()}`} className={cn(item.isPaid && "bg-green-500/10", item.isPast && !item.isPaid && item.pastDueHandling === 'manual' && "bg-destructive/10")}>
+                                                                            <TableCell>{format(item.dueDate, "dd/MM/yyyy")}</TableCell>
+                                                                            <TableCell><RenderStatusBadge item={item} /></TableCell>
+                                                                            <TableCell className="text-right"><RenderActionButtons item={item} /></TableCell>
+                                                                        </TableRow>
+                                                                    ))}
+                                                                </TableBody>
+                                                            </Table>
+                                                        </AccordionContent>
+                                                    </AccordionItem>
+                                                ))}
+                                            </Accordion>
+                                        ) : (
+                                            <div className="flex items-center justify-center text-center text-muted-foreground h-24">
+                                                <div>
+                                                    {allOccurrences.length > 0 ? "All recurring transactions have been paid or are handled automatically." : "No recurring transactions have been added yet."}
+                                                    {allOccurrences.length > 0 && <p className="text-xs">Toggle "Show Paid" to see all occurrences.</p>}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
                                 ) : (
-                                    <div className="flex items-center justify-center text-center text-muted-foreground h-24">
-                                        <div>
-                                            {allOccurrences.length > 0 ? "All recurring transactions have been paid or are handled automatically." : "No recurring transactions have been added yet."}
-                                            {allOccurrences.length > 0 && <p className="text-xs">Toggle "Show Paid" to see all occurrences.</p>}
-                                        </div>
-                                    </div>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <SortableHeader sortKey="name">Description</SortableHeader>
+                                                <SortableHeader sortKey="dueDate">Due Date</SortableHeader>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead className="text-right">Action</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                        {sortedFlatOccurrences.length > 0 ? (
+                                            sortedFlatOccurrences.map((item) => (
+                                                 <TableRow key={`${item.id}-${item.dueDate.toISOString()}`} className={cn(item.isPaid && "bg-green-500/10", item.isPast && !item.isPaid && item.pastDueHandling === 'manual' && "bg-destructive/10")}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={cn("inline-flex items-center capitalize", item.type === 'inflow' ? 'text-primary' : 'text-destructive')}>
+                                                                {item.type === 'inflow' ? <ArrowUpCircle className="w-4 h-4" /> : <ArrowDownCircle className="w-4 h-4" />}
+                                                            </span>
+                                                            <div className="flex flex-col">
+                                                                <span>{item.name}</span>
+                                                                <span className="text-xs text-muted-foreground font-mono">{formatCurrency(item.amount)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>{format(item.dueDate, "dd/MM/yyyy")}</TableCell>
+                                                    <TableCell><RenderStatusBadge item={item} /></TableCell>
+                                                    <TableCell className="text-right"><RenderActionButtons item={item} /></TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
+                                             <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center">
+                                                    No results found.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                        </TableBody>
+                                    </Table>
                                 )}
                             </div>
                         </CardContent>
@@ -301,3 +399,4 @@ export default function RecurringHistoryPage() {
     );
 }
 
+    
