@@ -297,9 +297,9 @@ export function FileUploader({ onDataUploaded, columnConfig: propColumnConfig }:
 
           if (!statusValue) {
               if (dateClosed) {
-                  statusValue = 'Paid In Full';
+                  statusValue = 'Paid';
               } else {
-                  statusValue = 'Open';
+                  statusValue = 'Unpaid';
               }
           } else if (typeValue === 'Bill Credit' && !statusValue) {
              if (dateClosed) {

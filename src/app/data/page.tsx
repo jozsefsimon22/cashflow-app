@@ -28,7 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FileUploader } from "@/components/file-uploader";
 
 
-const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
+const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES: (CashFlowItem['Type'])[] = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES: (CashFlowItem['Type'])[] = ['Bill', 'Credit Memo'];
 
@@ -277,7 +277,7 @@ export default function DataPage() {
                   All Imported Transactions
                 </CardTitle>
                 <CardDescription>
-                  This table displays all raw data imported from your file. Only items with a status of 'Open' or 'Pending Approval' are included in the forecast.
+                  This table displays all raw data imported from your file. Only items with a status of 'Open', 'Unpaid', or 'Pending Approval' are included in the forecast.
                 </CardDescription>
               </CardHeader>
               <CardContent>

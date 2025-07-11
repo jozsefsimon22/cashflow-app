@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
-const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
+const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 

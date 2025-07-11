@@ -31,7 +31,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
 
-const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
+const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 

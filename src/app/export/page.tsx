@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
-const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
+const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 

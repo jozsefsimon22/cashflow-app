@@ -138,7 +138,7 @@ export default function DocumentationPage() {
                   <li><strong>Date</strong>: The transaction date. This is used as a fallback if the 'Due Date' for a row is empty.</li>
                   <li><strong>Amount</strong>: The transaction amount as a number.</li>
                   <li><strong>Remaining Amount</strong>: The open or outstanding amount of the transaction.</li>
-                  <li><strong>Status</strong>: The current state of the transaction (e.g., 'Open', 'Paid In Full'). This column is optional.</li>
+                  <li><strong>Status</strong>: The current state of the transaction (e.g., 'Open', 'Paid', 'Unpaid'). This column is optional.</li>
                   <li><strong>Date Closed</strong>: The date a transaction was closed. Used to infer status if the 'Status' column is missing.</li>
                   <li><strong>Installment Due Date</strong>: (Optional) The specific due date for an installment. Overrides 'Due Date'.</li>
                   <li><strong>Installment Amount</strong>: (Optional) The specific amount for an installment. Overrides 'Remaining Amount'.</li>
@@ -148,17 +148,18 @@ export default function DocumentationPage() {
                 <div className="p-4 bg-secondary/50 rounded-lg">
                   <h4 className="font-semibold text-foreground mb-2">Status-Based Filtering</h4>
                   <p className="text-muted-foreground">
-                    The application automatically filters your data to ensure the forecast is accurate. Only transactions with a status of <strong>'Open'</strong> or <strong>'Pending Approval'</strong> will be included in the cash flow analysis on the dashboard.
+                    The application automatically filters your data to ensure the forecast is accurate. Only transactions with a status of <strong>'Open'</strong>, <strong>'Unpaid'</strong>, or <strong>'Pending Approval'</strong> will be included in the cash flow analysis on the dashboard.
                   </p>
                    <p className="text-muted-foreground mt-3">
-                    If the 'Status' column is not provided in your file, the app will try to infer it. If a row has a 'Date Closed', its status will be set to 'Paid In Full' (excluded). Otherwise, it will be set to 'Open' (included). The same logic applies to 'Installment Status' if used.
+                    If the 'Status' column is not provided in your file, the app will try to infer it. If a row has a 'Date Closed', its status will be set to 'Paid'. Otherwise, it will be set to 'Unpaid'. The same logic applies to 'Installment Status' if used.
                   </p>
                   <div className="flex flex-wrap gap-2 mt-3">
                       <Badge variant="secondary">Included: Open</Badge>
                       <Badge variant="secondary">Included: Pending Approval</Badge>
+                      <Badge variant="secondary">Included: Unpaid</Badge>
                   </div>
                    <p className="text-muted-foreground mt-3">
-                    All other statuses (e.g., 'Paid In Full', 'Cancelled', 'Rejected') will be imported but excluded from the forecast. You can view all imported data, including excluded items, on the <Link href="/data" className="text-primary underline">Imported Data</Link> page.
+                    All other statuses (e.g., 'Paid', 'Paid In Full', 'Cancelled', 'Rejected') will be imported but excluded from the forecast. You can view all imported data, including excluded items, on the <Link href="/data" className="text-primary underline">Imported Data</Link> page.
                   </p>
                 </div>
               </CardContent>
