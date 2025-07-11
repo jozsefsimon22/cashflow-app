@@ -32,68 +32,65 @@ export const SettingsContext = createContext<SettingsContextType>({
 });
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig>(() => {
-    if (typeof window !== 'undefined') {
-        try {
-          const savedConfig = localStorage.getItem('columnConfig');
-          return savedConfig ? { ...defaultConfig, ...JSON.parse(savedConfig) } : defaultConfig;
-        } catch (error) {
-          console.error("Failed to parse columnConfig from localStorage", error);
-          return defaultConfig;
-        }
-    }
-    return defaultConfig;
-  });
-
-  const [data, setData] = useState<CashFlowItem[] | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const savedData = sessionStorage.getItem('cashFlowData');
-        if (savedData) {
-          // Dates are stored as strings in JSON, so we need to convert them back to Date objects
-          const parsedData = JSON.parse(savedData);
-          return parsedData.map((item: any) => ({
-            ...item,
-            'Due Date': item['Due Date'] ? new Date(item['Due Date']) : null,
-            'Date': item['Date'] ? new Date(item['Date']) : null,
-            'Date Closed': item['Date Closed'] ? new Date(item['Date Closed']) : null,
-          }));
-        }
-        return null;
-      } catch (error) {
-        console.error("Failed to parse cashFlowData from sessionStorage", error);
-        return null;
-      }
-    }
-    return null;
-  });
+  const [columnConfig, setColumnConfigState] = useState<ColumnConfig>(defaultConfig);
+  const [data, setDataState] = useState<CashFlowItem[] | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    // Load config from localStorage on initial client-side mount
     try {
-      localStorage.setItem('columnConfig', JSON.stringify(columnConfig));
+      const savedConfig = localStorage.getItem('columnConfig');
+      if (savedConfig) {
+        setColumnConfigState({ ...defaultConfig, ...JSON.parse(savedConfig) });
+      }
+    } catch (error) {
+      console.error("Failed to parse columnConfig from localStorage", error);
+    }
+
+    // Load data from sessionStorage on initial client-side mount
+    try {
+      const savedData = sessionStorage.getItem('cashFlowData');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        const dataWithDates = parsedData.map((item: any) => ({
+          ...item,
+          'Due Date': item['Due Date'] ? new Date(item['Due Date']) : null,
+          'Date': item['Date'] ? new Date(item['Date']) : null,
+          'Date Closed': item['Date Closed'] ? new Date(item['Date Closed']) : null,
+        }));
+        setDataState(dataWithDates);
+      }
+    } catch (error) {
+      console.error("Failed to parse cashFlowData from sessionStorage", error);
+    }
+    
+    setIsInitialized(true);
+  }, []);
+
+  const setColumnConfig = (newConfig: ColumnConfig) => {
+    setColumnConfigState(newConfig);
+    try {
+      localStorage.setItem('columnConfig', JSON.stringify(newConfig));
     } catch (error) {
       console.error("Failed to save columnConfig to localStorage", error);
     }
-  }, [columnConfig]);
+  };
 
-  useEffect(() => {
+  const setData = (newData: CashFlowItem[] | null) => {
+    setDataState(newData);
     try {
-      if (data) {
-        sessionStorage.setItem('cashFlowData', JSON.stringify(data));
+      if (newData) {
+        sessionStorage.setItem('cashFlowData', JSON.stringify(newData));
       } else {
         sessionStorage.removeItem('cashFlowData');
       }
     } catch (error) {
       console.error("Failed to save cashFlowData to sessionStorage", error);
     }
-  }, [data]);
-
-  const handleSetData = (newData: CashFlowItem[] | null) => {
-    setData(newData);
   };
 
   return (
-    <SettingsContext.Provider value={{ columnConfig, setColumnConfig, data, setData: handleSetData }}>
+    <SettingsContext.Provider value={{ columnConfig, setColumnConfig, data, setData }}>
       {children}
     </SettingsContext.Provider>
   );
