@@ -33,8 +33,8 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
         const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
 
         const weekItems = data.filter(item => {
-            const dueDate = new Date(item['Due Date']);
-            return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
+            const dueDate = item['Due Date'];
+            return dueDate && isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
         });
 
         const invoices = weekItems
@@ -48,6 +48,7 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
         weeklySummaries.push({
             week: `w/c ${format(weekStart, 'dd/MM')}`,
             weekLabel: `w/c ${format(weekStart, 'dd/MM')}`,
+            weekStart,
             invoices,
             bills,
             details: weekItems,
@@ -58,14 +59,10 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
   }, [data, isClient]);
 
   const handleRowClick = (week: WeeklySummary) => {
-    const weekStartStr = week.week.replace('w/c ', '');
-    // We need to provide a reference date to parse, year is important for correctness
-    const currentYear = new Date().getFullYear();
-    const weekStart = parse(`${weekStartStr}/${currentYear}`, 'dd/MM/yyyy', new Date());
-
+    if (!week.weekStart) return;
     const weekDetails: WeeklyDetails = {
         week: week.week,
-        weekLabel: `Week commencing ${format(weekStart, 'do MMMM yyyy')}`,
+        weekLabel: `Week commencing ${format(week.weekStart, 'do MMMM yyyy')}`,
         invoicesDue: week.invoices,
         billsDue: week.bills,
         details: week.details,

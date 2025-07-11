@@ -14,6 +14,7 @@ export interface CashFlowItem {
 export interface WeeklySummary {
   week: string;
   weekLabel: string;
+  weekStart: Date;
   invoices: number;
   bills: number;
   details: CashFlowItem[];

@@ -37,8 +37,8 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
 
         const weekItems = data
             .filter(item => {
-                const dueDate = new Date(item['Due Date']);
-                return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
+                const dueDate = item['Due Date'];
+                return dueDate && isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
             });
 
         const totalInvoices = weekItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
