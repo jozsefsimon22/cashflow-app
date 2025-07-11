@@ -272,7 +272,7 @@ export default function RecurringHistoryPage() {
                     </div>
 
                     <Card>
-                        <CardHeader className="flex flex-row items-start justify-between">
+                        <CardHeader>
                             <div>
                                 <CardTitle className="font-headline flex items-center gap-2">
                                     <History className="w-6 h-6" />
@@ -282,7 +282,9 @@ export default function RecurringHistoryPage() {
                                     View all past and future occurrences of your recurring manual transactions. For items set to manual handling, you can mark past due items as paid.
                                 </CardDescription>
                             </div>
-                            <div className="flex items-center gap-x-4 gap-y-2 flex-wrap justify-end">
+                        </CardHeader>
+                        <CardContent>
+                             <div className="flex items-center justify-end gap-4 mb-4">
                                 <div className="flex items-center space-x-2">
                                     <Switch
                                         id="group-toggle"
@@ -300,9 +302,7 @@ export default function RecurringHistoryPage() {
                                     <Label htmlFor="show-paid-toggle">Show Paid</Label>
                                 </div>
                             </div>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="max-h-[70vh] overflow-y-auto">
+                             <div className="max-h-[70vh] overflow-y-auto border-t pt-4">
                                 {isGrouped ? (
                                     <>
                                         {Object.keys(groupedOccurrences).length > 0 ? (
@@ -398,5 +398,3 @@ export default function RecurringHistoryPage() {
         </>
     );
 }
-
-    
