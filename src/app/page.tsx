@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useContext } from 'react';
+import { useContext } from 'react';
 import type { CashFlowItem } from '@/types';
 import { FileUploader } from '@/components/file-uploader';
 import { InvoiceChart } from '@/components/invoice-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
 
 export default function Home() {
-  const [data, setData] = useState<CashFlowItem[] | null>(null);
-  const { columnConfig } = useContext(SettingsContext);
+  const { data, setData, columnConfig } = useContext(SettingsContext);
 
   const handleDataUploaded = (newData: CashFlowItem[]) => {
     setData(newData);
@@ -27,12 +26,22 @@ export default function Home() {
             <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">VizFlow</h1>
             <p className="mt-2 text-lg text-muted-foreground">Your cash flow, visualized.</p>
           </div>
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/settings">
-              <Settings className="w-6 h-6" />
-              <span className="sr-only">Open Settings</span>
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            {data && (
+              <Button variant="outline" asChild>
+                <Link href="/data">
+                  <Database className="w-4 h-4 mr-2" />
+                  View Data
+                </Link>
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/settings">
+                <Settings className="w-6 h-6" />
+                <span className="sr-only">Open Settings</span>
+              </Link>
+            </Button>
+          </div>
         </header>
 
         <Card>
