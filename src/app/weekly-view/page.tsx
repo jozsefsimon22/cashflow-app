@@ -50,6 +50,7 @@ interface WeeklyBreakdown {
   totalInflow: number;
   totalOutflow: number;
   netFlow: number;
+  runningBalance: number;
 }
 
 interface DialogDetails {
@@ -88,7 +89,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], forecast
 };
 
 export default function WeeklyViewPage() {
-  const { data, manualTransactions, excludedNames } = useContext(SettingsContext);
+  const { data, manualTransactions, excludedNames, startingBalance } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
 
@@ -132,6 +133,7 @@ export default function WeeklyViewPage() {
         .filter(item => !excludedNamesSet.has(item.name));
 
     const breakdown: WeeklyBreakdown[] = [];
+    let currentBalance = startingBalance;
     
     // --- Overdue Calculation ---
     const overdueFileData = fileData.filter(item => item['Due Date'] && isBefore(item['Due Date'], today));
@@ -149,6 +151,8 @@ export default function WeeklyViewPage() {
 
     const overdueTotalInflow = overdueAR + overdueManualInflowTotal;
     const overdueTotalOutflow = overdueAP + overdueManualOutflowTotal;
+    const overdueNetFlow = overdueTotalInflow - overdueTotalOutflow;
+    currentBalance += overdueNetFlow;
 
     breakdown.push({
       weekLabel: 'Overdue',
@@ -160,7 +164,8 @@ export default function WeeklyViewPage() {
       apItems: overdueApItems,
       totalInflow: overdueTotalInflow,
       totalOutflow: overdueTotalOutflow,
-      netFlow: overdueTotalInflow - overdueTotalOutflow,
+      netFlow: overdueNetFlow,
+      runningBalance: currentBalance,
     });
     
     // --- Future Weeks Calculation (12 weeks from today) ---
@@ -195,6 +200,8 @@ export default function WeeklyViewPage() {
         
         const totalInflow = accountsReceivable + manualInflowTotal;
         const totalOutflow = accountsPayable + manualOutflowTotal;
+        const netFlow = totalInflow - totalOutflow;
+        currentBalance += netFlow;
 
         breakdown.push({
             weekLabel: `w/c ${format(weekStart, 'dd/MM')}`,
@@ -206,13 +213,14 @@ export default function WeeklyViewPage() {
             apItems,
             totalInflow,
             totalOutflow,
-            netFlow: totalInflow - totalOutflow,
+            netFlow: netFlow,
+            runningBalance: currentBalance,
         });
     }
 
     return breakdown;
 
-  }, [data, manualTransactions, excludedNames, isClient]);
+  }, [data, manualTransactions, excludedNames, isClient, startingBalance]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -428,6 +436,18 @@ export default function WeeklyViewPage() {
                                         </TableCell>
                                     ))}
                                 </TableRow>
+                                <TableRow className="border-t-2 border-border bg-secondary">
+                                    <TableCell className="font-extrabold text-foreground sticky left-0 bg-secondary z-10">
+                                        <div className="flex items-center gap-2">
+                                            <Coins className="w-5 h-5" /> Running Balance
+                                        </div>
+                                    </TableCell>
+                                    {weeklyBreakdown.map((week, index) => (
+                                        <TableCell key={index} className={cn("text-right font-mono font-extrabold", week.runningBalance >= 0 ? "text-foreground" : "text-destructive")}>
+                                            {formatCurrency(week.runningBalance)}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
                             </TableBody>
                         </Table>
                     </div>
@@ -505,3 +525,4 @@ export default function WeeklyViewPage() {
   );
 }
 
+    
