@@ -5,7 +5,7 @@ import { useMemo, useEffect, useState, useContext } from 'react';
 import type { CashFlowItem, WeeklySummary, WeeklyDetails } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { addWeeks, startOfWeek, endOfWeek, format } from 'date-fns';
+import { addWeeks, startOfWeek, endOfWeek, format, startOfToday } from 'date-fns';
 import { ListTodo } from 'lucide-react';
 import { SettingsContext } from '@/context/settings-context';
 
@@ -27,15 +27,46 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
 
   const summaryData = useMemo((): WeeklySummary[] => {
     if (!isClient) return [];
-    const today = new Date();
+    const today = startOfToday();
     const weeklySummaries: WeeklySummary[] = [];
-    let runningBalance = startingBalance;
+
+    // Calculate overdue amounts first
+    const overdueItems = data.filter(item => {
+        const dueDate = item['Due Date'];
+        return dueDate && dueDate < today;
+    });
+
+    const overdueInflow = overdueItems
+        .filter(item => INFLOW_TYPES.includes(item.Type))
+        .reduce((sum, item) => sum + item.RemainingAmount, 0);
+
+    const overdueOutflow = overdueItems
+        .filter(item => OUTFLOW_TYPES.includes(item.Type))
+        .reduce((sum, item) => sum + item.RemainingAmount, 0);
+
+    let runningBalance = startingBalance + overdueInflow - overdueOutflow;
+    
+    // Add overdue row
+    weeklySummaries.push({
+        week: 'overdue',
+        weekLabel: 'Overdue',
+        weekStart: null,
+        invoices: overdueInflow,
+        bills: overdueOutflow,
+        balance: runningBalance,
+        details: overdueItems,
+    });
+
+    const futureData = data.filter(item => {
+        const dueDate = item['Due Date'];
+        return dueDate && dueDate >= today;
+    });
 
     for (let i = 0; i < 12; i++) {
         const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
         const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
 
-        const weekItems = data.filter(item => {
+        const weekItems = futureData.filter(item => {
             const dueDate = item['Due Date'];
             if (!dueDate) return false;
             const comparisonDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
@@ -67,10 +98,18 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
   }, [data, isClient, startingBalance]);
 
   const handleRowClick = (week: WeeklySummary) => {
-    if (!week.weekStart) return;
+    let weekLabel;
+    if (week.week === 'overdue') {
+        weekLabel = 'Overdue Transactions';
+    } else if (week.weekStart) {
+        weekLabel = `Week commencing ${format(week.weekStart, 'do MMMM yyyy')}`;
+    } else {
+        weekLabel = 'Details';
+    }
+
     const weekDetails: WeeklyDetails = {
         week: week.week,
-        weekLabel: `Week commencing ${format(week.weekStart, 'do MMMM yyyy')}`,
+        weekLabel: weekLabel,
         invoicesDue: week.invoices,
         billsDue: week.bills,
         details: week.details,
@@ -94,7 +133,7 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
           <ListTodo className="w-6 h-6" />
           Weekly Summary
         </CardTitle>
-        <CardDescription>Total inflow and outflow for the next 12 weeks. Click a row for details.</CardDescription>
+        <CardDescription>Total inflow and outflow for the next 12 weeks, including overdue items. Click a row for details.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="max-h-[400px] overflow-y-auto pr-2">
@@ -111,7 +150,7 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
               {summaryData.length === 0 && (
                 <TableRow>
                     <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                        No data for the next 12 weeks.
+                        No data found.
                     </TableCell>
                 </TableRow>
               )}
