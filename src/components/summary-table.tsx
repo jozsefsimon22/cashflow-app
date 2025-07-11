@@ -34,7 +34,7 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
 
         const weekItems = data.filter(item => {
             const dueDate = item['Due Date'];
-            return dueDate && isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
+            return dueDate && dueDate >= weekStart && dueDate <= weekEnd;
         });
 
         const invoices = weekItems
