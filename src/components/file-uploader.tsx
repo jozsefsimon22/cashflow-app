@@ -50,32 +50,53 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
 
   const parseDate = (dateValue: any): Date | null => {
     if (dateValue === null || dateValue === undefined || dateValue === '' || String(dateValue).trim() === '') return null;
-
-    if (typeof dateValue === 'string' && columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
-        const parsed = parse(dateValue, columnConfig.dateFormat, new Date());
-        if (isValid(parsed)) return parsed;
-    }
-    
+  
+    // 1. If it's already a valid Date object
     if (dateValue instanceof Date && isValid(dateValue)) {
       return dateValue;
     }
-
-    if (typeof dateValue === 'string') {
-        const parsedISO = parseISO(dateValue);
-        if (isValid(parsedISO)) return parsedISO;
-    }
-
+  
+    // 2. If it's a number (Excel date)
     if (typeof dateValue === 'number') {
-        const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-        const jsDate = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
-        if (isValid(jsDate)) return jsDate;
+      // XLSX.SSF.parse_date_code is the recommended way to handle Excel dates
+      const parsedDate = XLSX.SSF.parse_date_code(dateValue);
+      if (parsedDate) {
+        // The library returns components, so we construct a date object.
+        // It's UTC-based, so we use Date.UTC to avoid timezone issues.
+        const date = new Date(Date.UTC(parsedDate.y, parsedDate.m - 1, parsedDate.d, parsedDate.H, parsedDate.M, parsedDate.S));
+        if (isValid(date)) return date;
+      }
     }
-
+  
+    // 3. If it's a string
     if (typeof dateValue === 'string') {
-        const generalParsed = new Date(dateValue);
-        if (isValid(generalParsed)) return generalParsed;
-    }
+      const dateString = dateValue.trim();
+      
+      // Attempt with specified format first (if not 'auto')
+      if (columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
+        const parsed = parse(dateString, columnConfig.dateFormat, new Date());
+        if (isValid(parsed)) return parsed;
+      }
+      
+      // Attempt ISO format
+      let parsed = parseISO(dateString);
+      if (isValid(parsed)) return parsed;
 
+      // Attempt common formats as a fallback for 'auto'
+      const commonFormats = [
+        'dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd', 'MM-dd-yyyy', 'dd-MM-yyyy',
+        'dd/MM/yy', 'MM/dd/yy',
+      ];
+      for (const format of commonFormats) {
+        parsed = parse(dateString, format, new Date());
+        if (isValid(parsed)) return parsed;
+      }
+  
+      // Final attempt with native Date constructor
+      parsed = new Date(dateString);
+      if (isValid(parsed)) return parsed;
+    }
+  
     return null;
   };
   
@@ -101,7 +122,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         setProgressMessage('Reading file...');
         await sleep(10); 
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'array', cellText: true });
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true, cellText: false });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
@@ -329,3 +350,5 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
     </div>
   );
 }
+
+    
