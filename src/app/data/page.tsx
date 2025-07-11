@@ -7,7 +7,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpDown, Database, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare } from "lucide-react";
 import type { CashFlowItem } from "@/types";
 import { format } from 'date-fns';
 import {
@@ -21,6 +21,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+
 
 type SortKey = keyof CashFlowItem;
 
@@ -91,23 +93,57 @@ export default function DataPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex justify-between items-center gap-4">
-            <div className="flex items-center gap-4">
-              <Link href="/" passHref>
-                 <Button variant="outline" size="icon">
-                    <ArrowLeft className="h-4 w-4" />
-                 </Button>
-              </Link>
-              <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">Imported Data</h1>
-            </div>
-            {isClient && data && (
-                <Button variant="destructive" onClick={() => setIsAlertOpen(true)}>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Clear Data
-                </Button>
-            )}
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center gap-2">
+              <div className="bg-primary p-2 rounded-lg">
+                  <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <h1 className="text-xl font-semibold font-headline text-foreground">TerraRoc Cashflow</h1>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/">
+                  <LayoutDashboard />
+                  <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive>
+                <Link href="/data">
+                  <Database />
+                  <span>Imported Data</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/settings">
+                  <Settings />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <main className="p-4 sm:p-6 md:p-8">
+          <div className="flex justify-between items-center mb-8">
+              <h1 className="text-3xl font-bold font-headline text-foreground">Imported Data</h1>
+              <div className="flex items-center gap-2">
+                {isClient && data && (
+                    <Button variant="destructive" onClick={() => setIsAlertOpen(true)}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Clear Data
+                    </Button>
+                )}
+                <SidebarTrigger />
+              </div>
           </div>
 
           <Card>
@@ -121,7 +157,7 @@ export default function DataPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="max-h-[60vh] overflow-y-auto">
+              <div className="max-h-[70vh] overflow-y-auto">
                 <Table>
                   <TableHeader className="sticky top-0 bg-card z-10">
                     <TableRow>
@@ -137,7 +173,7 @@ export default function DataPage() {
                       sortedData.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
                               {item.Type}
                             </span>
                           </TableCell>
@@ -150,7 +186,7 @@ export default function DataPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                          {isClient ? "No data has been imported yet. Go to the home page to upload a file." : "Loading data..."}
+                          {isClient ? "No data has been imported yet. Go to the dashboard to upload a file." : "Loading data..."}
                         </TableCell>
                       </TableRow>
                     )}
@@ -159,8 +195,8 @@ export default function DataPage() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </main>
+        </main>
+      </SidebarInset>
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

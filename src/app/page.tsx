@@ -7,7 +7,7 @@ import { FileUploader } from '@/components/file-uploader';
 import { InvoiceChart } from '@/components/invoice-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -21,6 +21,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from 'date-fns';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 
 type GroupedItems = {
   [name: string]: {
@@ -79,67 +80,88 @@ export default function Home() {
 
   return (
     <>
-    <main className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <header className="flex justify-between items-center">
-          <div className="text-left">
-            <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">VizFlow</h1>
-            <p className="mt-2 text-lg text-muted-foreground">Your cash flow, visualized.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isClient && data && (
-              <Button variant="outline" asChild>
-                <Link href="/data">
-                  <Database className="w-4 h-4 mr-2" />
-                  View Data
-                </Link>
-              </Button>
-            )}
-             <Button variant="ghost" size="icon" asChild>
-                <Link href="/settings">
-                    <Settings className="w-6 h-6" />
-                    <span className="sr-only">Open Settings</span>
-                </Link>
-            </Button>
-          </div>
-        </header>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2">
-              <FileSpreadsheet className="w-6 h-6" />
-              Upload Your Cash Flow Data
-            </CardTitle>
-            <CardDescription>
-              Upload an Excel file (.xlsx, .xls, .csv). Use the settings to map your columns if they don't match the defaults.
-              The 'Type' column should contain 'Invoice' (for incoming cash) or 'Bill' (for outgoing cash).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FileUploader onDataUploaded={handleDataUploaded} columnConfig={columnConfig} />
-          </CardContent>
-        </Card>
-
-        {isClient && data ? (
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <InvoiceChart data={data} onWeekSelect={handleWeekSelect} />
+    <Sidebar>
+      <SidebarHeader>
+        <div className="flex items-center gap-2">
+            <div className="bg-primary p-2 rounded-lg">
+                <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
             </div>
-            <div className="lg:col-span-1">
-              <SummaryTable data={data} onWeekSelect={handleWeekSelect} />
-            </div>
-          </div>
-        ) : (
-           <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
-            <div className="bg-secondary p-4 rounded-full mb-4">
-              <FileSpreadsheet className="w-12 h-12 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold font-headline text-foreground">Awaiting Data</h3>
-            <p className="text-muted-foreground mt-1">Upload your file to see your cash flow analysis.</p>
+            <h1 className="text-xl font-semibold font-headline text-foreground">TerraRoc Cashflow</h1>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          <SidebarMenuItem>
+             <SidebarMenuButton asChild isActive>
+              <Link href="/">
+                <LayoutDashboard />
+                <span>Dashboard</span>
+              </Link>
+             </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+             <SidebarMenuButton asChild>
+              <Link href="/data">
+                <Database />
+                <span>Imported Data</span>
+              </Link>
+             </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+             <SidebarMenuButton asChild>
+              <Link href="/settings">
+                <Settings />
+                <span>Settings</span>
+              </Link>
+             </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarContent>
+    </Sidebar>
+    <SidebarInset>
+      <main className="p-4 sm:p-6 md:p-8">
+        <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold font-headline text-foreground">Dashboard</h1>
+            <SidebarTrigger />
+        </div>
+        <div className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center gap-2">
+                <FileSpreadsheet className="w-6 h-6" />
+                Upload Your Cash Flow Data
+              </CardTitle>
+              <CardDescription>
+                Upload an Excel file (.xlsx, .xls, .csv). Use the settings to map your columns if they don't match the defaults.
+                The 'Type' column should contain 'Invoice' (for incoming cash) or 'Bill' (for outgoing cash).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FileUploader onDataUploaded={handleDataUploaded} columnConfig={columnConfig} />
+            </CardContent>
           </Card>
-        )}
-      </div>
-    </main>
+
+          {isClient && data ? (
+            <div className="grid gap-8 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <InvoiceChart data={data} onWeekSelect={handleWeekSelect} />
+              </div>
+              <div className="lg:col-span-1">
+                <SummaryTable data={data} onWeekSelect={handleWeekSelect} />
+              </div>
+            </div>
+          ) : (
+             <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
+              <div className="bg-secondary p-4 rounded-full mb-4">
+                <FileSpreadsheet className="w-12 h-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold font-headline text-foreground">Awaiting Data</h3>
+              <p className="text-muted-foreground mt-1">Upload your file to see your cash flow analysis.</p>
+            </Card>
+          )}
+        </div>
+      </main>
+    </SidebarInset>
     <Dialog open={!!selectedWeek} onOpenChange={() => setSelectedWeek(null)}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>

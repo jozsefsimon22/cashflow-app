@@ -13,7 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Database, GanttChartSquare, LayoutDashboard, Settings as SettingsIcon } from 'lucide-react';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 
 const formSchema = z.object({
   type: z.string().min(1, "Column name cannot be empty."),
@@ -46,128 +47,161 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8">
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div className="flex items-center gap-4">
-            <Link href="/" passHref>
-               <Button variant="outline" size="icon">
-                  <ArrowLeft className="h-4 w-4" />
-               </Button>
-            </Link>
-            <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">Settings</h1>
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>File Upload Settings</CardTitle>
-            <CardDescription>
-              Map the column names from your spreadsheet to the required fields. This ensures your data is parsed correctly.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Type Column</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., 'Category'" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="documentNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Document # Column</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., 'Invoice No.'" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name Column</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., 'Client Name'" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="dueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Due Date Column</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., 'Payment Due'" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Amount Column</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., 'Total'" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="dateFormat"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date Format</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a date format" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto-detect</SelectItem>
-                          <SelectItem value="yyyy-MM-dd">YYYY-MM-DD</SelectItem>
-                          <SelectItem value="MM/dd/yyyy">MM/DD/YYYY</SelectItem>
-                          <SelectItem value="dd/MM/yyyy">DD/MM/YYYY</SelectItem>
-                          <SelectItem value="MM-dd-yyyy">MM-DD-YYYY</SelectItem>
-                          <SelectItem value="dd-MM-yyyy">DD-MM-YYYY</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end gap-2">
-                    <Link href="/" passHref>
-                        <Button type="button" variant="outline">Cancel</Button>
-                    </Link>
-                    <Button type="submit">Save Changes</Button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+    <>
+      <Sidebar>
+        <SidebarHeader>
+          <div className="flex items-center gap-2">
+              <div className="bg-primary p-2 rounded-lg">
+                  <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <h1 className="text-xl font-semibold font-headline text-foreground">TerraRoc Cashflow</h1>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/">
+                  <LayoutDashboard />
+                  <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/data">
+                  <Database />
+                  <span>Imported Data</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive>
+                <Link href="/settings">
+                  <SettingsIcon />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+      <SidebarInset>
+        <main className="p-4 sm:p-6 md:p-8">
+            <div className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold font-headline text-foreground">Settings</h1>
+                <SidebarTrigger />
+            </div>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>File Upload Settings</CardTitle>
+                <CardDescription>
+                  Map the column names from your spreadsheet to the required fields. This ensures your data is parsed correctly.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Type Column</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 'Category'" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="documentNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Document # Column</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 'Invoice No.'" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name Column</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 'Client Name'" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="dueDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Due Date Column</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 'Payment Due'" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Amount Column</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 'Total'" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="dateFormat"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date Format</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a date format" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="auto">Auto-detect</SelectItem>
+                              <SelectItem value="yyyy-MM-dd">YYYY-MM-DD</SelectItem>
+                              <SelectItem value="MM/dd/yyyy">MM/DD/YYYY</SelectItem>
+                              <SelectItem value="dd/MM/yyyy">DD/MM/YYYY</SelectItem>
+                              <SelectItem value="MM-dd-yyyy">MM-DD-YYYY</SelectItem>
+                              <SelectItem value="dd-MM-yyyy">DD-MM-YYYY</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end gap-2">
+                        <Button type="submit">Save Changes</Button>
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+        </main>
+      </SidebarInset>
+    </>
   );
 }
