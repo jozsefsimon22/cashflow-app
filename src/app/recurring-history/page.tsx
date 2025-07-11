@@ -89,6 +89,10 @@ export default function RecurringHistoryPage() {
             return acc;
         }, {} as Record<string, Occurrence[]>);
     }, [filteredOccurrences, isGrouped]);
+
+    const sortedGroupedOccurrences = useMemo(() => {
+        return Object.entries(groupedOccurrences).sort(([nameA], [nameB]) => nameA.localeCompare(nameB));
+    }, [groupedOccurrences]);
     
     const requestSort = (key: SortKey) => {
         let direction: SortDirection = 'asc';
@@ -305,9 +309,9 @@ export default function RecurringHistoryPage() {
                              <div className="max-h-[70vh] overflow-y-auto border-t pt-4">
                                 {isGrouped ? (
                                     <>
-                                        {Object.keys(groupedOccurrences).length > 0 ? (
+                                        {sortedGroupedOccurrences.length > 0 ? (
                                             <Accordion type="multiple" className="w-full">
-                                                {Object.entries(groupedOccurrences).map(([name, items]) => (
+                                                {sortedGroupedOccurrences.map(([name, items]) => (
                                                     <AccordionItem value={name} key={name}>
                                                         <AccordionTrigger>
                                                             <div className="flex items-center gap-2">
