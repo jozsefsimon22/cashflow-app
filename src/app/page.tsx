@@ -6,7 +6,7 @@ import type { CashFlowItem, WeeklyDetails } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -149,7 +149,17 @@ export default function Home() {
         <div className="space-y-8">
           {isClient && forecastData ? (
             <>
-               <div className="grid gap-4 md:grid-cols-3">
+               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Current Bank Balance</CardTitle>
+                          <Landmark className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold">{formatCurrency(startingBalance)}</div>
+                          <p className="text-xs text-muted-foreground">As configured in settings</p>
+                      </CardContent>
+                  </Card>
                   <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Forecast Balance</CardTitle>
@@ -157,7 +167,7 @@ export default function Home() {
                       </CardHeader>
                       <CardContent>
                           <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.forecastBalance)}</div>
-                          <p className="text-xs text-muted-foreground">Based on 'Open' and 'Pending Approval' items</p>
+                          <p className="text-xs text-muted-foreground">End balance after 12 weeks</p>
                       </CardContent>
                   </Card>
                   <Card>
@@ -167,7 +177,7 @@ export default function Home() {
                       </CardHeader>
                       <CardContent>
                           <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables)}</div>
-                           <p className="text-xs text-muted-foreground">From invoices in the forecast</p>
+                           <p className="text-xs text-muted-foreground">From 'Open' invoices in forecast</p>
                       </CardContent>
                   </Card>
                   <Card>
@@ -177,7 +187,7 @@ export default function Home() {
                       </CardHeader>
                       <CardContent>
                           <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables)}</div>
-                           <p className="text-xs text-muted-foreground">From bills in the forecast</p>
+                           <p className="text-xs text-muted-foreground">From 'Open' bills in forecast</p>
                       </CardContent>
                   </Card>
               </div>
