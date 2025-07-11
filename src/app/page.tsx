@@ -123,12 +123,20 @@ export default function Home() {
   };
   
   const summaryMetrics = useMemo(() => {
-    if (!forecastData) return { totalReceivables: 0, totalPayables: 0, netCashFlow: 0, forecastBalance: startingBalance, totalInvoices: 0, totalCreditMemos: 0, totalBills: 0, totalBillCredits: 0 };
+    if (!forecastData) return { totalReceivables: 0, totalPayables: 0, netCashFlow: 0, forecastBalance: startingBalance, totalInvoices: 0, totalCreditMemos: 0, totalBills: 0, totalBillCredits: 0, totalInvoicesPending: 0, totalBillsPending: 0 };
 
-    const totalInvoices = forecastData.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalCreditMemos = forecastData.filter(item => item.Type === 'Credit Memo').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBills = forecastData.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBillCredits = forecastData.filter(item => item.Type === 'Bill Credit').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const invoices = forecastData.filter(item => item.Type === 'Invoice');
+    const creditMemos = forecastData.filter(item => item.Type === 'Credit Memo');
+    const bills = forecastData.filter(item => item.Type === 'Bill');
+    const billCredits = forecastData.filter(item => item.Type === 'Bill Credit');
+
+    const totalInvoices = invoices.reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalCreditMemos = creditMemos.reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalBills = bills.reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalBillCredits = billCredits.reduce((sum, item) => sum + item.RemainingAmount, 0);
+
+    const totalInvoicesPending = invoices.filter(item => item.Status === 'Pending Approval').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalBillsPending = bills.filter(item => item.Status === 'Pending Approval').reduce((sum, item) => sum + item.RemainingAmount, 0);
 
     const totalReceivables = totalInvoices - totalCreditMemos;
     const totalPayables = totalBills - totalBillCredits;
@@ -136,7 +144,7 @@ export default function Home() {
     const netCashFlow = totalReceivables - totalPayables;
     const forecastBalance = startingBalance + netCashFlow;
 
-    return { totalReceivables, totalPayables, netCashFlow, forecastBalance, totalInvoices, totalCreditMemos, totalBills, totalBillCredits };
+    return { totalReceivables, totalPayables, netCashFlow, forecastBalance, totalInvoices, totalCreditMemos, totalBills, totalBillCredits, totalInvoicesPending, totalBillsPending };
 }, [forecastData, startingBalance]);
 
   const weeklyDetails = useMemo(() => {
@@ -280,6 +288,9 @@ export default function Home() {
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Receivables Calculation</div>
                         <div className="flex justify-between gap-4"><span>Invoices:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalInvoices)}</span></div>
+                        {summaryMetrics.totalInvoicesPending > 0 && (
+                          <div className="flex justify-between gap-4 pl-4 text-xs text-muted-foreground"><span>(Pending Approval):</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalInvoicesPending)}</span></div>
+                        )}
                         <div className="flex justify-between gap-4"><span>Credit Memos:</span> <span className="font-mono">- {formatCurrencyTooltip(summaryMetrics.totalCreditMemos)}</span></div>
                         <hr />
                         <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalReceivables)}</span></div>
@@ -303,6 +314,9 @@ export default function Home() {
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Payables Calculation</div>
                         <div className="flex justify-between gap-4"><span>Bills:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalBills)}</span></div>
+                         {summaryMetrics.totalBillsPending > 0 && (
+                          <div className="flex justify-between gap-4 pl-4 text-xs text-muted-foreground"><span>(Pending Approval):</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalBillsPending)}</span></div>
+                        )}
                         <div className="flex justify-between gap-4"><span>Bill Credits:</span> <span className="font-mono">- {formatCurrencyTooltip(summaryMetrics.totalBillCredits)}</span></div>
                         <hr />
                         <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalPayables)}</span></div>
@@ -449,5 +463,3 @@ export default function Home() {
     </>
   );
 }
-
-    
