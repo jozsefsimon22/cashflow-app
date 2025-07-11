@@ -1,9 +1,10 @@
 
+
 export interface CashFlowItem {
   Type: 'Invoice' | 'Bill' | 'Bill Credit' | 'Credit Memo';
   'Document Number': string | number;
   Name: string;
-  'Due Date': Date;
+  'Due Date': Date | null;
   Amount: number;
   RemainingAmount: number;
   Status: string;
@@ -50,3 +51,4 @@ export interface WeeklyDetails {
   billsDue: number;
   details: CashFlowItem[];
 }
+

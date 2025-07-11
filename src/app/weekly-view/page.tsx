@@ -8,7 +8,7 @@ import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, Ga
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, addWeeks, addMonths, addQuarters, startOfToday, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { format, addWeeks, addMonths, addQuarters, startOfToday, startOfWeek, endOfWeek, isWithinInterval, subDays, isBefore } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -54,7 +54,7 @@ interface WeeklyBreakdown {
 
 interface DialogDetails {
     title: string;
-    items: (CashFlowItem | ManualTransaction)[];
+    items: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
     total: number;
     type: 'inflow' | 'outflow';
 }
@@ -66,12 +66,11 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], forecast
     let currentDate = t.startDate;
     let i = 0;
     while (currentDate <= forecastEndDate && i < 1000) {
-      if (currentDate >= startOfToday()) {
-        items.push({
-          ...t,
-          dueDate: currentDate
-        });
-      }
+      // Generate all occurrences within the forecast window, including past ones.
+      items.push({
+        ...t,
+        dueDate: currentDate
+      });
 
       if (t.frequency === 'once') break;
 
@@ -120,6 +119,7 @@ export default function WeeklyViewPage() {
     if (!isClient) return [];
     
     const excludedNamesSet = new Set(excludedNames);
+    const today = startOfToday();
 
     const fileData = data ? data.filter(item => 
       item.Status && 
@@ -127,24 +127,57 @@ export default function WeeklyViewPage() {
       !excludedNamesSet.has(item.Name)
     ) : [];
 
-    const forecastEndDate = addWeeks(startOfToday(), 13);
-    const manualData = generateForecastItems(manualTransactions, forecastEndDate)
+    const forecastEndDate = addWeeks(today, 13);
+    const allManualData = generateForecastItems(manualTransactions, forecastEndDate)
         .filter(item => !excludedNamesSet.has(item.name));
 
     const breakdown: WeeklyBreakdown[] = [];
-    const today = startOfToday();
+    
+    // --- Overdue Calculation ---
+    const overdueFileData = fileData.filter(item => item['Due Date'] && isBefore(item['Due Date'], today));
+    const overdueManualData = allManualData.filter(item => isBefore(item.dueDate, today));
+
+    const overdueArItems = overdueFileData.filter(item => INFLOW_TYPES.includes(item.Type));
+    const overdueApItems = overdueFileData.filter(item => OUTFLOW_TYPES.includes(item.Type));
+    const overdueManualInflows = overdueManualData.filter(t => t.type === 'inflow');
+    const overdueManualOutflows = overdueManualData.filter(t => t.type === 'outflow');
+    
+    const overdueAR = overdueArItems.reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const overdueAP = overdueApItems.reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const overdueManualInflowTotal = overdueManualInflows.reduce((sum, item) => sum + item.amount, 0);
+    const overdueManualOutflowTotal = overdueManualOutflows.reduce((sum, item) => sum + item.amount, 0);
+
+    const overdueTotalInflow = overdueAR + overdueManualInflowTotal;
+    const overdueTotalOutflow = overdueAP + overdueManualOutflowTotal;
+
+    breakdown.push({
+      weekLabel: 'Overdue',
+      accountsReceivable: overdueAR,
+      accountsPayable: overdueAP,
+      manualInflows: overdueManualInflows,
+      manualOutflows: overdueManualOutflows,
+      arItems: overdueArItems,
+      apItems: overdueApItems,
+      totalInflow: overdueTotalInflow,
+      totalOutflow: overdueTotalOutflow,
+      netFlow: overdueTotalInflow - overdueTotalOutflow,
+    });
+    
+    // --- Future Weeks Calculation (12 weeks from today) ---
+    const futureFileData = fileData.filter(item => item['Due Date'] && !isBefore(item['Due Date'], today));
+    const futureManualData = allManualData.filter(item => !isBefore(item.dueDate, today));
 
     for (let i = 0; i < 12; i++) {
         const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
         const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
 
-        const weekFileData = fileData.filter(item => {
+        const weekFileData = futureFileData.filter(item => {
             const dueDate = item['Due Date'];
             if (!dueDate) return false;
             return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
         });
 
-        const weekManualData = manualData.filter(item => {
+        const weekManualData = futureManualData.filter(item => {
             return isWithinInterval(item.dueDate, { start: weekStart, end: weekEnd });
         });
 
@@ -316,7 +349,7 @@ export default function WeeklyViewPage() {
                             </TableHeader>
                             <TableBody>
                                 <TableRow className="bg-primary/5">
-                                    <TableCell colSpan={13} className="font-bold text-primary sticky left-0 bg-primary/5 z-10">
+                                    <TableCell colSpan={13 + 1} className="font-bold text-primary sticky left-0 bg-primary/5 z-10">
                                         <div className="flex items-center gap-2">
                                             <ArrowUpCircle className="w-5 h-5" /> Inflow
                                         </div>
@@ -350,7 +383,7 @@ export default function WeeklyViewPage() {
                                 </TableRow>
 
                                 <TableRow className="bg-destructive/5">
-                                    <TableCell colSpan={13} className="font-bold text-destructive sticky left-0 bg-destructive/5 z-10">
+                                    <TableCell colSpan={13 + 1} className="font-bold text-destructive sticky left-0 bg-destructive/5 z-10">
                                         <div className="flex items-center gap-2">
                                             <ArrowDownCircle className="w-5 h-5" /> Outflow
                                         </div>
@@ -447,7 +480,7 @@ export default function WeeklyViewPage() {
                                 const isManual = 'frequency' in item;
                                 const id = isManual ? `manual-${item.id}` : item['Document Number'];
                                 const type = isManual ? (item.type === 'inflow' ? 'Manual Inflow' : 'Manual Outflow') : item.Type;
-                                const amount = isManual ? item.amount : item.RemainingAmount;
+                                const amount = isManual ? item.amount : (item as CashFlowItem).RemainingAmount;
                                 return (
                                     <TableRow key={`${id}-${index}`}>
                                         <TableCell>{isManual ? 'Recurring' : id}</TableCell>
@@ -471,3 +504,4 @@ export default function WeeklyViewPage() {
     </>
   );
 }
+
