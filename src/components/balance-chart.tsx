@@ -1,13 +1,14 @@
 
 "use client";
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useContext } from 'react';
 import type { CashFlowItem, WeeklyDetails } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
-import { addWeeks, format, startOfWeek, isWithinInterval, endOfWeek } from 'date-fns';
+import { addWeeks, format, startOfWeek, endOfWeek } from 'date-fns';
 import { TrendingUp } from 'lucide-react';
+import { SettingsContext } from '@/context/settings-context';
 
 
 interface BalanceChartProps {
@@ -20,6 +21,7 @@ const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 
 export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
   const [isClient, setIsClient] = useState(false);
+  const { startingBalance } = useContext(SettingsContext);
 
   useEffect(() => {
     setIsClient(true);
@@ -29,7 +31,7 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
     if (!isClient) return [];
     const today = new Date();
     const weeklyData: (WeeklyDetails & { balance: number })[] = [];
-    let runningBalance = 0;
+    let runningBalance = startingBalance;
 
     for (let i = 0; i < 12; i++) {
         const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
@@ -38,7 +40,10 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
         const weekItems = data
             .filter(item => {
                 const dueDate = item['Due Date'];
-                return dueDate && dueDate >= weekStart && dueDate <= weekEnd;
+                // Reset time to midnight for consistent comparison
+                if (!dueDate) return false;
+                const comparisonDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+                return comparisonDate >= weekStart && comparisonDate <= weekEnd;
             });
 
         const totalInvoices = weekItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
@@ -57,7 +62,7 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
     }
 
     return weeklyData;
-  }, [data, isClient]);
+  }, [data, isClient, startingBalance]);
 
   const chartConfig = {
     balance: {
@@ -132,7 +137,7 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
               <TrendingUp className="w-6 h-6" />
               Cash Flow Balance Over Next 12 Weeks
           </CardTitle>
-          <CardDescription>Projected running balance. Click a data point for details.</CardDescription>
+          <CardDescription>Projected running balance, starting from your provided bank balance. Click a data point for details.</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer config={chartConfig} className="h-[400px] w-full">

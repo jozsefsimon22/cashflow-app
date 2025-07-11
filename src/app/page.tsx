@@ -35,7 +35,7 @@ type GroupedItems = {
 };
 
 export default function Home() {
-  const { data, setData, columnConfig } = useContext(SettingsContext);
+  const { data, startingBalance } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
 
@@ -60,12 +60,13 @@ export default function Home() {
   };
   
   const summaryMetrics = useMemo(() => {
-    if (!forecastData) return { totalReceivables: 0, totalPayables: 0, currentBalance: 0 };
+    if (!forecastData) return { totalReceivables: 0, totalPayables: 0, netCashFlow: 0, forecastBalance: startingBalance };
     const totalReceivables = forecastData.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
     const totalPayables = forecastData.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const currentBalance = totalReceivables - totalPayables;
-    return { totalReceivables, totalPayables, currentBalance };
-  }, [forecastData]);
+    const netCashFlow = totalReceivables - totalPayables;
+    const forecastBalance = startingBalance + netCashFlow;
+    return { totalReceivables, totalPayables, netCashFlow, forecastBalance };
+  }, [forecastData, startingBalance]);
 
   const weeklyDetails = useMemo(() => {
     if (!selectedWeek?.details) return { inflow: {}, outflow: {} };
@@ -155,7 +156,7 @@ export default function Home() {
                           <Wallet className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                          <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.currentBalance)}</div>
+                          <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.forecastBalance)}</div>
                           <p className="text-xs text-muted-foreground">Based on 'Open' and 'Pending Approval' items</p>
                       </CardContent>
                   </Card>

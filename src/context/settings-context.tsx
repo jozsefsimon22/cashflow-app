@@ -9,6 +9,8 @@ interface SettingsContextType {
   setColumnConfig: (config: ColumnConfig) => void;
   data: CashFlowItem[] | null;
   setData: (data: CashFlowItem[] | null) => void;
+  startingBalance: number;
+  setStartingBalance: (balance: number) => void;
 }
 
 const defaultConfig: ColumnConfig = {
@@ -29,11 +31,14 @@ export const SettingsContext = createContext<SettingsContextType>({
   setColumnConfig: () => {},
   data: null,
   setData: () => {},
+  startingBalance: 0,
+  setStartingBalance: () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [columnConfig, setColumnConfigState] = useState<ColumnConfig>(defaultConfig);
   const [data, setDataState] = useState<CashFlowItem[] | null>(null);
+  const [startingBalance, setStartingBalanceState] = useState<number>(0);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -43,8 +48,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       if (savedConfig) {
         setColumnConfigState({ ...defaultConfig, ...JSON.parse(savedConfig) });
       }
+      const savedBalance = localStorage.getItem('startingBalance');
+      if (savedBalance) {
+        setStartingBalanceState(parseFloat(savedBalance));
+      }
     } catch (error) {
-      console.error("Failed to parse columnConfig from localStorage", error);
+      console.error("Failed to parse settings from localStorage", error);
     }
 
     // Load data from sessionStorage on initial client-side mount
@@ -79,6 +88,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const setStartingBalance = (newBalance: number) => {
+    setStartingBalanceState(newBalance);
+     if(typeof window !== 'undefined'){
+      try {
+        localStorage.setItem('startingBalance', String(newBalance));
+      } catch (error) {
+        console.error("Failed to save startingBalance to localStorage", error);
+      }
+    }
+  }
+
   const setData = (newData: CashFlowItem[] | null) => {
     setDataState(newData);
     if(typeof window !== 'undefined'){
@@ -97,8 +117,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const providerValue = {
     columnConfig,
     setColumnConfig,
-    data: isInitialized ? data : null, // Prevent returning server-side rendered data before client-side hydration
-    setData
+    data: isInitialized ? data : null,
+    setData,
+    startingBalance,
+    setStartingBalance,
   };
 
   return (
