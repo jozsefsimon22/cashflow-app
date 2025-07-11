@@ -41,12 +41,14 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
         const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false, dateNF: 'yyyy-mm-dd' });
 
         const requiredColumns = ['Type', 'Document Number', 'Name', 'Due Date', 'Amount'];
+        
         const firstRow = json[0] || {};
         const availableColumns = Object.keys(firstRow);
-        const hasRequiredColumns = requiredColumns.every(col => availableColumns.includes(col));
+        
+        const missingColumns = requiredColumns.filter(col => !availableColumns.includes(col));
 
-        if (!hasRequiredColumns) {
-          throw new Error("Invalid file format. Please ensure all required columns are present: " + requiredColumns.join(', '));
+        if (missingColumns.length > 0) {
+           throw new Error(`Missing columns: ${missingColumns.join(', ')}. Found columns: ${availableColumns.join(', ')}.`);
         }
 
         const typedData: CashFlowItem[] = json.map((row, index) => {
