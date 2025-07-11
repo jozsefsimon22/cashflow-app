@@ -61,6 +61,7 @@ interface DialogDetails {
     items: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
     total: number;
     type: 'inflow' | 'outflow';
+    pendingTotal: number;
 }
 
 type SortKey = 'name' | 'amount';
@@ -250,9 +251,19 @@ export default function WeeklyViewPage() {
     return format(date, 'dd/MM/yy');
   }
 
-  const handleCellClick = (details: DialogDetails) => {
+  const handleCellClick = (details: Omit<DialogDetails, 'pendingTotal'>) => {
     if(details.total > 0 || details.items.length > 0) {
-        setDialogDetails(details);
+        const pendingTotal = details.items
+            .filter(item => 'Status' in item && item.Status === 'Pending Approval')
+            .reduce((sum, item) => {
+                const cashFlowItem = item as CashFlowItem;
+                const amount = (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') 
+                    ? -cashFlowItem.RemainingAmount 
+                    : cashFlowItem.RemainingAmount;
+                return sum + amount;
+            }, 0);
+
+        setDialogDetails({ ...details, pendingTotal });
     }
   }
 
@@ -553,9 +564,16 @@ export default function WeeklyViewPage() {
           </DialogHeader>
 
           <div className="flex items-center justify-between mb-2">
-             <div className="flex items-center gap-2 text-lg font-bold" style={{ color: dialogDetails?.type === 'inflow' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))' }}>
-                {dialogDetails?.type === 'inflow' ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
-                <span>Total: {formatCurrency(dialogDetails?.total || 0)}</span>
+            <div>
+              <div className="flex items-center gap-2 text-lg font-bold" style={{ color: dialogDetails?.type === 'inflow' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))' }}>
+                  {dialogDetails?.type === 'inflow' ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
+                  <span>Total: {formatCurrency(dialogDetails?.total || 0)}</span>
+              </div>
+              {dialogDetails && dialogDetails.pendingTotal > 0 && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                      (Pending Approval: {formatCurrency(dialogDetails.pendingTotal)})
+                  </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
                  <Button variant="ghost" size="sm" onClick={() => requestSort('name')}>
