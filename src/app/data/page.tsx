@@ -7,7 +7,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle } from "lucide-react";
 import type { CashFlowItem } from "@/types";
 import { format } from 'date-fns';
 import {
@@ -22,8 +22,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import { Badge } from "@/components/ui/badge";
 
-
+const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
 type SortKey = keyof CashFlowItem;
 
 export default function DataPage() {
@@ -158,10 +159,10 @@ export default function DataPage() {
             <CardHeader>
               <CardTitle className="font-headline flex items-center gap-2">
                 <Database className="w-6 h-6" />
-                Cash Flow Items
+                All Imported Transactions
               </CardTitle>
               <CardDescription>
-                This table displays the raw data imported from your file. You can sort by clicking the column headers.
+                This table displays all raw data imported from your file. Only items with a status of 'Open' or 'Pending Approval' are included in the forecast.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -174,26 +175,42 @@ export default function DataPage() {
                       <SortableHeader sortKey="Name">Name</SortableHeader>
                       <SortableHeader sortKey="Due Date">Due Date</SortableHeader>
                       <SortableHeader sortKey="Amount">Amount</SortableHeader>
+                      <SortableHeader sortKey="Status">Status</SortableHeader>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isClient && sortedData.length > 0 ? (
-                      sortedData.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
-                              {item.Type}
-                            </span>
-                          </TableCell>
-                          <TableCell>{item['Document Number']}</TableCell>
-                          <TableCell>{item.Name}</TableCell>
-                          <TableCell>{format(item['Due Date'], 'yyyy-MM-dd')}</TableCell>
-                          <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
-                        </TableRow>
-                      ))
+                      sortedData.map((item, index) => {
+                        const isIncluded = INCLUDED_STATUSES.includes(item.Status);
+                        return (
+                          <TableRow key={index} className={!isIncluded ? 'bg-muted/50' : ''}>
+                            <TableCell>
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/20 text-primary' : 'bg-destructive/20 text-destructive'}`}>
+                                {item.Type}
+                              </span>
+                            </TableCell>
+                            <TableCell>{item['Document Number']}</TableCell>
+                            <TableCell>{item.Name}</TableCell>
+                            <TableCell>{format(item['Due Date'], 'yyyy-MM-dd')}</TableCell>
+                            <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                            <TableCell>
+                               <div className="flex items-center gap-2">
+                                {isIncluded ? (
+                                  <CheckCircle className="w-4 h-4 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-4 h-4 text-muted-foreground" />
+                                )}
+                                <Badge variant={isIncluded ? 'outline' : 'secondary'} className="font-normal">
+                                  {item.Status}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
                           {isClient ? "No data has been imported yet. Go to the dashboard to upload a file." : "Loading data..."}
                         </TableCell>
                       </TableRow>

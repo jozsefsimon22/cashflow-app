@@ -104,14 +104,14 @@ export default function DocumentationPage() {
                 <div className="p-4 bg-secondary/50 rounded-lg">
                   <h4 className="font-semibold text-foreground mb-2">Status-Based Filtering</h4>
                   <p className="text-muted-foreground">
-                    The application automatically filters your data based on the <strong>Status</strong> column to ensure the forecast is accurate. Only transactions with the following statuses will be included in the cash flow analysis:
+                    The application automatically filters your data to ensure the forecast is accurate. Only transactions with a status of <strong>'Open'</strong> or <strong>'Pending Approval'</strong> will be included in the cash flow analysis on the dashboard.
                   </p>
                   <div className="flex flex-wrap gap-2 mt-3">
-                      <Badge variant="secondary">Open</Badge>
-                      <Badge variant="secondary">Pending Approval</Badge>
+                      <Badge variant="secondary">Included: Open</Badge>
+                      <Badge variant="secondary">Included: Pending Approval</Badge>
                   </div>
                    <p className="text-muted-foreground mt-3">
-                    All other statuses (e.g., 'Paid In Full', 'Cancelled', 'Rejected') will be excluded.
+                    All other statuses (e.g., 'Paid In Full', 'Cancelled', 'Rejected') will be imported but excluded from the forecast. You can view all imported data, including excluded items, on the <Link href="/data" className="text-primary underline">Imported Data</Link> page.
                   </p>
                 </div>
               </CardContent>

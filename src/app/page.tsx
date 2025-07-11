@@ -23,6 +23,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { format } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 
+const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
+
 type GroupedItems = {
   [name: string]: {
     total: number;
@@ -38,6 +40,11 @@ export default function Home() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const forecastData = useMemo(() => {
+    if (!data) return null;
+    return data.filter(item => INCLUDED_STATUSES.includes(item.Status));
+  }, [data]);
 
 
   const handleDataUploaded = (newData: CashFlowItem[]) => {
@@ -56,12 +63,12 @@ export default function Home() {
   };
   
   const summaryMetrics = useMemo(() => {
-    if (!data) return { totalReceivables: 0, totalPayables: 0, currentBalance: 0 };
-    const totalReceivables = data.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.Amount, 0);
-    const totalPayables = data.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.Amount, 0);
+    if (!forecastData) return { totalReceivables: 0, totalPayables: 0, currentBalance: 0 };
+    const totalReceivables = forecastData.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.Amount, 0);
+    const totalPayables = forecastData.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.Amount, 0);
     const currentBalance = totalReceivables - totalPayables;
     return { totalReceivables, totalPayables, currentBalance };
-  }, [data]);
+  }, [forecastData]);
 
   const weeklyDetails = useMemo(() => {
     if (!selectedWeek?.details) return { inflow: {}, outflow: {} };
@@ -141,17 +148,17 @@ export default function Home() {
             <SidebarTrigger />
         </div>
         <div className="space-y-8">
-          {isClient && data ? (
+          {isClient && forecastData ? (
             <>
                <div className="grid gap-4 md:grid-cols-3">
                   <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
+                          <CardTitle className="text-sm font-medium">Forecast Balance</CardTitle>
                           <Wallet className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
                           <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.currentBalance)}</div>
-                          <p className="text-xs text-muted-foreground">Total receivables minus total payables</p>
+                          <p className="text-xs text-muted-foreground">Based on 'Open' and 'Pending Approval' items</p>
                       </CardContent>
                   </Card>
                   <Card>
@@ -161,7 +168,7 @@ export default function Home() {
                       </CardHeader>
                       <CardContent>
                           <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.totalReceivables)}</div>
-                           <p className="text-xs text-muted-foreground">Total amount from all invoices</p>
+                           <p className="text-xs text-muted-foreground">From invoices in the forecast</p>
                       </CardContent>
                   </Card>
                   <Card>
@@ -171,16 +178,16 @@ export default function Home() {
                       </CardHeader>
                       <CardContent>
                           <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.totalPayables)}</div>
-                           <p className="text-xs text-muted-foreground">Total amount from all bills</p>
+                           <p className="text-xs text-muted-foreground">From bills in the forecast</p>
                       </CardContent>
                   </Card>
               </div>
               <div className="grid gap-8 lg:grid-cols-3">
                 <div className="lg:col-span-2">
-                  <BalanceChart data={data} onWeekSelect={handleWeekSelect} />
+                  <BalanceChart data={forecastData} onWeekSelect={handleWeekSelect} />
                 </div>
                 <div className="lg:col-span-1">
-                  <SummaryTable data={data} onWeekSelect={handleWeekSelect} />
+                  <SummaryTable data={forecastData} onWeekSelect={handleWeekSelect} />
                 </div>
               </div>
             </>

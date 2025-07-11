@@ -24,8 +24,6 @@ interface ValidationResult {
   message: string;
 }
 
-const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
-
 export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -134,13 +132,8 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         if (missingColumns.length > 0) {
            throw new Error(`The uploaded file is missing required columns. Please check the validation details below.`);
         }
-
-        const filteredJson = json.filter(row => {
-          const status = row[columnConfig.status];
-          return INCLUDED_STATUSES.includes(status);
-        });
-
-        const typedData: CashFlowItem[] = filteredJson.map((row, index) => {
+        
+        const typedData: CashFlowItem[] = json.map((row, index) => {
             const dueDateValue = row[columnConfig.dueDate];
             const dateValue = row[columnConfig.date];
 
@@ -174,7 +167,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         onDataUploaded(typedData);
         toast({
           title: "Success!",
-          description: `${file.name} processed successfully. ${filteredJson.length} of ${json.length} rows included.`,
+          description: `${file.name} processed successfully. ${json.length} rows imported.`,
         });
       } catch (error) {
         console.error("File parsing error:", error);
