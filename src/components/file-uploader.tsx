@@ -42,9 +42,10 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
 
         const requiredColumns = ['Type', 'Document Number', 'Name', 'Due Date', 'Amount'];
         const firstRow = json[0] || {};
-        const hasAllColumns = requiredColumns.every(col => Object.keys(firstRow).includes(col));
+        const availableColumns = Object.keys(firstRow);
+        const hasRequiredColumns = requiredColumns.every(col => availableColumns.includes(col));
 
-        if (!hasAllColumns) {
+        if (!hasRequiredColumns) {
           throw new Error("Invalid file format. Please ensure all required columns are present: " + requiredColumns.join(', '));
         }
 
