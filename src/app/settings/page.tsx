@@ -35,11 +35,21 @@ export default function SettingsPage() {
 
   const form = useForm<ColumnConfig>({
     resolver: zodResolver(formSchema),
-    defaultValues: columnConfig,
+    defaultValues: {
+      ...columnConfig,
+      status: columnConfig.status ?? '',
+      dateClosed: columnConfig.dateClosed ?? '',
+      dateFormat: columnConfig.dateFormat ?? 'auto',
+    },
   });
 
   useEffect(() => {
-    form.reset(columnConfig);
+    form.reset({
+      ...columnConfig,
+      status: columnConfig.status ?? '',
+      dateClosed: columnConfig.dateClosed ?? '',
+      dateFormat: columnConfig.dateFormat ?? 'auto',
+    });
   }, [columnConfig, form]);
 
   const onSubmit = (values: ColumnConfig) => {
@@ -262,5 +272,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-    
