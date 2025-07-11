@@ -218,14 +218,14 @@ export default function Home() {
                 <SidebarTrigger />
                 <h1 className="text-3xl font-bold font-headline text-foreground">Dashboard</h1>
             </div>
+            {isClient && (data || manualTransactions.length > 0) && (
+              <div className="flex items-center space-x-2">
+                <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
+                <Label htmlFor="exclusions-toggle" className="text-sm">Apply Name Exclusions</Label>
+              </div>
+            )}
         </div>
         <div className="space-y-4">
-          {isClient && (data || manualTransactions.length > 0) && (
-            <div className="flex justify-start items-center space-x-2 mb-4">
-              <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
-              <Label htmlFor="exclusions-toggle" className="text-sm">Apply Name Exclusions</Label>
-            </div>
-          )}
           {isClient && forecastData ? (
             <TooltipProvider>
                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
