@@ -4,7 +4,7 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDown } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDown, Users } from 'lucide-react';
 import { SettingsContext } from "@/context/settings-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, startOfWeek, endOfWeek, isWithinInterval, isBefore } from 'date-fns';
@@ -38,16 +38,21 @@ type GroupedItems = {
 interface WeeklyBreakdown {
   weekLabel: string;
   accountsReceivable: number;
+  intercompanyReceivable: number;
   accountsPayable: number;
+  intercompanyPayable: number;
   manualInflows: (ManualTransaction & { dueDate: Date })[];
   manualOutflows: (ManualTransaction & { dueDate: Date })[];
   arItems: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
   apItems: (ManualTransaction & { dueDate: Date } | CashFlowItem)[];
+  intercompanyArItems: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
+  intercompanyApItems: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
   totalInflow: number;
   totalOutflow: number;
   netFlow: number;
   runningBalance: number;
 }
+
 
 interface DialogDetails {
     title: string;
@@ -104,7 +109,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], paidOccu
 };
 
 export default function WeeklyViewPage() {
-  const { data, manualTransactions, excludedNames, startingBalance, paidManualOccurrences } = useContext(SettingsContext);
+  const { data, manualTransactions, excludedNames, startingBalance, paidManualOccurrences, intercompanyNames } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
   const [applyExclusions, setApplyExclusions] = useState(true);
@@ -138,6 +143,7 @@ export default function WeeklyViewPage() {
     if (!isClient) return [];
     
     const excludedNamesSet = new Set(excludedNames);
+    const intercompanyNamesSet = new Set(intercompanyNames);
     const today = startOfToday();
 
     const fileData = data ? data.filter(item => 
@@ -161,29 +167,37 @@ export default function WeeklyViewPage() {
     const overdueCreditMemos = overdueFileData.filter(item => item.Type === 'Credit Memo');
     const overdueBills = overdueFileData.filter(item => item.Type === 'Bill');
     const overdueBillCredits = overdueFileData.filter(item => item.Type === 'Bill Credit');
-
-    const overdueManualInflows = overdueManualData.filter(t => t.type === 'inflow');
-    const overdueManualOutflows = overdueManualData.filter(t => t.type === 'outflow');
     
-    const overdueAR = overdueInvoices.reduce((sum, item) => sum + item.RemainingAmount, 0) - overdueCreditMemos.reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const overdueAP = overdueBills.reduce((sum, item) => sum + item.RemainingAmount, 0) - overdueBillCredits.reduce((sum, item) => sum + item.RemainingAmount, 0);
-    
-    const overdueManualInflowTotal = overdueManualInflows.reduce((sum, item) => sum + item.amount, 0);
-    const overdueManualOutflowTotal = overdueManualOutflows.reduce((sum, item) => sum + item.amount, 0);
+    const getTransactionName = (item: CashFlowItem | ManualTransaction & {dueDate: Date}) => 'frequency' in item ? item.name : item.Name;
 
-    const overdueTotalInflow = overdueAR + overdueManualInflowTotal;
-    const overdueTotalOutflow = overdueAP + overdueManualOutflowTotal;
+    const overdueAllArItems = [...overdueInvoices, ...overdueCreditMemos, ...overdueManualData.filter(t => t.type === 'inflow')];
+    const overdueAllApItems = [...overdueBills, ...overdueBillCredits, ...overdueManualData.filter(t => t.type === 'outflow')];
+
+    const overdueAR = overdueAllArItems.filter(i => !intercompanyNamesSet.has(getTransactionName(i))).reduce((sum, item) => sum + ('RemainingAmount' in item ? item.RemainingAmount : item.amount), 0);
+    const overdueIntercompanyAR = overdueAllArItems.filter(i => intercompanyNamesSet.has(getTransactionName(i))).reduce((sum, item) => sum + ('RemainingAmount' in item ? item.RemainingAmount : item.amount), 0);
+    const overdueAP = overdueAllApItems.filter(i => !intercompanyNamesSet.has(getTransactionName(i))).reduce((sum, item) => sum + ('RemainingAmount' in item ? item.RemainingAmount : item.amount), 0);
+    const overdueIntercompanyAP = overdueAllApItems.filter(i => intercompanyNamesSet.has(getTransactionName(i))).reduce((sum, item) => sum + ('RemainingAmount' in item ? item.RemainingAmount : item.amount), 0);
+    
+    const overdueManualInflows = overdueManualData.filter(t => t.type === 'inflow' && !intercompanyNamesSet.has(t.name));
+    const overdueManualOutflows = overdueManualData.filter(t => t.type === 'outflow' && !intercompanyNamesSet.has(t.name));
+    
+    const overdueTotalInflow = overdueAR + overdueIntercompanyAR;
+    const overdueTotalOutflow = overdueAP + overdueIntercompanyAP;
     const overdueNetFlow = overdueTotalInflow - overdueTotalOutflow;
     currentBalance += overdueNetFlow;
 
     breakdown.push({
       weekLabel: 'Overdue',
       accountsReceivable: overdueAR,
+      intercompanyReceivable: overdueIntercompanyAR,
       accountsPayable: overdueAP,
+      intercompanyPayable: overdueIntercompanyAP,
       manualInflows: overdueManualInflows,
       manualOutflows: overdueManualOutflows,
-      arItems: [...overdueInvoices, ...overdueCreditMemos, ...overdueManualInflows],
-      apItems: [...overdueBills, ...overdueBillCredits, ...overdueManualOutflows],
+      arItems: overdueAllArItems.filter(i => !intercompanyNamesSet.has(getTransactionName(i))),
+      apItems: overdueAllApItems.filter(i => !intercompanyNamesSet.has(getTransactionName(i))),
+      intercompanyArItems: overdueAllArItems.filter(i => intercompanyNamesSet.has(getTransactionName(i))),
+      intercompanyApItems: overdueAllApItems.filter(i => intercompanyNamesSet.has(getTransactionName(i))),
       totalInflow: overdueTotalInflow,
       totalOutflow: overdueTotalOutflow,
       netFlow: overdueNetFlow,
@@ -208,33 +222,43 @@ export default function WeeklyViewPage() {
             return isWithinInterval(item.dueDate, { start: weekStart, end: weekEnd });
         });
 
-        const invoices = weekFileData.filter(item => item.Type === 'Invoice');
-        const creditMemos = weekFileData.filter(item => item.Type === 'Credit Memo');
-        const bills = weekFileData.filter(item => item.Type === 'Bill');
-        const billCredits = weekFileData.filter(item => item.Type === 'Bill Credit');
+        const allArItems = [
+            ...weekFileData.filter(item => INFLOW_TYPES.includes(item.Type)),
+            ...weekManualData.filter(t => t.type === 'inflow')
+        ];
+        const allApItems = [
+            ...weekFileData.filter(item => OUTFLOW_TYPES.includes(item.Type)),
+            ...weekManualData.filter(t => t.type === 'outflow')
+        ];
 
-        const accountsReceivable = invoices.reduce((sum, item) => sum + item.RemainingAmount, 0) - creditMemos.reduce((sum, item) => sum + item.RemainingAmount, 0);
-        const accountsPayable = bills.reduce((sum, item) => sum + item.RemainingAmount, 0) - billCredits.reduce((sum, item) => sum + item.RemainingAmount, 0);
+        const getAmount = (item: any) => 'RemainingAmount' in item ? ((item.Type === 'Bill Credit' || item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount) : item.amount;
         
-        const manualInflows = weekManualData.filter(t => t.type === 'inflow');
-        const manualOutflows = weekManualData.filter(t => t.type === 'outflow');
+        const accountsReceivable = allArItems.filter(i => !intercompanyNamesSet.has(getTransactionName(i))).reduce((sum, item) => sum + getAmount(item), 0);
+        const intercompanyReceivable = allArItems.filter(i => intercompanyNamesSet.has(getTransactionName(i))).reduce((sum, item) => sum + getAmount(item), 0);
+        const accountsPayable = allApItems.filter(i => !intercompanyNamesSet.has(getTransactionName(i))).reduce((sum, item) => sum + getAmount(item), 0);
+        const intercompanyPayable = allApItems.filter(i => intercompanyNamesSet.has(getTransactionName(i))).reduce((sum, item) => sum + getAmount(item), 0);
+        
+        const manualInflows = weekManualData.filter(t => t.type === 'inflow' && !intercompanyNamesSet.has(t.name));
+        const manualOutflows = weekManualData.filter(t => t.type === 'outflow' && !intercompanyNamesSet.has(t.name));
 
-        const manualInflowTotal = manualInflows.reduce((sum, item) => sum + item.amount, 0);
-        const manualOutflowTotal = manualOutflows.reduce((sum, item) => sum + item.amount, 0);
+        const totalInflow = accountsReceivable + intercompanyReceivable;
+        const totalOutflow = accountsPayable + intercompanyPayable;
         
-        const totalInflow = accountsReceivable + manualInflowTotal;
-        const totalOutflow = accountsPayable + manualOutflowTotal;
         const netFlow = totalInflow - totalOutflow;
         currentBalance += netFlow;
 
         breakdown.push({
             weekLabel: `w/c ${format(weekStart, 'dd/MM')}`,
             accountsReceivable,
+            intercompanyReceivable,
             accountsPayable,
+            intercompanyPayable,
             manualInflows,
             manualOutflows,
-            arItems: [...invoices, ...creditMemos, ...manualInflows],
-            apItems: [...bills, ...billCredits, ...manualOutflows],
+            arItems: allArItems.filter(i => !intercompanyNamesSet.has(getTransactionName(i))),
+            apItems: allApItems.filter(i => !intercompanyNamesSet.has(getTransactionName(i))),
+            intercompanyArItems: allArItems.filter(i => intercompanyNamesSet.has(getTransactionName(i))),
+            intercompanyApItems: allApItems.filter(i => intercompanyNamesSet.has(getTransactionName(i))),
             totalInflow,
             totalOutflow,
             netFlow: netFlow,
@@ -244,7 +268,7 @@ export default function WeeklyViewPage() {
 
     return breakdown;
 
-  }, [data, manualTransactions, excludedNames, isClient, startingBalance, applyExclusions, paidManualOccurrences]);
+  }, [data, manualTransactions, excludedNames, isClient, startingBalance, applyExclusions, paidManualOccurrences, intercompanyNames]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -394,6 +418,14 @@ export default function WeeklyViewPage() {
                                     </TableCell>
                                     {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Accounts Receivable - ${week.weekLabel}`, items: week.arItems, total: week.accountsReceivable, type: 'inflow' })}>{formatCurrency(week.accountsReceivable)}</TableCell>)}
                                 </TableRow>
+                                 <TableRow>
+                                    <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
+                                       <div className="flex items-center gap-2">
+                                            <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Receivable
+                                        </div>
+                                    </TableCell>
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Intercompany Receivable - ${week.weekLabel}`, items: week.intercompanyArItems, total: week.intercompanyReceivable, type: 'inflow' })}>{formatCurrency(week.intercompanyReceivable)}</TableCell>)}
+                                </TableRow>
                                 {uniqueManualInflows.map(manualInflow => (
                                     <TableRow key={manualInflow.id}>
                                         <TableCell className="font-medium sticky left-0 bg-card z-10">
@@ -427,6 +459,14 @@ export default function WeeklyViewPage() {
                                         </div>
                                     </TableCell>
                                     {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Accounts Payable - ${week.weekLabel}`, items: week.apItems, total: week.accountsPayable, type: 'outflow' })}>{formatCurrency(week.accountsPayable)}</TableCell>)}
+                                </TableRow>
+                                <TableRow>
+                                    <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
+                                       <div className="flex items-center gap-2">
+                                            <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Payable
+                                        </div>
+                                    </TableCell>
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Intercompany Payable - ${week.weekLabel}`, items: week.intercompanyApItems, total: week.intercompanyPayable, type: 'outflow' })}>{formatCurrency(week.intercompanyPayable)}</TableCell>)}
                                 </TableRow>
                                 {uniqueManualOutflows.map(manualOutflow => (
                                     <TableRow key={manualOutflow.id}>
