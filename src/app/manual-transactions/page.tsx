@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { Database, GanttChartSquare, LayoutDashboard, Settings, BookOpen, Repeat, CalendarIcon, Trash2, PlusCircle, ArrowUpCircle, ArrowDownCircle, XCircle, CalendarDays, Download } from 'lucide-react';
+import { Database, GanttChartSquare, LayoutDashboard, Settings, BookOpen, Repeat, CalendarIcon, Trash2, PlusCircle, ArrowUpCircle, ArrowDownCircle, XCircle, CalendarDays, Download, Pencil } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -35,6 +35,7 @@ const manualTransactionSchema = z.object({
 export default function ManualTransactionsPage() {
   const { manualTransactions, setManualTransactions } = useContext(SettingsContext);
   const { toast } = useToast();
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
 
   const manualTransactionForm = useForm<z.infer<typeof manualTransactionSchema>>({
     resolver: zodResolver(manualTransactionSchema),
@@ -45,16 +46,7 @@ export default function ManualTransactionsPage() {
     },
   });
 
-  const onManualTransactionSubmit = (values: z.infer<typeof manualTransactionSchema>) => {
-    const newTransaction: ManualTransaction = {
-      id: new Date().toISOString(), // simple unique id
-      ...values,
-    };
-    setManualTransactions([...manualTransactions, newTransaction]);
-    toast({
-      title: "Transaction Added",
-      description: "Your manual transaction has been added to the forecast.",
-    });
+  const resetForm = () => {
     manualTransactionForm.reset({
       name: "",
       amount: 0,
@@ -62,6 +54,45 @@ export default function ManualTransactionsPage() {
       startDate: undefined,
       frequency: "once",
     });
+  }
+
+  const onManualTransactionSubmit = (values: z.infer<typeof manualTransactionSchema>) => {
+    if (editingTransactionId) {
+      // Update existing transaction
+      setManualTransactions(
+        manualTransactions.map(t =>
+          t.id === editingTransactionId ? { ...t, ...values } : t
+        )
+      );
+      toast({
+        title: "Transaction Updated",
+        description: "Your manual transaction has been successfully updated.",
+      });
+      setEditingTransactionId(null);
+    } else {
+      // Add new transaction
+      const newTransaction: ManualTransaction = {
+        id: new Date().toISOString(), // simple unique id
+        ...values,
+      };
+      setManualTransactions([...manualTransactions, newTransaction]);
+      toast({
+        title: "Transaction Added",
+        description: "Your manual transaction has been added to the forecast.",
+      });
+    }
+
+    resetForm();
+  };
+  
+  const handleEditClick = (transaction: ManualTransaction) => {
+    setEditingTransactionId(transaction.id);
+    manualTransactionForm.reset(transaction);
+  };
+  
+  const handleCancelEdit = () => {
+    setEditingTransactionId(null);
+    resetForm();
   };
 
   const deleteManualTransaction = (id: string) => {
@@ -70,6 +101,9 @@ export default function ManualTransactionsPage() {
       title: "Transaction Removed",
       description: "The manual transaction has been removed from the forecast.",
     });
+    if(id === editingTransactionId) {
+        handleCancelEdit();
+    }
   };
 
   return (
@@ -161,9 +195,9 @@ export default function ManualTransactionsPage() {
             
             <Card>
                 <CardHeader>
-                    <CardTitle className="font-headline flex items-center gap-2"><Repeat className="w-6 h-6" />Add & Manage Transactions</CardTitle>
+                    <CardTitle className="font-headline flex items-center gap-2"><Repeat className="w-6 h-6" />{editingTransactionId ? 'Edit Transaction' : 'Add Transaction'}</CardTitle>
                     <CardDescription>
-                    Add one-off or recurring transactions to your forecast that are not in your imported file (e.g., rent, salaries).
+                    {editingTransactionId ? 'Update the details of your transaction.' : 'Add one-off or recurring transactions to your forecast that are not in your imported file (e.g., rent, salaries).'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -289,8 +323,15 @@ export default function ManualTransactionsPage() {
                             )}
                             />
                         </div>
-                        <div className="flex justify-end">
-                        <Button type="submit"><PlusCircle className="mr-2 h-4 w-4" /> Add Transaction</Button>
+                        <div className="flex justify-end gap-2">
+                           {editingTransactionId && (
+                            <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                                Cancel
+                            </Button>
+                           )}
+                           <Button type="submit">
+                                {editingTransactionId ? "Update Transaction" : <><PlusCircle className="mr-2 h-4 w-4" /> Add Transaction</>}
+                            </Button>
                         </div>
                     </form>
                     </Form>
@@ -305,12 +346,12 @@ export default function ManualTransactionsPage() {
                                 <TableHead>Type</TableHead>
                                 <TableHead>First Due</TableHead>
                                 <TableHead>Frequency</TableHead>
-                                <TableHead className="text-right">Action</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                             </TableHeader>
                             <TableBody>
                             {manualTransactions.length > 0 ? manualTransactions.map(t => (
-                                <TableRow key={t.id}>
+                                <TableRow key={t.id} className={cn(editingTransactionId === t.id && 'bg-primary/10')}>
                                 <TableCell>{t.name}</TableCell>
                                 <TableCell>£{t.amount.toFixed(2)}</TableCell>
                                 <TableCell>
@@ -322,8 +363,11 @@ export default function ManualTransactionsPage() {
                                 <TableCell>{format(t.startDate, "dd/MM/yyyy")}</TableCell>
                                 <TableCell className="capitalize">{t.frequency}</TableCell>
                                 <TableCell className="text-right">
+                                    <Button variant="ghost" size="icon" onClick={() => handleEditClick(t)}>
+                                      <Pencil className="w-4 h-4" />
+                                    </Button>
                                     <Button variant="ghost" size="icon" onClick={() => deleteManualTransaction(t.id)}>
-                                    <Trash2 className="w-4 h-4" />
+                                      <Trash2 className="w-4 h-4" />
                                     </Button>
                                 </TableCell>
                                 </TableRow>
