@@ -31,19 +31,19 @@ export function SummaryTable({ data }: SummaryTableProps) {
             return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
         });
 
-        const receivables = weekItems
-            .filter(item => item.Type === 'Receivable')
+        const invoices = weekItems
+            .filter(item => item.Type === 'Invoice')
             .reduce((sum, item) => sum + item.Amount, 0);
         
-        const payables = weekItems
-            .filter(item => item.Type === 'Payable')
+        const bills = weekItems
+            .filter(item => item.Type === 'Bill')
             .reduce((sum, item) => sum + item.Amount, 0);
 
         weeklySummaries.push({
             week: getWeek(weekStart, { weekStartsOn: 1 }),
             weekLabel: `Week ${getWeek(weekStart, { weekStartsOn: 1 })}`,
-            receivables,
-            payables,
+            invoices,
+            bills,
         });
     }
 
@@ -66,7 +66,7 @@ export function SummaryTable({ data }: SummaryTableProps) {
           <ListTodo className="w-6 h-6" />
           Weekly Summary
         </CardTitle>
-        <CardDescription>Total receivables and payables for the next 12 weeks.</CardDescription>
+        <CardDescription>Total invoices and bills for the next 12 weeks.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="max-h-[400px] overflow-y-auto pr-2">
@@ -74,8 +74,8 @@ export function SummaryTable({ data }: SummaryTableProps) {
             <TableHeader className="sticky top-0 bg-card z-10">
               <TableRow>
                 <TableHead>Week</TableHead>
-                <TableHead className="text-right">Receivables</TableHead>
-                <TableHead className="text-right">Payables</TableHead>
+                <TableHead className="text-right">Invoices</TableHead>
+                <TableHead className="text-right">Bills</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -89,8 +89,8 @@ export function SummaryTable({ data }: SummaryTableProps) {
               {summaryData.map((week) => (
                 <TableRow key={week.week}>
                   <TableCell className="font-medium">{week.weekLabel}</TableCell>
-                  <TableCell className="text-right font-semibold text-primary">{formatCurrency(week.receivables)}</TableCell>
-                  <TableCell className="text-right font-semibold text-destructive">{formatCurrency(week.payables)}</TableCell>
+                  <TableCell className="text-right font-semibold text-primary">{formatCurrency(week.invoices)}</TableCell>
+                  <TableCell className="text-right font-semibold text-destructive">{formatCurrency(week.bills)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

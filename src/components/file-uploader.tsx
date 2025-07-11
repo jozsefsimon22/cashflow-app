@@ -49,8 +49,8 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
         }
 
         const typedData: CashFlowItem[] = json.map((row, index) => {
-            if (!(row['Due Date'] instanceof Date) || isNaN(Number(row['Amount'])) || (row['Type'] !== 'Receivable' && row['Type'] !== 'Payable')) {
-                throw new Error(`Invalid data in row ${index + 2}. 'Due Date' must be a date, 'Amount' must be a number, and 'Type' must be 'Receivable' or 'Payable'.`);
+            if (!(row['Due Date'] instanceof Date) || isNaN(Number(row['Amount'])) || (row['Type'] !== 'Invoice' && row['Type'] !== 'Bill')) {
+                throw new Error(`Invalid data in row ${index + 2}. 'Due Date' must be a date, 'Amount' must be a number, and 'Type' must be 'Invoice' or 'Bill'.`);
             }
             return {
                 'Type': row['Type'],

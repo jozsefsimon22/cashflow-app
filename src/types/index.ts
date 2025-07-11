@@ -1,5 +1,5 @@
 export interface CashFlowItem {
-  Type: 'Receivable' | 'Payable';
+  Type: 'Invoice' | 'Bill';
   'Document Number': string | number;
   Name: string;
   'Due Date': Date;
@@ -9,6 +9,6 @@ export interface CashFlowItem {
 export interface WeeklySummary {
   week: number;
   weekLabel: string;
-  receivables: number;
-  payables: number;
+  invoices: number;
+  bills: number;
 }

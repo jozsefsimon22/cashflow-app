@@ -32,6 +32,7 @@ export default function Home() {
             <CardDescription>
               Upload an Excel file (.xlsx, .xls, .csv) with your cash flow data.
               Please ensure the file has columns: 'Type', 'Document Number', 'Name', 'Due Date', and 'Amount'.
+              The 'Type' should be either 'Invoice' (for incoming cash) or 'Bill' (for outgoing cash).
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -21,21 +21,21 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
   const chartData = useMemo(() => {
     if (!isClient) return [];
     const today = new Date();
-    const weeklyData: { week: string; weekLabel: string, receivables: number; invoices: { doc: string, name: string, amount: number }[] }[] = [];
+    const weeklyData: { week: string; weekLabel: string, invoicesDue: number; invoices: { doc: string, name: string, amount: number }[] }[] = [];
 
     for (let i = 0; i < 12; i++) {
         const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
         const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
 
-        const weekReceivables = data
+        const weekInvoices = data
             .filter(item => {
-                if (item.Type !== 'Receivable') return false;
+                if (item.Type !== 'Invoice') return false;
                 const dueDate = new Date(item['Due Date']);
                 return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
             });
 
-        const totalReceivables = weekReceivables.reduce((sum, item) => sum + item.Amount, 0);
-        const invoiceDetails = weekReceivables.map(item => ({
+        const totalInvoices = weekInvoices.reduce((sum, item) => sum + item.Amount, 0);
+        const invoiceDetails = weekInvoices.map(item => ({
             doc: String(item['Document Number']),
             name: item.Name,
             amount: item.Amount,
@@ -44,7 +44,7 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
         weeklyData.push({
             week: `W${getWeek(weekStart, { weekStartsOn: 1 })}`,
             weekLabel: `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`,
-            receivables: totalReceivables,
+            invoicesDue: totalInvoices,
             invoices: invoiceDetails,
         });
     }
@@ -53,7 +53,7 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
   }, [data, isClient]);
 
   const chartConfig = {
-    receivables: {
+    invoicesDue: {
       label: "Unpaid Invoices",
       color: "hsl(var(--primary))",
     },
@@ -66,7 +66,7 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
             <div className="p-3 bg-card border rounded-md shadow-lg max-w-sm">
                 <p className="font-bold font-headline text-lg">{`${label}`}</p>
                 <p className="text-sm text-muted-foreground mb-2">{weekData.weekLabel}</p>
-                <p className="text-primary font-semibold">{`Total Due: $${weekData.receivables.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</p>
+                <p className="text-primary font-semibold">{`Total Due: $${weekData.invoicesDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</p>
                 {weekData.invoices.length > 0 && (
                     <div className="mt-2 pt-2 border-t">
                         <p className="font-semibold text-sm mb-1">Invoices:</p>
@@ -93,7 +93,7 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
             <BarChartIcon className="w-6 h-6" />
             Unpaid Invoices Over Next 12 Weeks
         </CardTitle>
-        <CardDescription>Total amount of receivables due each week.</CardDescription>
+        <CardDescription>Total amount of invoices due each week.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[400px] w-full">
@@ -108,7 +108,7 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
                 fontSize={12}
                 />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--accent) / 0.1)' }} />
-              <Bar dataKey="receivables" fill="var(--color-receivables)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="invoicesDue" fill="var(--color-invoicesDue)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
