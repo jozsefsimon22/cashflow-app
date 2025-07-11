@@ -74,6 +74,17 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
 
     return null;
   };
+  
+  const parseAmount = (amountValue: any): number | null => {
+    if (amountValue === null || amountValue === undefined) return null;
+    if (typeof amountValue === 'number') return amountValue;
+    if (typeof amountValue === 'string') {
+      const cleanedString = amountValue.replace(/[^0-9.-]+/g,"");
+      const number = parseFloat(cleanedString);
+      return isNaN(number) ? null : number;
+    }
+    return null;
+  }
 
 
   const parseFile = (file: File) => {
@@ -88,7 +99,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false });
+        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false, defval: null });
 
         const requiredColumns = [
           { name: 'Type', configKey: 'type' },
@@ -119,11 +130,12 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
 
         const typedData: CashFlowItem[] = json.map((row, index) => {
             const dueDate = parseDate(row[columnConfig.dueDate]);
+            const amount = parseAmount(row[columnConfig.amount]);
 
             if (dueDate === null) {
               throw new Error(`Invalid or unreadable date in row ${index + 2} for column '${columnConfig.dueDate}'. Check your date format settings.`);
             }
-            if(isNaN(Number(row[columnConfig.amount]))){
+            if(amount === null){
               throw new Error(`Invalid number format in row ${index + 2} for column '${columnConfig.amount}'.`);
             }
             if(row[columnConfig.type] !== 'Invoice' && row[columnConfig.type] !== 'Bill'){
@@ -135,7 +147,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
                 'Document Number': row[columnConfig.documentNumber],
                 'Name': row[columnConfig.name],
                 'Due Date': dueDate,
-                'Amount': Number(row[columnConfig.amount]),
+                'Amount': amount,
             };
         });
 
