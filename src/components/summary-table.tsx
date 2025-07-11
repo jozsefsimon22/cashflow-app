@@ -1,17 +1,20 @@
+
 "use client";
 
 import { useMemo, useEffect, useState } from 'react';
-import type { CashFlowItem, WeeklySummary } from '@/types';
+import type { CashFlowItem, WeeklySummary, WeeklyDetails } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { addWeeks, startOfWeek, isWithinInterval, endOfWeek, getWeek } from 'date-fns';
+import { addWeeks, startOfWeek, isWithinInterval, endOfWeek, getWeek, format } from 'date-fns';
 import { ListTodo } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface SummaryTableProps {
   data: CashFlowItem[];
+  onWeekSelect: (weekData: WeeklyDetails) => void;
 }
 
-export function SummaryTable({ data }: SummaryTableProps) {
+export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
     setIsClient(true);
@@ -41,14 +44,29 @@ export function SummaryTable({ data }: SummaryTableProps) {
 
         weeklySummaries.push({
             week: getWeek(weekStart, { weekStartsOn: 1 }),
-            weekLabel: `Week ${getWeek(weekStart, { weekStartsOn: 1 })}`,
+            weekLabel: `W${getWeek(weekStart, { weekStartsOn: 1 })}`,
             invoices,
             bills,
+            details: weekItems,
         });
     }
 
     return weeklySummaries;
   }, [data, isClient]);
+
+  const handleRowClick = (week: WeeklySummary) => {
+    const weekStart = startOfWeek(addWeeks(new Date(), week.week - getWeek(new Date())), { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    
+    const weekDetails: WeeklyDetails = {
+        week: week.weekLabel,
+        weekLabel: `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`,
+        invoicesDue: week.invoices,
+        billsDue: week.bills,
+        details: week.details,
+    };
+    onWeekSelect(weekDetails);
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -66,7 +84,7 @@ export function SummaryTable({ data }: SummaryTableProps) {
           <ListTodo className="w-6 h-6" />
           Weekly Summary
         </CardTitle>
-        <CardDescription>Total invoices and bills for the next 12 weeks.</CardDescription>
+        <CardDescription>Total invoices and bills for the next 12 weeks. Click a row for details.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="max-h-[400px] overflow-y-auto pr-2">
@@ -87,8 +105,8 @@ export function SummaryTable({ data }: SummaryTableProps) {
                 </TableRow>
               )}
               {summaryData.map((week) => (
-                <TableRow key={week.week}>
-                  <TableCell className="font-medium">{week.weekLabel}</TableCell>
+                <TableRow key={week.week} onClick={() => handleRowClick(week)} className="cursor-pointer">
+                  <TableCell className="font-medium">{`Week ${week.week}`}</TableCell>
                   <TableCell className="text-right font-semibold text-primary">{formatCurrency(week.invoices)}</TableCell>
                   <TableCell className="text-right font-semibold text-destructive">{formatCurrency(week.bills)}</TableCell>
                 </TableRow>

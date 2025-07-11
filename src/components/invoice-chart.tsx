@@ -2,37 +2,21 @@
 "use client";
 
 import { useMemo, useEffect, useState } from 'react';
-import type { CashFlowItem } from '@/types';
+import type { CashFlowItem, WeeklyDetails } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
 import { addWeeks, format, startOfWeek, isWithinInterval, endOfWeek, getWeek } from 'date-fns';
 import { BarChart as BarChartIcon } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-
-interface WeeklyDetails {
-  week: string;
-  weekLabel: string;
-  invoicesDue: number;
-  billsDue: number;
-  details: CashFlowItem[];
-}
 
 interface InvoiceChartProps {
   data: CashFlowItem[];
+  onWeekSelect: (weekData: WeeklyDetails) => void;
 }
 
-export function InvoiceChart({ data }: InvoiceChartProps) {
+export function InvoiceChart({ data, onWeekSelect }: InvoiceChartProps) {
   const [isClient, setIsClient] = useState(false);
-  const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -82,7 +66,7 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
   const handleBarClick = (data: any) => {
     if (data && data.activePayload && data.activePayload.length > 0) {
       const weekData = data.activePayload[0].payload;
-      setSelectedWeek(weekData);
+      onWeekSelect(weekData);
     }
   };
 
@@ -146,51 +130,6 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
           </ChartContainer>
         </CardContent>
       </Card>
-      
-      <Dialog open={!!selectedWeek} onOpenChange={() => setSelectedWeek(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Details for {selectedWeek?.weekLabel}</DialogTitle>
-            <DialogDescription>
-              All incoming and outgoing transactions for this week.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
-             <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Document #</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {selectedWeek?.details && selectedWeek.details.length > 0 ? (
-                        selectedWeek.details
-                          .sort((a,b) => a.Type.localeCompare(b.Type))
-                          .map((item, index) => (
-                            <TableRow key={index}>
-                                <TableCell>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                                      {item.Type}
-                                    </span>
-                                </TableCell>
-                                <TableCell>{item['Document Number']}</TableCell>
-                                <TableCell>{item.Name}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
-                            </TableRow>
-                        ))
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={4} className="text-center h-24">No transactions this week.</TableCell>
-                        </TableRow>
-                    )}
-                </TableBody>
-            </Table>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

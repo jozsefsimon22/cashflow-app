@@ -11,6 +11,7 @@ export interface WeeklySummary {
   weekLabel: string;
   invoices: number;
   bills: number;
+  details: CashFlowItem[];
 }
 
 export interface ColumnConfig {
@@ -20,4 +21,12 @@ export interface ColumnConfig {
   dueDate: string;
   amount: string;
   dateFormat: string;
+}
+
+export interface WeeklyDetails {
+  week: string;
+  weekLabel: string;
+  invoicesDue: number;
+  billsDue: number;
+  details: CashFlowItem[];
 }
