@@ -6,7 +6,7 @@ import type { CashFlowItem, ManualTransaction, WeeklyDetails } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle, CalendarDays } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle, CalendarDays, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -23,6 +23,8 @@ import { format, addWeeks, addMonths, addQuarters, startOfToday } from 'date-fns
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
@@ -110,9 +112,17 @@ export default function Home() {
       currency: 'GBP',
     }).format(amount);
   };
+   const formatCurrencyTooltip = (amount: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
   
   const summaryMetrics = useMemo(() => {
-    if (!forecastData) return { totalReceivables: 0, totalPayables: 0, netCashFlow: 0, forecastBalance: startingBalance };
+    if (!forecastData) return { totalReceivables: 0, totalPayables: 0, netCashFlow: 0, forecastBalance: startingBalance, totalInvoices: 0, totalCreditMemos: 0, totalBills: 0, totalBillCredits: 0 };
 
     const totalInvoices = forecastData.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
     const totalCreditMemos = forecastData.filter(item => item.Type === 'Credit Memo').reduce((sum, item) => sum + item.RemainingAmount, 0);
@@ -125,7 +135,7 @@ export default function Home() {
     const netCashFlow = totalReceivables - totalPayables;
     const forecastBalance = startingBalance + netCashFlow;
 
-    return { totalReceivables, totalPayables, netCashFlow, forecastBalance };
+    return { totalReceivables, totalPayables, netCashFlow, forecastBalance, totalInvoices, totalCreditMemos, totalBills, totalBillCredits };
 }, [forecastData, startingBalance]);
 
   const weeklyDetails = useMemo(() => {
@@ -240,7 +250,7 @@ export default function Home() {
         </div>
         <div className="space-y-8">
           {isClient && forecastData ? (
-            <>
+            <TooltipProvider>
                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -252,26 +262,52 @@ export default function Home() {
                           <p className="text-xs text-muted-foreground">As configured in settings</p>
                       </CardContent>
                   </Card>
-                  <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Total Receivables</CardTitle>
-                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables)}</div>
-                           <p className="text-xs text-muted-foreground">From 'Open' invoices in forecast</p>
-                      </CardContent>
-                  </Card>
-                  <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Total Payables</CardTitle>
-                          <TrendingDown className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables)}</div>
-                           <p className="text-xs text-muted-foreground">From 'Open' bills in forecast</p>
-                      </CardContent>
-                  </Card>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Total Receivables <Info className="w-3 h-3 text-muted-foreground" /></CardTitle>
+                              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                              <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables)}</div>
+                              <p className="text-xs text-muted-foreground">From 'Open' invoices in forecast</p>
+                          </CardContent>
+                      </Card>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <div className="p-1 text-sm space-y-2">
+                        <div className="font-bold">Receivables Calculation</div>
+                        <div className="flex justify-between gap-4"><span>Invoices:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalInvoices)}</span></div>
+                        <div className="flex justify-between gap-4"><span>Credit Memos:</span> <span className="font-mono">- {formatCurrencyTooltip(summaryMetrics.totalCreditMemos)}</span></div>
+                        <hr />
+                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalReceivables)}</span></div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium flex items-center gap-1.5">Total Payables <Info className="w-3 h-3 text-muted-foreground" /></CardTitle>
+                              <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                              <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables)}</div>
+                              <p className="text-xs text-muted-foreground">From 'Open' bills in forecast</p>
+                          </CardContent>
+                      </Card>
+                    </TooltipTrigger>
+                     <TooltipContent>
+                      <div className="p-1 text-sm space-y-2">
+                        <div className="font-bold">Payables Calculation</div>
+                        <div className="flex justify-between gap-4"><span>Bills:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalBills)}</span></div>
+                        <div className="flex justify-between gap-4"><span>Bill Credits:</span> <span className="font-mono">- {formatCurrencyTooltip(summaryMetrics.totalBillCredits)}</span></div>
+                        <hr />
+                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalPayables)}</span></div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                    <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Forecast Balance</CardTitle>
@@ -291,7 +327,7 @@ export default function Home() {
                   <SummaryTable data={forecastData} onWeekSelect={handleWeekSelect} />
                 </div>
               </div>
-            </>
+            </TooltipProvider>
           ) : (
             <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
               <div className="bg-secondary p-4 rounded-full mb-4">
