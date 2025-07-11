@@ -14,6 +14,8 @@ import type { ManualTransaction, ManualTransactionOccurrence } from "@/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface Occurrence extends ManualTransaction {
     dueDate: Date;
@@ -56,10 +58,18 @@ const generateAllOccurrences = (manualTransactions: ManualTransaction[], paidOcc
 export default function RecurringHistoryPage() {
     const { manualTransactions, paidManualOccurrences, setPaidManualOccurrences } = useContext(SettingsContext);
     const { toast } = useToast();
+    const [showPaid, setShowPaid] = useState(false);
 
     const allOccurrences = useMemo(() => {
         return generateAllOccurrences(manualTransactions, paidManualOccurrences);
     }, [manualTransactions, paidManualOccurrences]);
+    
+    const filteredOccurrences = useMemo(() => {
+        if (showPaid) {
+            return allOccurrences;
+        }
+        return allOccurrences.filter(item => !item.isPaid);
+    }, [allOccurrences, showPaid]);
 
     const handleMarkAsPaid = (transactionId: string, dueDate: Date) => {
         const newPaidOccurrence: ManualTransactionOccurrence = { transactionId, dueDate };
@@ -181,14 +191,24 @@ export default function RecurringHistoryPage() {
                     </div>
 
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="font-headline flex items-center gap-2">
-                                <History className="w-6 h-6" />
-                                Manage Recurring Payments
-                            </CardTitle>
-                            <CardDescription>
-                                View all past and future occurrences of your recurring manual transactions. For items set to manual handling, you can mark past due items as paid.
-                            </CardDescription>
+                        <CardHeader className="flex flex-row items-start justify-between">
+                            <div>
+                                <CardTitle className="font-headline flex items-center gap-2">
+                                    <History className="w-6 h-6" />
+                                    Manage Recurring Payments
+                                </CardTitle>
+                                <CardDescription>
+                                    View all past and future occurrences of your recurring manual transactions. For items set to manual handling, you can mark past due items as paid.
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center space-x-2 pt-1">
+                                <Switch
+                                    id="show-paid-toggle"
+                                    checked={showPaid}
+                                    onCheckedChange={setShowPaid}
+                                />
+                                <Label htmlFor="show-paid-toggle">Show Paid</Label>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <div className="max-h-[70vh] overflow-y-auto">
@@ -203,8 +223,8 @@ export default function RecurringHistoryPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {allOccurrences.length > 0 ? (
-                                            allOccurrences.map((item, index) => (
+                                        {filteredOccurrences.length > 0 ? (
+                                            filteredOccurrences.map((item, index) => (
                                                 <TableRow key={`${item.id}-${item.dueDate.toISOString()}`} className={cn(item.isPaid && "bg-green-500/10", item.isPast && !item.isPaid && item.pastDueHandling === 'manual' && "bg-destructive/10")}>
                                                     <TableCell>{format(item.dueDate, "dd/MM/yyyy")}</TableCell>
                                                     <TableCell>{item.name}</TableCell>
@@ -245,7 +265,7 @@ export default function RecurringHistoryPage() {
                                         ) : (
                                             <TableRow>
                                                 <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                                                    No recurring transactions have been added yet.
+                                                   {allOccurrences.length > 0 ? "All recurring transactions have been paid." : "No recurring transactions have been added yet."}
                                                 </TableCell>
                                             </TableRow>
                                         )}
