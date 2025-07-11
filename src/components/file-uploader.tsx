@@ -49,26 +49,23 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
   };
 
   const parseDate = (dateValue: any): Date | null => {
-    if (dateValue === null || dateValue === undefined || dateValue === '' || String(dateValue).trim() === '') return null;
+    if (dateValue === null || dateValue === undefined || String(dateValue).trim() === '') return null;
   
-    // 1. If it's already a valid Date object
+    // 1. If it's already a valid Date object from XLSX parsing with cellDates:true
     if (dateValue instanceof Date && isValid(dateValue)) {
       return dateValue;
     }
   
-    // 2. If it's a number (Excel date)
+    // 2. If it's a number (Excel date serial number)
     if (typeof dateValue === 'number') {
-      // XLSX.SSF.parse_date_code is the recommended way to handle Excel dates
-      const parsedDate = XLSX.SSF.parse_date_code(dateValue);
-      if (parsedDate) {
-        // The library returns components, so we construct a date object.
-        // It's UTC-based, so we use Date.UTC to avoid timezone issues.
-        const date = new Date(Date.UTC(parsedDate.y, parsedDate.m - 1, parsedDate.d, parsedDate.H, parsedDate.M, parsedDate.S));
-        if (isValid(date)) return date;
+      const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+      const excelDate = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
+      if (isValid(excelDate)) {
+        return excelDate;
       }
     }
   
-    // 3. If it's a string
+    // 3. If it's a string, try parsing it
     if (typeof dateValue === 'string') {
       const dateString = dateValue.trim();
       
@@ -78,21 +75,22 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         if (isValid(parsed)) return parsed;
       }
       
-      // Attempt ISO format
+      // Attempt ISO format (e.g., "2024-07-30T10:00:00.000Z")
       let parsed = parseISO(dateString);
       if (isValid(parsed)) return parsed;
 
-      // Attempt common formats as a fallback for 'auto'
+      // Fallback for 'auto' or if specified format fails
       const commonFormats = [
         'dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd', 'MM-dd-yyyy', 'dd-MM-yyyy',
-        'dd/MM/yy', 'MM/dd/yy',
+        'dd/MM/yy', 'MM/dd/yy', 'dd-MMM-yy', 'dd-MMM-yyyy'
       ];
+
       for (const format of commonFormats) {
         parsed = parse(dateString, format, new Date());
         if (isValid(parsed)) return parsed;
       }
   
-      // Final attempt with native Date constructor
+      // Final attempt with native Date constructor for other edge cases
       parsed = new Date(dateString);
       if (isValid(parsed)) return parsed;
     }
@@ -122,13 +120,13 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         setProgressMessage('Reading file...');
         await sleep(10); 
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'array', cellDates: true, cellText: false });
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true, cellNF: false, cellText: false });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
         setProgressMessage('Parsing data...');
         await sleep(10);
-        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false, defval: null });
+        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: true, defval: null });
 
         setProgressMessage('Validating columns...');
         await sleep(10);
@@ -350,5 +348,3 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
     </div>
   );
 }
-
-    
