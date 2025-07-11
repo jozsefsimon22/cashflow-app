@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import type { CashFlowItem } from '@/types';
 import { FileUploader } from '@/components/file-uploader';
 import { InvoiceChart } from '@/components/invoice-chart';
@@ -13,6 +14,12 @@ import { SettingsContext } from '@/context/settings-context';
 
 export default function Home() {
   const { data, setData, columnConfig } = useContext(SettingsContext);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
 
   const handleDataUploaded = (newData: CashFlowItem[]) => {
     setData(newData);
@@ -27,7 +34,7 @@ export default function Home() {
             <p className="mt-2 text-lg text-muted-foreground">Your cash flow, visualized.</p>
           </div>
           <div className="flex items-center gap-2">
-            {data && (
+            {isClient && data && (
               <Button variant="outline" asChild>
                 <Link href="/data">
                   <Database className="w-4 h-4 mr-2" />
@@ -60,7 +67,7 @@ export default function Home() {
           </CardContent>
         </Card>
 
-        {data ? (
+        {isClient && data ? (
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <InvoiceChart data={data} />
