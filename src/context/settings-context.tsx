@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useState, useEffect, ReactNode } from 'react';
@@ -17,6 +18,7 @@ const defaultConfig: ColumnConfig = {
   dueDate: 'Due Date',
   amount: 'Amount',
   status: 'Status',
+  date: 'Date',
   dateFormat: 'auto',
 };
 

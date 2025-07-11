@@ -24,6 +24,7 @@ const formSchema = z.object({
   dueDate: z.string().min(1, "Column name cannot be empty."),
   amount: z.string().min(1, "Column name cannot be empty."),
   status: z.string().min(1, "Column name cannot be empty."),
+  date: z.string().min(1, "Column name cannot be empty."),
   dateFormat: z.string(),
 });
 
@@ -160,6 +161,19 @@ export default function SettingsPage() {
                           <FormLabel>Due Date Column</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="e.g., 'Payment Due'" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                     <FormField
+                      control={form.control}
+                      name="date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date Column (Fallback)</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 'Transaction Date'" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

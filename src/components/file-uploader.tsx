@@ -42,7 +42,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
   };
 
   const parseDate = (dateValue: any): Date | null => {
-    if (!dateValue) return null;
+    if (dateValue === null || dateValue === undefined || dateValue === '') return null;
 
     // Use a specific format from settings first if it's not auto
     if (typeof dateValue === 'string' && columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
@@ -113,6 +113,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
           { name: 'Due Date', configKey: 'dueDate' },
           { name: 'Amount', configKey: 'amount' },
           { name: 'Status', configKey: 'status' },
+          { name: 'Date (Fallback)', configKey: 'date' },
         ];
         
         const firstRow = json[0] || {};
@@ -140,11 +141,18 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         });
 
         const typedData: CashFlowItem[] = filteredJson.map((row, index) => {
-            const dueDate = parseDate(row[columnConfig.dueDate]);
+            const dueDateValue = row[columnConfig.dueDate];
+            const dateValue = row[columnConfig.date];
+
+            let dueDate = parseDate(dueDateValue);
+            if (dueDate === null) {
+              dueDate = parseDate(dateValue);
+            }
+            
             const amount = parseAmount(row[columnConfig.amount]);
 
             if (dueDate === null) {
-              throw new Error(`Invalid or unreadable date in row ${index + 2} for column '${columnConfig.dueDate}'. Check your date format settings.`);
+              throw new Error(`Invalid or unreadable date in row ${index + 2}. Neither '${columnConfig.dueDate}' nor fallback '${columnConfig.date}' contain a valid date.`);
             }
             if(amount === null){
               throw new Error(`Invalid number format in row ${index + 2} for column '${columnConfig.amount}'.`);

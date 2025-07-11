@@ -97,6 +97,7 @@ export default function DocumentationPage() {
                   <li><strong>Document Number</strong>: A unique identifier for the transaction (e.g., invoice number).</li>
                   <li><strong>Name</strong>: The name of the client or vendor.</li>
                   <li><strong>Due Date</strong>: The date the payment is due. Various formats are supported (e.g., YYYY-MM-DD, DD/MM/YYYY).</li>
+                  <li><strong>Date</strong>: The transaction date. This is used as a fallback if the 'Due Date' for a row is empty.</li>
                   <li><strong>Amount</strong>: The transaction amount as a number.</li>
                   <li><strong>Status</strong>: The current state of the transaction (e.g., 'Open', 'Paid In Full').</li>
                 </ul>

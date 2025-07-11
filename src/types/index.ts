@@ -23,6 +23,7 @@ export interface ColumnConfig {
   dueDate: string;
   amount: string;
   status: string;
+  date: string;
   dateFormat: string;
 }
 
