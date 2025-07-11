@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useState, useEffect, ReactNode } from 'react';
-import type { CashFlowItem, ColumnConfig } from '@/types';
+import type { CashFlowItem, ColumnConfig, ManualTransaction } from '@/types';
 
 interface SettingsContextType {
   columnConfig: ColumnConfig;
@@ -11,6 +11,8 @@ interface SettingsContextType {
   setData: (data: CashFlowItem[] | null) => void;
   startingBalance: number;
   setStartingBalance: (balance: number) => void;
+  manualTransactions: ManualTransaction[];
+  setManualTransactions: (transactions: ManualTransaction[]) => void;
 }
 
 const defaultConfig: ColumnConfig = {
@@ -33,12 +35,15 @@ export const SettingsContext = createContext<SettingsContextType>({
   setData: () => {},
   startingBalance: 0,
   setStartingBalance: () => {},
+  manualTransactions: [],
+  setManualTransactions: () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [columnConfig, setColumnConfigState] = useState<ColumnConfig>(defaultConfig);
   const [data, setDataState] = useState<CashFlowItem[] | null>(null);
   const [startingBalance, setStartingBalanceState] = useState<number>(0);
+  const [manualTransactions, setManualTransactionsState] = useState<ManualTransaction[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -51,6 +56,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const savedBalance = localStorage.getItem('startingBalance');
       if (savedBalance) {
         setStartingBalanceState(parseFloat(savedBalance));
+      }
+      const savedManualTransactions = localStorage.getItem('manualTransactions');
+      if(savedManualTransactions) {
+        const parsed = JSON.parse(savedManualTransactions);
+        const transactionsWithDates = parsed.map((t: any) => ({
+          ...t,
+          startDate: new Date(t.startDate),
+        }));
+        setManualTransactionsState(transactionsWithDates);
       }
     } catch (error) {
       console.error("Failed to parse settings from localStorage", error);
@@ -114,6 +128,18 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
+  const setManualTransactions = (newTransactions: ManualTransaction[]) => {
+    setManualTransactionsState(newTransactions);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('manualTransactions', JSON.stringify(newTransactions));
+      } catch (error) {
+        console.error("Failed to save manual transactions to localStorage", error);
+      }
+    }
+  };
+
+  
   const providerValue = {
     columnConfig,
     setColumnConfig,
@@ -121,6 +147,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setData,
     startingBalance,
     setStartingBalance,
+    manualTransactions,
+    setManualTransactions,
   };
 
   return (

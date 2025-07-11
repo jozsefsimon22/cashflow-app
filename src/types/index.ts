@@ -11,6 +11,15 @@ export interface CashFlowItem {
   'Date Closed'?: Date | null;
 }
 
+export interface ManualTransaction {
+  id: string;
+  name: string;
+  amount: number;
+  type: 'inflow' | 'outflow';
+  startDate: Date;
+  frequency: 'once' | 'weekly' | 'fortnightly' | 'monthly' | 'quarterly';
+}
+
 export interface WeeklySummary {
   week: string;
   weekLabel: string;

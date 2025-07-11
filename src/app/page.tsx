@@ -2,7 +2,7 @@
 "use client";
 
 import { useContext, useEffect, useState, useMemo } from 'react';
-import type { CashFlowItem, WeeklyDetails } from '@/types';
+import type { CashFlowItem, ManualTransaction, WeeklyDetails } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { format } from 'date-fns';
+import { format, addWeeks, addMonths, addQuarters, startOfToday } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
@@ -34,8 +34,43 @@ type GroupedItems = {
   };
 };
 
+const generateForecastItems = (manualTransactions: ManualTransaction[]): CashFlowItem[] => {
+  const items: CashFlowItem[] = [];
+  const forecastEndDate = addWeeks(startOfToday(), 13); // 12 weeks into the future + buffer
+
+  manualTransactions.forEach(t => {
+    let currentDate = t.startDate;
+    let i = 0; // safety break
+    while (currentDate <= forecastEndDate && i < 1000) {
+      if (currentDate >= startOfToday()) {
+        items.push({
+          'Name': t.name,
+          'Type': t.type === 'inflow' ? 'Invoice' : 'Bill', // Treat as standard types
+          'Due Date': currentDate,
+          'Amount': t.amount,
+          'RemainingAmount': t.amount,
+          'Status': 'Open',
+          'Document Number': `manual-${t.id}-${i}`
+        });
+      }
+
+      if (t.frequency === 'once') break;
+
+      switch (t.frequency) {
+        case 'weekly': currentDate = addWeeks(currentDate, 1); break;
+        case 'fortnightly': currentDate = addWeeks(currentDate, 2); break;
+        case 'monthly': currentDate = addMonths(currentDate, 1); break;
+        case 'quarterly': currentDate = addQuarters(currentDate, 1); break;
+      }
+      i++;
+    }
+  });
+
+  return items;
+};
+
 export default function Home() {
-  const { data, startingBalance } = useContext(SettingsContext);
+  const { data, startingBalance, manualTransactions } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
 
@@ -45,8 +80,10 @@ export default function Home() {
 
   const forecastData = useMemo(() => {
     if (!data) return null;
-    return data.filter(item => item.Status && INCLUDED_STATUSES.includes(item.Status));
-  }, [data]);
+    const fileData = data.filter(item => item.Status && INCLUDED_STATUSES.includes(item.Status));
+    const manualData = generateForecastItems(manualTransactions);
+    return [...fileData, ...manualData];
+  }, [data, manualTransactions]);
   
   const handleWeekSelect = (weekData: WeeklyDetails) => {
     setSelectedWeek(weekData);
