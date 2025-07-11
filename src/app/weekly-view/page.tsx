@@ -4,7 +4,7 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, ManualTransaction } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins, Download } from 'lucide-react';
+import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins, Download, ArrowUpDown } from 'lucide-react';
 import Link from 'next/link';
 import { SettingsContext } from "@/context/settings-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,6 +28,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
@@ -48,7 +49,7 @@ interface WeeklyBreakdown {
   manualInflows: (ManualTransaction & { dueDate: Date })[];
   manualOutflows: (ManualTransaction & { dueDate: Date })[];
   arItems: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
-  apItems: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
+  apItems: (ManualTransaction & { dueDate: Date } | CashFlowItem)[];
   totalInflow: number;
   totalOutflow: number;
   netFlow: number;
@@ -61,6 +62,9 @@ interface DialogDetails {
     total: number;
     type: 'inflow' | 'outflow';
 }
+
+type SortKey = 'name' | 'amount';
+type SortDirection = 'asc' | 'desc';
 
 const generateForecastItems = (manualTransactions: ManualTransaction[], forecastEndDate: Date): (ManualTransaction & { dueDate: Date })[] => {
   const items: (ManualTransaction & { dueDate: Date })[] = [];
@@ -95,6 +99,8 @@ export default function WeeklyViewPage() {
   const [isClient, setIsClient] = useState(false);
   const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
   const [applyExclusions, setApplyExclusions] = useState(true);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
+
 
   useEffect(() => {
     setIsClient(true);
@@ -245,15 +251,26 @@ export default function WeeklyViewPage() {
   }
 
   const handleCellClick = (details: DialogDetails) => {
-    if(details.total > 0) {
+    if(details.total > 0 || details.items.length > 0) {
         setDialogDetails(details);
     }
   }
-  
-  const groupedDialogItems = useMemo((): GroupedItems => {
-    if (!dialogDetails) return {};
 
-    return dialogDetails.items.reduce((acc: GroupedItems, item) => {
+  const requestSort = (key: SortKey) => {
+    let direction: SortDirection = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    } else if (sortConfig.key === key && sortConfig.direction === 'desc') {
+      // Optional: third click resets or changes behavior. For now, just toggle.
+      direction = 'asc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const groupedDialogItems = useMemo((): [string, GroupedItems[string]][] => {
+    if (!dialogDetails) return [];
+
+    const grouped = dialogDetails.items.reduce((acc: GroupedItems, item) => {
         const isManual = 'frequency' in item;
         const name = isManual ? item.name : item.Name || 'Unnamed';
         
@@ -274,7 +291,18 @@ export default function WeeklyViewPage() {
         acc[name].items.push(item);
         return acc;
       }, {});
-  }, [dialogDetails]);
+
+      const sortedArray = Object.entries(grouped).sort(([, a], [, b]) => {
+        if (sortConfig.key === 'name') {
+            return sortConfig.direction === 'asc' ? a.items[0].name.localeCompare(b.items[0].name) : b.items[0].name.localeCompare(a.items[0].name);
+        } else { // 'amount'
+            return sortConfig.direction === 'asc' ? a.total - b.total : b.total - a.total;
+        }
+      });
+
+      return sortedArray;
+
+  }, [dialogDetails, sortConfig]);
 
   return (
     <>
@@ -508,15 +536,28 @@ export default function WeeklyViewPage() {
               A breakdown of transactions for this category, grouped by name.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto mt-4 p-1">
-            <div className="flex items-center gap-2 text-lg font-bold mb-2" style={{ color: dialogDetails?.type === 'inflow' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))' }}>
-              {dialogDetails?.type === 'inflow' ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
-              <span>Total: {formatCurrency(dialogDetails?.total || 0)}</span>
-            </div>
 
+          <div className="flex items-center justify-between mb-2">
+             <div className="flex items-center gap-2 text-lg font-bold" style={{ color: dialogDetails?.type === 'inflow' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))' }}>
+                {dialogDetails?.type === 'inflow' ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
+                <span>Total: {formatCurrency(dialogDetails?.total || 0)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+                 <Button variant="ghost" size="sm" onClick={() => requestSort('name')}>
+                    Sort by Name
+                    <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'name' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                 </Button>
+                  <Button variant="ghost" size="sm" onClick={() => requestSort('amount')}>
+                    Sort by Amount
+                    <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'amount' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                 </Button>
+            </div>
+          </div>
+
+          <div className="max-h-[60vh] overflow-y-auto mt-4 p-1">
             <Accordion type="single" collapsible className="w-full">
-                {Object.keys(groupedDialogItems).length > 0 ? (
-                  Object.entries(groupedDialogItems).map(([name, group]) => (
+                {groupedDialogItems.length > 0 ? (
+                  groupedDialogItems.map(([name, group]) => (
                     <AccordionItem value={name} key={name}>
                       <AccordionTrigger>
                         <div className="flex justify-between w-full pr-4">
