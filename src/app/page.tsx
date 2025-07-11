@@ -42,11 +42,11 @@ export default function Home() {
                 </Link>
               </Button>
             )}
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/settings">
-                <Settings className="w-6 h-6" />
-                <span className="sr-only">Open Settings</span>
-              </Link>
+             <Button variant="ghost" size="icon" asChild>
+                <Link href="/settings">
+                    <Settings className="w-6 h-6" />
+                    <span className="sr-only">Open Settings</span>
+                </Link>
             </Button>
           </div>
         </header>

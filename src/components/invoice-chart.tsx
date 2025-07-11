@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useEffect, useState } from 'react';
@@ -7,6 +8,23 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { ChartContainer } from '@/components/ui/chart';
 import { addWeeks, format, startOfWeek, isWithinInterval, endOfWeek, getWeek } from 'date-fns';
 import { BarChart as BarChartIcon } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+
+interface WeeklyDetails {
+  week: string;
+  weekLabel: string;
+  invoicesDue: number;
+  billsDue: number;
+  details: CashFlowItem[];
+}
 
 interface InvoiceChartProps {
   data: CashFlowItem[];
@@ -14,6 +32,8 @@ interface InvoiceChartProps {
 
 export function InvoiceChart({ data }: InvoiceChartProps) {
   const [isClient, setIsClient] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -21,31 +41,27 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
   const chartData = useMemo(() => {
     if (!isClient) return [];
     const today = new Date();
-    const weeklyData: { week: string; weekLabel: string, invoicesDue: number; invoices: { doc: string, name: string, amount: number }[] }[] = [];
+    const weeklyData: WeeklyDetails[] = [];
 
     for (let i = 0; i < 12; i++) {
         const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
         const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
 
-        const weekInvoices = data
+        const weekItems = data
             .filter(item => {
-                if (item.Type !== 'Invoice') return false;
                 const dueDate = new Date(item['Due Date']);
                 return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
             });
 
-        const totalInvoices = weekInvoices.reduce((sum, item) => sum + item.Amount, 0);
-        const invoiceDetails = weekInvoices.map(item => ({
-            doc: String(item['Document Number']),
-            name: item.Name,
-            amount: item.Amount,
-        }));
-
+        const totalInvoices = weekItems.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.Amount, 0);
+        const totalBills = weekItems.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.Amount, 0);
+        
         weeklyData.push({
             week: `W${getWeek(weekStart, { weekStartsOn: 1 })}`,
             weekLabel: `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`,
             invoicesDue: totalInvoices,
-            invoices: invoiceDetails,
+            billsDue: totalBills,
+            details: weekItems,
         });
     }
 
@@ -54,9 +70,27 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
 
   const chartConfig = {
     invoicesDue: {
-      label: "Unpaid Invoices",
+      label: "Invoices",
       color: "hsl(var(--primary))",
     },
+    billsDue: {
+      label: "Bills",
+      color: "hsl(var(--destructive))",
+    },
+  };
+  
+  const handleBarClick = (data: any) => {
+    if (data && data.activePayload && data.activePayload.length > 0) {
+      const weekData = data.activePayload[0].payload;
+      setSelectedWeek(weekData);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -66,20 +100,16 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
             <div className="p-3 bg-card border rounded-md shadow-lg max-w-sm">
                 <p className="font-bold font-headline text-lg">{`${label}`}</p>
                 <p className="text-sm text-muted-foreground mb-2">{weekData.weekLabel}</p>
-                <p className="text-primary font-semibold">{`Total Due: $${weekData.invoicesDue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}</p>
-                {weekData.invoices.length > 0 && (
-                    <div className="mt-2 pt-2 border-t">
-                        <p className="font-semibold text-sm mb-1">Invoices:</p>
-                        <ul className="space-y-1 text-sm text-muted-foreground max-h-40 overflow-y-auto pr-2">
-                            {weekData.invoices.map((inv, index) => (
-                                <li key={index} className="flex justify-between items-center">
-                                    <span className="truncate" title={`${inv.doc}: ${inv.name}`}>{inv.doc}: {inv.name}</span>
-                                    <span className="font-mono text-foreground ml-2 whitespace-nowrap">${inv.amount.toLocaleString()}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                 <div className="space-y-1">
+                    <p className="flex justify-between">
+                        <span className="text-primary font-semibold">Invoices:</span>
+                        <span className="font-mono">{formatCurrency(weekData.invoicesDue)}</span>
+                    </p>
+                    <p className="flex justify-between">
+                        <span className="text-destructive font-semibold">Bills:</span>
+                        <span className="font-mono">{formatCurrency(weekData.billsDue)}</span>
+                    </p>
+                 </div>
             </div>
         );
     }
@@ -87,32 +117,80 @@ export function InvoiceChart({ data }: InvoiceChartProps) {
   };
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle className="font-headline flex items-center gap-2">
-            <BarChartIcon className="w-6 h-6" />
-            Unpaid Invoices Over Next 12 Weeks
-        </CardTitle>
-        <CardDescription>Total amount of invoices due each week.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[400px] w-full">
-          <ResponsiveContainer>
-            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
-              <XAxis dataKey="week" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
-              <YAxis
-                tickFormatter={(value) => `$${Number(value) / 1000}k`}
-                tickLine={false}
-                axisLine={false}
-                fontSize={12}
-                />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--accent) / 0.1)' }} />
-              <Bar dataKey="invoicesDue" fill="var(--color-invoicesDue)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="font-headline flex items-center gap-2">
+              <BarChartIcon className="w-6 h-6" />
+              Cash Flow Over Next 12 Weeks
+          </CardTitle>
+          <CardDescription>Weekly invoices vs. bills. Click a bar for details.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={chartConfig} className="h-[400px] w-full">
+            <ResponsiveContainer>
+              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }} onClick={handleBarClick} className="cursor-pointer">
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis dataKey="week" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+                <YAxis
+                  tickFormatter={(value) => `$${Number(value) / 1000}k`}
+                  tickLine={false}
+                  axisLine={false}
+                  fontSize={12}
+                  />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--accent) / 0.1)' }} />
+                <Bar dataKey="invoicesDue" stackId="a" fill="var(--color-invoicesDue)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="billsDue" stackId="a" fill="var(--color-billsDue)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+      
+      <Dialog open={!!selectedWeek} onOpenChange={() => setSelectedWeek(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Details for {selectedWeek?.weekLabel}</DialogTitle>
+            <DialogDescription>
+              All incoming and outgoing transactions for this week.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+             <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Document #</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {selectedWeek?.details && selectedWeek.details.length > 0 ? (
+                        selectedWeek.details
+                          .sort((a,b) => a.Type.localeCompare(b.Type))
+                          .map((item, index) => (
+                            <TableRow key={index}>
+                                <TableCell>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                                      {item.Type}
+                                    </span>
+                                </TableCell>
+                                <TableCell>{item['Document Number']}</TableCell>
+                                <TableCell>{item.Name}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                            </TableRow>
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell colSpan={4} className="text-center h-24">No transactions this week.</TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
