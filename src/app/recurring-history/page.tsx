@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download, History, ArrowUpCircle, ArrowDownCircle, CheckCircle, ArrowUpDown } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download, History, ArrowUpCircle, ArrowDownCircle, CheckCircle, ArrowUpDown, ArrowLeft } from 'lucide-react';
 import type { ManualTransaction, ManualTransactionOccurrence } from "@/types";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -266,7 +266,15 @@ export default function RecurringHistoryPage() {
             <SidebarInset>
                 <main className="p-4 sm:p-6 md:p-8">
                     <div className="flex justify-between items-center mb-8">
-                        <h1 className="text-3xl font-bold font-headline text-foreground">Recurring Transaction History</h1>
+                        <div className="flex items-center gap-4">
+                            <Button variant="outline" size="icon" asChild>
+                                <Link href="/manual-transactions">
+                                    <ArrowLeft className="w-4 h-4" />
+                                    <span className="sr-only">Back</span>
+                                </Link>
+                            </Button>
+                            <h1 className="text-3xl font-bold font-headline text-foreground">Recurring Transaction History</h1>
+                        </div>
                         <SidebarTrigger />
                     </div>
 
