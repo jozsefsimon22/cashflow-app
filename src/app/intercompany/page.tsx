@@ -112,7 +112,7 @@ export default function IntercompanyPage() {
                         className="pl-10"
                       />
                     </div>
-                    <ScrollArea className="h-72 w-full rounded-md border p-4">
+                    <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
                       {filteredNames.length > 0 ? (
                         filteredNames.map(name => (
                           <div key={name} className="flex items-center space-x-2 mb-2">
@@ -158,7 +158,7 @@ export default function IntercompanyPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg mb-4">Currently Tagged as Intercompany</h3>
-                  <ScrollArea className="h-60 w-full rounded-md border">
+                  <ScrollArea className="h-[calc(60vh-6rem)] w-full rounded-md border">
                     {intercompanyNames.length > 0 ? (
                         <div className="p-4">
                             {intercompanyNames.map(name => (
