@@ -9,13 +9,15 @@ import type { ColumnConfig } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft, Database, GanttChartSquare, LayoutDashboard, Settings as SettingsIcon, BookOpen } from 'lucide-react';
+import { Database, GanttChartSquare, LayoutDashboard, Settings as SettingsIcon, BookOpen } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   type: z.string().min(1, "Column name cannot be empty."),
@@ -29,6 +31,29 @@ const formSchema = z.object({
   dateClosed: z.string(),
   dateFormat: z.string(),
 });
+
+type SettingField = {
+  key: keyof ColumnConfig;
+  label: string;
+  description: string;
+  isOptional?: boolean;
+  isEditable: boolean;
+  isSelect?: boolean;
+};
+
+const settingsFields: SettingField[] = [
+  { key: 'type', label: 'Type', description: "Transaction category. Expected values: 'Invoice', 'Bill', 'Bill Credit', 'Credit Memo'.", isEditable: true },
+  { key: 'documentNumber', label: 'Document Number', description: 'Unique ID for the transaction (e.g., invoice #).', isEditable: true },
+  { key: 'name', label: 'Name', description: 'The name of the client or vendor.', isEditable: true },
+  { key: 'dueDate', label: 'Due Date', description: 'The date the payment is due. Format should match selection below.', isEditable: true },
+  { key: 'date', label: 'Date (Fallback)', description: "Transaction date. Used if 'Due Date' is empty.", isEditable: true },
+  { key: 'amount', label: 'Amount (Original)', description: 'The total transaction amount.', isEditable: true },
+  { key: 'remainingAmount', label: 'Remaining Amount', description: 'The open or outstanding balance of the transaction.', isEditable: true },
+  { key: 'status', label: 'Status', description: "If missing, status is inferred from 'Date Closed'.", isOptional: true, isEditable: true },
+  { key: 'dateClosed', label: 'Date Closed', description: "Used for status inference if 'Status' column is not found.", isOptional: true, isEditable: true },
+  { key: 'dateFormat', label: 'Date Format', description: 'The date format used in your file.', isEditable: false, isSelect: true },
+];
+
 
 export default function SettingsPage() {
   const { columnConfig, setColumnConfig } = useContext(SettingsContext);
@@ -118,163 +143,71 @@ export default function SettingsPage() {
             
             <Card>
               <CardHeader>
-                <CardTitle>File Upload Settings</CardTitle>
+                <CardTitle>File Column Mapping</CardTitle>
                 <CardDescription>
                   Map the column names from your spreadsheet to the required fields. This ensures your data is parsed correctly.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                      control={form.control}
-                      name="type"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Type Column</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., 'Category'" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="documentNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Document # Column</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., 'Invoice No.'" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Name Column</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., 'Client Name'" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="dueDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Due Date Column</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., 'Payment Due'" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date Column (Fallback)</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., 'Transaction Date'" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="amount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Amount Column (Original)</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., 'Total'" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                     <FormField
-                      control={form.control}
-                      name="remainingAmount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Remaining Amount Column (for forecast)</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., 'Open Balance'" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status Column (Optional)</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., 'Payment Status'" />
-                          </FormControl>
-                           <FormDescription>
-                            If not found, status will be inferred from the 'Date Closed' column.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="dateClosed"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date Closed Column (for Status inference)</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="e.g., 'Closed On'" />
-                          </FormControl>
-                           <FormDescription>
-                            Used to determine status if the 'Status' column is not found.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="dateFormat"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date Format</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a date format" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="auto">Auto-detect</SelectItem>
-                              <SelectItem value="yyyy-MM-dd">YYYY-MM-DD</SelectItem>
-                              <SelectItem value="MM/dd/yyyy">MM/DD/YYYY</SelectItem>
-                              <SelectItem value="dd/MM/yyyy">DD/MM/YYYY</SelectItem>
-                              <SelectItem value="MM-dd-yyyy">MM-DD-YYYY</SelectItem>
-                              <SelectItem value="dd-MM-yyyy">DD-MM-YYYY</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex justify-end gap-2">
+                  <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <div className="border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[200px]">Required Field</TableHead>
+                            <TableHead>Your Column Name</TableHead>
+                            <TableHead className="w-[400px]">Description & Format</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {settingsFields.map((field) => (
+                            <TableRow key={field.key}>
+                              <TableCell className="font-medium align-top pt-5">
+                                <div className="flex items-center gap-2">
+                                    <span>{field.label}</span>
+                                    {field.isOptional && <Badge variant="outline">Optional</Badge>}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <FormField
+                                  control={form.control}
+                                  name={field.key}
+                                  render={({ field: formField }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        {field.isSelect ? (
+                                          <Select onValueChange={formField.onChange} defaultValue={formField.value}>
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Select a date format" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="auto">Auto-detect</SelectItem>
+                                              <SelectItem value="yyyy-MM-dd">YYYY-MM-DD</SelectItem>
+                                              <SelectItem value="MM/dd/yyyy">MM/DD/YYYY</SelectItem>
+                                              <SelectItem value="dd/MM/yyyy">DD/MM/YYYY</SelectItem>
+                                              <SelectItem value="MM-dd-yyyy">MM-DD-YYYY</SelectItem>
+                                              <SelectItem value="dd-MM-yyyy">DD-MM-YYYY</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        ) : (
+                                          <Input {...formField} placeholder={`e.g., '${columnConfig[field.key]}'`} />
+                                        )}
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </TableCell>
+                              <TableCell className="text-muted-foreground align-top pt-5">
+                                {field.description}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-6">
                         <Button type="submit">Save Changes</Button>
                     </div>
                   </form>
