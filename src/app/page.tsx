@@ -7,7 +7,7 @@ import { FileUploader } from '@/components/file-uploader';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -55,6 +55,14 @@ export default function Home() {
     }).format(amount);
   };
   
+  const summaryMetrics = useMemo(() => {
+    if (!data) return { totalReceivables: 0, totalPayables: 0, currentBalance: 0 };
+    const totalReceivables = data.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.Amount, 0);
+    const totalPayables = data.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.Amount, 0);
+    const currentBalance = totalReceivables - totalPayables;
+    return { totalReceivables, totalPayables, currentBalance };
+  }, [data]);
+
   const weeklyDetails = useMemo(() => {
     if (!selectedWeek?.details) return { inflow: {}, outflow: {} };
 
@@ -125,39 +133,74 @@ export default function Home() {
             <SidebarTrigger />
         </div>
         <div className="space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2">
-                <FileSpreadsheet className="w-6 h-6" />
-                Upload Your Cash Flow Data
-              </CardTitle>
-              <CardDescription>
-                Upload an Excel file (.xlsx, .xls, .csv). Use the settings to map your columns if they don't match the defaults.
-                The 'Type' column should contain 'Invoice' (for incoming cash) or 'Bill' (for outgoing cash).
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FileUploader onDataUploaded={handleDataUploaded} columnConfig={columnConfig} />
-            </CardContent>
-          </Card>
-
           {isClient && data ? (
-            <div className="grid gap-8 lg:grid-cols-3">
-              <div className="lg:col-span-2">
-                <BalanceChart data={data} onWeekSelect={handleWeekSelect} />
+            <>
+               <div className="grid gap-4 md:grid-cols-3">
+                  <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
+                          <Wallet className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.currentBalance)}</div>
+                          <p className="text-xs text-muted-foreground">Total receivables minus total payables</p>
+                      </CardContent>
+                  </Card>
+                  <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Total Receivables</CardTitle>
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.totalReceivables)}</div>
+                           <p className="text-xs text-muted-foreground">Total amount from all invoices</p>
+                      </CardContent>
+                  </Card>
+                  <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Total Payables</CardTitle>
+                          <TrendingDown className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.totalPayables)}</div>
+                           <p className="text-xs text-muted-foreground">Total amount from all bills</p>
+                      </CardContent>
+                  </Card>
               </div>
-              <div className="lg:col-span-1">
-                <SummaryTable data={data} onWeekSelect={handleWeekSelect} />
+              <div className="grid gap-8 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                  <BalanceChart data={data} onWeekSelect={handleWeekSelect} />
+                </div>
+                <div className="lg:col-span-1">
+                  <SummaryTable data={data} onWeekSelect={handleWeekSelect} />
+                </div>
               </div>
-            </div>
+            </>
           ) : (
-             <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
-              <div className="bg-secondary p-4 rounded-full mb-4">
-                <FileSpreadsheet className="w-12 h-12 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold font-headline text-foreground">Awaiting Data</h3>
-              <p className="text-muted-foreground mt-1">Upload your file to see your cash flow analysis.</p>
-            </Card>
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-headline flex items-center gap-2">
+                    <FileSpreadsheet className="w-6 h-6" />
+                    Upload Your Cash Flow Data
+                  </CardTitle>
+                  <CardDescription>
+                    Upload an Excel file (.xlsx, .xls, .csv). Use the settings to map your columns if they don't match the defaults.
+                    The 'Type' column should contain 'Invoice' (for incoming cash) or 'Bill' (for outgoing cash).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FileUploader onDataUploaded={handleDataUploaded} columnConfig={columnConfig} />
+                </CardContent>
+              </Card>
+               <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
+                <div className="bg-secondary p-4 rounded-full mb-4">
+                  <FileSpreadsheet className="w-12 h-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-semibold font-headline text-foreground">Awaiting Data</h3>
+                <p className="text-muted-foreground mt-1">Upload your file to see your cash flow analysis.</p>
+              </Card>
+            </>
           )}
         </div>
       </main>
