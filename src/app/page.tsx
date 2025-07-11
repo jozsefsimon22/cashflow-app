@@ -7,7 +7,7 @@ import { FileUploader } from '@/components/file-uploader';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -122,6 +122,14 @@ export default function Home() {
                 <span>Settings</span>
               </Link>
              </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/documentation">
+                <BookOpen />
+                <span>Documentation</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>

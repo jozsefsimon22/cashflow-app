@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useContext, useEffect } from "react";
@@ -13,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { ArrowLeft, Database, GanttChartSquare, LayoutDashboard, Settings as SettingsIcon } from 'lucide-react';
+import { ArrowLeft, Database, GanttChartSquare, LayoutDashboard, Settings as SettingsIcon, BookOpen } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 
 const formSchema = z.object({
@@ -80,6 +81,14 @@ export default function SettingsPage() {
                 <Link href="/settings">
                   <SettingsIcon />
                   <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/documentation">
+                  <BookOpen />
+                  <span>Documentation</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
