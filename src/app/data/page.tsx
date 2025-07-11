@@ -132,7 +132,7 @@ export default function DataPage() {
 
   const formatDate = (date: Date | null | undefined) => {
     if (!date) return '';
-    return format(date, 'yyyy-MM-dd');
+    return format(date, 'dd/MM/yyyy');
   }
   
   const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => {
