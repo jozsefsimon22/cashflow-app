@@ -23,9 +23,9 @@ const formSchema = z.object({
   name: z.string().min(1, "Column name cannot be empty."),
   dueDate: z.string().min(1, "Column name cannot be empty."),
   amount: z.string().min(1, "Column name cannot be empty."),
-  status: z.string().min(1, "Column name cannot be empty."),
+  status: z.string(),
   date: z.string().min(1, "Column name cannot be empty."),
-  dateClosed: z.string().min(1, "Column name cannot be empty."),
+  dateClosed: z.string(),
   dateFormat: z.string(),
 });
 
@@ -58,7 +58,7 @@ export default function SettingsPage() {
               <div className="bg-primary p-2 rounded-lg">
                   <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-semibold font-headline text-foreground">TerraRoc Cashflow</h1>
+              <h1 className="text-xl font-semibold font-headline text-foreground">VizFlow</h1>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -262,3 +262,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    

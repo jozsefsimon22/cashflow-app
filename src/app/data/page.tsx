@@ -7,7 +7,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle, Search } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle, Search, FileSpreadsheet } from "lucide-react";
 import type { CashFlowItem } from "@/types";
 import { format } from 'date-fns';
 import {
@@ -25,6 +25,7 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, S
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileUploader } from "@/components/file-uploader";
 
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
@@ -34,7 +35,7 @@ const OUTFLOW_TYPES: (CashFlowItem['Type'])[] = ['Bill', 'Credit Memo'];
 type SortKey = keyof CashFlowItem;
 
 export default function DataPage() {
-  const { data, setData } = useContext(SettingsContext);
+  const { data, setData, columnConfig } = useContext(SettingsContext);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'ascending' | 'descending' } | null>({ key: 'Due Date', direction: 'ascending' });
   const [isClient, setIsClient] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -47,6 +48,10 @@ export default function DataPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  const handleDataUploaded = (newData: CashFlowItem[]) => {
+    setData(newData);
+  };
 
   const handleClearData = () => {
     setData(null);
@@ -161,7 +166,7 @@ export default function DataPage() {
               <div className="bg-primary p-2 rounded-lg">
                   <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-semibold font-headline text-foreground">TerraRoc Cashflow</h1>
+              <h1 className="text-xl font-semibold font-headline text-foreground">VizFlow</h1>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -215,19 +220,35 @@ export default function DataPage() {
                 <SidebarTrigger />
               </div>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-headline flex items-center gap-2">
-                <Database className="w-6 h-6" />
-                All Imported Transactions
-              </CardTitle>
-              <CardDescription>
-                This table displays all raw data imported from your file. Only items with a status of 'Open' or 'Pending Approval' are included in the forecast.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isClient && data && (
+          
+          {isClient && !data ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2">
+                  <FileSpreadsheet className="w-6 h-6" />
+                  Upload Your Cash Flow Data
+                </CardTitle>
+                <CardDescription>
+                  Upload an Excel file (.xlsx, .xls, .csv). Use the settings to map your columns if they don't match the defaults.
+                  The 'Type' column should contain 'Invoice', 'Bill', 'Bill Credit', or 'Credit Memo'.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FileUploader onDataUploaded={handleDataUploaded} columnConfig={columnConfig} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2">
+                  <Database className="w-6 h-6" />
+                  All Imported Transactions
+                </CardTitle>
+                <CardDescription>
+                  This table displays all raw data imported from your file. Only items with a status of 'Open' or 'Pending Approval' are included in the forecast.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-card">
                   <div className="sm:col-span-1">
                      <div className="relative">
@@ -247,7 +268,7 @@ export default function DataPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {uniqueTypes.map(type => (
-                          <SelectItem key={type} value={type}>{type === 'all' ? 'All Types' : type}</SelectItem>
+                          <SelectItem key={type} value={type || `_empty_${type}`}>{type === 'all' ? 'All Types' : type}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -259,71 +280,72 @@ export default function DataPage() {
                       </SelectTrigger>
                       <SelectContent>
                          {uniqueStatuses.map(status => (
-                          <SelectItem key={status} value={status}>{status === 'all' ? 'All Statuses' : status}</SelectItem>
+                          <SelectItem key={status} value={status || `_empty_${status}`}>{status === 'all' ? 'All Statuses' : status}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-              )}
-              <div className="max-h-[60vh] overflow-y-auto">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-card z-10">
-                    <TableRow>
-                      <SortableHeader sortKey="Type">Type</SortableHeader>
-                      <SortableHeader sortKey="Document Number">Document #</SortableHeader>
-                      <SortableHeader sortKey="Name">Name</SortableHeader>
-                      <SortableHeader sortKey="Due Date">Due Date</SortableHeader>
-                      <SortableHeader sortKey="Date">Date</SortableHeader>
-                      <SortableHeader sortKey="Date Closed">Date Closed</SortableHeader>
-                      <SortableHeader sortKey="Amount">Amount</SortableHeader>
-                      <SortableHeader sortKey="Status">Status</SortableHeader>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isClient && sortedData.length > 0 ? (
-                      sortedData.map((item, index) => {
-                        const isIncluded = item.Status && INCLUDED_STATUSES.includes(item.Status);
-                        return (
-                          <TableRow key={index} className={!isIncluded ? 'bg-muted/50' : ''}>
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getTypeClassName(item.Type)}`}>
-                                {item.Type}
-                              </span>
-                            </TableCell>
-                            <TableCell>{item['Document Number']}</TableCell>
-                            <TableCell>{item.Name}</TableCell>
-                            <TableCell>{formatDate(item['Due Date'])}</TableCell>
-                            <TableCell>{formatDate(item.Date)}</TableCell>
-                            <TableCell>{formatDate(item['Date Closed'])}</TableCell>
-                            <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
-                            <TableCell>
-                               <div className="flex items-center gap-2">
-                                {isIncluded ? (
-                                  <CheckCircle className="w-4 h-4 text-green-500" />
-                                ) : (
-                                  <XCircle className="w-4 h-4 text-muted-foreground" />
-                                )}
-                                <Badge variant={isIncluded ? 'outline' : 'secondary'} className="font-normal">
-                                  {item.Status}
-                                </Badge>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })
-                    ) : (
+                <div className="max-h-[60vh] overflow-y-auto">
+                  <Table>
+                    <TableHeader className="sticky top-0 bg-card z-10">
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
-                          {isClient ? (data ? "No results match your filters." : "No data has been imported yet. Go to the dashboard to upload a file.") : "Loading data..."}
-                        </TableCell>
+                        <SortableHeader sortKey="Type">Type</SortableHeader>
+                        <SortableHeader sortKey="Document Number">Document #</SortableHeader>
+                        <SortableHeader sortKey="Name">Name</SortableHeader>
+                        <SortableHeader sortKey="Due Date">Due Date</SortableHeader>
+                        <SortableHeader sortKey="Date">Date</SortableHeader>
+                        <SortableHeader sortKey="Date Closed">Date Closed</SortableHeader>
+                        <SortableHeader sortKey="Amount">Amount</SortableHeader>
+                        <SortableHeader sortKey="Status">Status</SortableHeader>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {isClient && sortedData.length > 0 ? (
+                        sortedData.map((item, index) => {
+                          const isIncluded = item.Status && INCLUDED_STATUSES.includes(item.Status);
+                          return (
+                            <TableRow key={index} className={!isIncluded ? 'bg-muted/50' : ''}>
+                              <TableCell>
+                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getTypeClassName(item.Type)}`}>
+                                  {item.Type}
+                                </span>
+                              </TableCell>
+                              <TableCell>{item['Document Number']}</TableCell>
+                              <TableCell>{item.Name}</TableCell>
+                              <TableCell>{formatDate(item['Due Date'])}</TableCell>
+                              <TableCell>{formatDate(item.Date)}</TableCell>
+                              <TableCell>{formatDate(item['Date Closed'])}</TableCell>
+                              <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                              <TableCell>
+                                 <div className="flex items-center gap-2">
+                                  {isIncluded ? (
+                                    <CheckCircle className="w-4 h-4 text-primary" />
+                                  ) : (
+                                    <XCircle className="w-4 h-4 text-muted-foreground" />
+                                  )}
+                                  <Badge variant={isIncluded ? 'outline' : 'secondary'} className="font-normal">
+                                    {item.Status}
+                                  </Badge>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
+                            {isClient ? (data ? "No results match your filters." : "No data has been imported yet.") : "Loading data..."}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
         </main>
       </SidebarInset>
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
@@ -346,3 +368,5 @@ export default function DataPage() {
     </>
   );
 }
+
+    

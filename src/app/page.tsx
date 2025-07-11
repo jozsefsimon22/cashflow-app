@@ -3,7 +3,6 @@
 
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, WeeklyDetails } from '@/types';
-import { FileUploader } from '@/components/file-uploader';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,13 +45,8 @@ export default function Home() {
 
   const forecastData = useMemo(() => {
     if (!data) return null;
-    return data.filter(item => INCLUDED_STATUSES.includes(item.Status));
+    return data.filter(item => item.Status && INCLUDED_STATUSES.includes(item.Status));
   }, [data]);
-
-
-  const handleDataUploaded = (newData: CashFlowItem[]) => {
-    setData(newData);
-  };
   
   const handleWeekSelect = (weekData: WeeklyDetails) => {
     setSelectedWeek(weekData);
@@ -78,11 +72,12 @@ export default function Home() {
 
     const groupItems = (items: CashFlowItem[]): GroupedItems => {
       return items.reduce((acc: GroupedItems, item) => {
-        if (!acc[item.Name]) {
-          acc[item.Name] = { total: 0, items: [] };
+        const name = item.Name || 'Unnamed';
+        if (!acc[name]) {
+          acc[name] = { total: 0, items: [] };
         }
-        acc[item.Name].total += item.Amount;
-        acc[item.Name].items.push(item);
+        acc[name].total += item.Amount;
+        acc[name].items.push(item);
         return acc;
       }, {});
     };
@@ -104,7 +99,7 @@ export default function Home() {
             <div className="bg-primary p-2 rounded-lg">
                 <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-semibold font-headline text-foreground">TerraRoc Cashflow</h1>
+            <h1 className="text-xl font-semibold font-headline text-foreground">VizFlow</h1>
         </div>
       </SidebarHeader>
       <SidebarContent>
@@ -170,7 +165,7 @@ export default function Home() {
                           <TrendingUp className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                          <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.totalReceivables)}</div>
+                          <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables)}</div>
                            <p className="text-xs text-muted-foreground">From invoices in the forecast</p>
                       </CardContent>
                   </Card>
@@ -180,7 +175,7 @@ export default function Home() {
                           <TrendingDown className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
                       <CardContent>
-                          <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.totalPayables)}</div>
+                          <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables)}</div>
                            <p className="text-xs text-muted-foreground">From bills in the forecast</p>
                       </CardContent>
                   </Card>
@@ -195,30 +190,15 @@ export default function Home() {
               </div>
             </>
           ) : (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2">
-                    <FileSpreadsheet className="w-6 h-6" />
-                    Upload Your Cash Flow Data
-                  </CardTitle>
-                  <CardDescription>
-                    Upload an Excel file (.xlsx, .xls, .csv). Use the settings to map your columns if they don't match the defaults.
-                    The 'Type' column should contain 'Invoice', 'Bill', 'Bill Credit', or 'Credit Memo'.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <FileUploader onDataUploaded={handleDataUploaded} columnConfig={columnConfig} />
-                </CardContent>
-              </Card>
-               <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
-                <div className="bg-secondary p-4 rounded-full mb-4">
-                  <FileSpreadsheet className="w-12 h-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-xl font-semibold font-headline text-foreground">Awaiting Data</h3>
-                <p className="text-muted-foreground mt-1">Upload your file to see your cash flow analysis.</p>
-              </Card>
-            </>
+            <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed">
+              <div className="bg-secondary p-4 rounded-full mb-4">
+                <Database className="w-12 h-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold font-headline text-foreground">Awaiting Data</h3>
+              <p className="text-muted-foreground mt-1 max-w-md mx-auto">
+                No data has been imported yet. Go to the <Link href="/data" className="text-primary underline font-medium">Imported Data</Link> page to upload your file and see your cash flow analysis.
+              </p>
+            </Card>
           )}
         </div>
       </main>
@@ -329,3 +309,5 @@ export default function Home() {
     </>
   );
 }
+
+    

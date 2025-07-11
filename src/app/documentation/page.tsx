@@ -16,7 +16,7 @@ export default function DocumentationPage() {
               <div className="bg-primary p-2 rounded-lg">
                   <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
               </div>
-              <h1 className="text-xl font-semibold font-headline text-foreground">TerraRoc Cashflow</h1>
+              <h1 className="text-xl font-semibold font-headline text-foreground">VizFlow</h1>
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -72,10 +72,10 @@ export default function DocumentationPage() {
               </CardHeader>
               <CardContent className="space-y-4 text-muted-foreground">
                 <p>
-                  Welcome to <strong>TerraRoc Cashflow</strong>. This application is designed to provide a clear, visual representation of your cash flow based on data from an Excel or CSV file.
+                  Welcome to <strong>VizFlow</strong>. This application is designed to provide a clear, visual representation of your cash flow based on data from an Excel or CSV file.
                 </p>
                 <p>
-                  By uploading your financial data, you can see a 12-week forecast of your balance, a weekly summary of incoming and outgoing funds, and drill down into specific transactions.
+                  By uploading your financial data from the <Link href="/data" className="text-primary underline">Imported Data</Link> page, you can see a 12-week forecast of your balance, a weekly summary of incoming and outgoing funds, and drill down into specific transactions.
                 </p>
               </CardContent>
             </Card>
@@ -188,3 +188,5 @@ export default function DocumentationPage() {
     </>
   );
 }
+
+    
