@@ -205,6 +205,12 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
               } else {
                   statusValue = 'Open';
               }
+          } else if (typeValue === 'Bill Credit' && !statusValue) {
+             if (dateClosed) {
+                statusValue = 'Fully Applied';
+             } else {
+                statusValue = 'Open';
+             }
           }
 
           let dueDate = parseDate(dueDateValue);
