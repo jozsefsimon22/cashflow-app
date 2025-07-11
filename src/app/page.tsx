@@ -21,6 +21,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
@@ -73,6 +75,7 @@ export default function Home() {
   const { data, startingBalance, manualTransactions, excludedNames } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
+  const [applyExclusions, setApplyExclusions] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -86,11 +89,16 @@ export default function Home() {
     const fileData = data.filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
-      !excludedNamesSet.has(item.Name)
+      (!applyExclusions || !excludedNamesSet.has(item.Name))
     );
     const manualData = generateForecastItems(manualTransactions);
-    return [...fileData, ...manualData];
-  }, [data, manualTransactions, excludedNames]);
+
+    const filteredManualData = manualData.filter(item => 
+      !applyExclusions || !excludedNamesSet.has(item.Name)
+    );
+
+    return [...fileData, ...filteredManualData];
+  }, [data, manualTransactions, excludedNames, applyExclusions]);
   
   const handleWeekSelect = (weekData: WeeklyDetails) => {
     setSelectedWeek(weekData);
@@ -203,7 +211,15 @@ export default function Home() {
     <SidebarInset>
       <main className="p-4 sm:p-6 md:p-8">
         <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold font-headline text-foreground">Dashboard</h1>
+            <div className="flex items-center gap-4">
+                <h1 className="text-3xl font-bold font-headline text-foreground">Dashboard</h1>
+                {isClient && data && (
+                  <div className="flex items-center space-x-2">
+                    <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
+                    <Label htmlFor="exclusions-toggle" className="text-sm">Apply Exclusions</Label>
+                  </div>
+                )}
+            </div>
             <SidebarTrigger />
         </div>
         <div className="space-y-8">
