@@ -59,12 +59,14 @@ export default function DataPage() {
   
   const uniqueTypes = useMemo(() => {
     if (!data) return [];
-    return ['all', ...Array.from(new Set(data.map(item => item.Type)))];
+    const types = Array.from(new Set(data.map(item => item.Type).filter(Boolean)));
+    return ['all', ...types];
   }, [data]);
 
   const uniqueStatuses = useMemo(() => {
     if (!data) return [];
-    return ['all', ...Array.from(new Set(data.map(item => item.Status)))];
+    const statuses = Array.from(new Set(data.map(item => item.Status).filter(Boolean)));
+    return ['all', ...statuses];
   }, [data]);
   
   const filteredData = useMemo(() => {
@@ -73,8 +75,8 @@ export default function DataPage() {
     return data.filter(item => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch = searchTerm === '' ||
-        item.Name.toLowerCase().includes(searchTermLower) ||
-        String(item['Document Number']).toLowerCase().includes(searchTermLower);
+        (item.Name && item.Name.toLowerCase().includes(searchTermLower)) ||
+        (item['Document Number'] && String(item['Document Number']).toLowerCase().includes(searchTermLower));
         
       const matchesType = typeFilter === 'all' || item.Type === typeFilter;
       const matchesStatus = statusFilter === 'all' || item.Status === statusFilter;
@@ -89,10 +91,16 @@ export default function DataPage() {
     let sortableItems = [...filteredData];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        const valA = a[sortConfig.key];
+        const valB = b[sortConfig.key];
+
+        if (valA === null || valA === undefined) return 1;
+        if (valB === null || valB === undefined) return -1;
+        
+        if (valA < valB) {
           return sortConfig.direction === 'ascending' ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (valA > valB) {
           return sortConfig.direction === 'ascending' ? 1 : -1;
         }
         return 0;
@@ -109,7 +117,8 @@ export default function DataPage() {
     setSortConfig({ key, direction });
   };
   
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | null) => {
+    if (amount === null || amount === undefined) return '';
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
       currency: 'GBP',
@@ -267,7 +276,7 @@ export default function DataPage() {
                   <TableBody>
                     {isClient && sortedData.length > 0 ? (
                       sortedData.map((item, index) => {
-                        const isIncluded = INCLUDED_STATUSES.includes(item.Status);
+                        const isIncluded = item.Status && INCLUDED_STATUSES.includes(item.Status);
                         return (
                           <TableRow key={index} className={!isIncluded ? 'bg-muted/50' : ''}>
                             <TableCell>
@@ -277,7 +286,7 @@ export default function DataPage() {
                             </TableCell>
                             <TableCell>{item['Document Number']}</TableCell>
                             <TableCell>{item.Name}</TableCell>
-                            <TableCell>{format(item['Due Date'], 'yyyy-MM-dd')}</TableCell>
+                            <TableCell>{item['Due Date'] ? format(item['Due Date'], 'yyyy-MM-dd') : ''}</TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
                             <TableCell>
                                <div className="flex items-center gap-2">
