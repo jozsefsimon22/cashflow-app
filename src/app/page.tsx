@@ -4,7 +4,7 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, WeeklyDetails } from '@/types';
 import { FileUploader } from '@/components/file-uploader';
-import { InvoiceChart } from '@/components/invoice-chart';
+import { BalanceChart } from '@/components/invoice-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare } from 'lucide-react';
@@ -144,7 +144,7 @@ export default function Home() {
           {isClient && data ? (
             <div className="grid gap-8 lg:grid-cols-3">
               <div className="lg:col-span-2">
-                <InvoiceChart data={data} onWeekSelect={handleWeekSelect} />
+                <BalanceChart data={data} onWeekSelect={handleWeekSelect} />
               </div>
               <div className="lg:col-span-1">
                 <SummaryTable data={data} onWeekSelect={handleWeekSelect} />
