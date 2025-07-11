@@ -52,6 +52,7 @@ interface WeeklyBreakdown {
   netFlow: number;
   runningBalance: number;
   isMonthEnd: boolean;
+  isCurrentWeek: boolean;
 }
 
 
@@ -115,6 +116,7 @@ export default function WeeklyViewPage() {
   const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
   const [applyExclusions, setApplyExclusions] = useState(true);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
+  const [hoveredColumn, setHoveredColumn] = useState<number | null>(null);
 
 
   useEffect(() => {
@@ -204,6 +206,7 @@ export default function WeeklyViewPage() {
       netFlow: overdueNetFlow,
       runningBalance: currentBalance,
       isMonthEnd: false,
+      isCurrentWeek: false,
     });
     
     // --- Future Weeks Calculation (12 weeks from today) ---
@@ -215,7 +218,7 @@ export default function WeeklyViewPage() {
         const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
         const nextWeekStart = addWeeks(weekStart, 1);
         const isMonthEnd = weekStart.getMonth() !== nextWeekStart.getMonth();
-
+        const isCurrentWeek = isWithinInterval(today, { start: weekStart, end: weekEnd });
 
         const weekFileData = futureFileData.filter(item => {
             const dueDate = item['Due Date'];
@@ -269,6 +272,7 @@ export default function WeeklyViewPage() {
             netFlow: netFlow,
             runningBalance: currentBalance,
             isMonthEnd: isMonthEnd,
+            isCurrentWeek: isCurrentWeek,
         });
     }
 
@@ -398,13 +402,24 @@ export default function WeeklyViewPage() {
             </CardHeader>
             <CardContent>
                 {isClient && (data || manualTransactions.length > 0) ? (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto" onMouseLeave={() => setHoveredColumn(null)}>
                         <Table className="min-w-max">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[300px] font-bold text-foreground sticky left-0 bg-card z-10">Category</TableHead>
                                     {weeklyBreakdown.map((week, index) => (
-                                        <TableHead key={index} className={cn("text-right w-36 font-semibold", week.isMonthEnd && "border-r-2 border-border")}>{week.weekLabel}</TableHead>
+                                        <TableHead 
+                                            key={index} 
+                                            className={cn(
+                                                "text-right w-36 font-semibold transition-colors", 
+                                                week.isMonthEnd && "border-r-2 border-border",
+                                                week.isCurrentWeek && "bg-primary/10",
+                                                hoveredColumn === index && "bg-muted"
+                                            )}
+                                            onMouseEnter={() => setHoveredColumn(index)}
+                                        >
+                                            {week.weekLabel}
+                                        </TableHead>
                                     ))}
                                 </TableRow>
                             </TableHeader>
@@ -422,7 +437,21 @@ export default function WeeklyViewPage() {
                                             <Package className="w-4 h-4 text-muted-foreground"/> Accounts Receivable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `Accounts Receivable - ${week.weekLabel}`, items: week.arItems, total: week.accountsReceivable, type: 'inflow' })}>{formatCurrency(week.accountsReceivable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => 
+                                        <TableCell 
+                                            key={index} 
+                                            className={cn(
+                                                "text-right font-mono cursor-pointer transition-colors", 
+                                                week.isMonthEnd && "border-r-2 border-border",
+                                                week.isCurrentWeek && "bg-primary/10",
+                                                hoveredColumn === index && "bg-muted"
+                                            )} 
+                                            onClick={() => handleCellClick({ title: `Accounts Receivable - ${week.weekLabel}`, items: week.arItems, total: week.accountsReceivable, type: 'inflow' })}
+                                            onMouseEnter={() => setHoveredColumn(index)}
+                                        >
+                                            {formatCurrency(week.accountsReceivable)}
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                                  <TableRow>
                                     <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
@@ -430,7 +459,21 @@ export default function WeeklyViewPage() {
                                             <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Receivable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `Intercompany Receivable - ${week.weekLabel}`, items: week.intercompanyArItems, total: week.intercompanyReceivable, type: 'inflow' })}>{formatCurrency(week.intercompanyReceivable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => 
+                                        <TableCell 
+                                            key={index} 
+                                            className={cn(
+                                                "text-right font-mono cursor-pointer transition-colors",
+                                                week.isMonthEnd && "border-r-2 border-border",
+                                                week.isCurrentWeek && "bg-primary/10",
+                                                hoveredColumn === index && "bg-muted"
+                                            )} 
+                                            onClick={() => handleCellClick({ title: `Intercompany Receivable - ${week.weekLabel}`, items: week.intercompanyArItems, total: week.intercompanyReceivable, type: 'inflow' })}
+                                            onMouseEnter={() => setHoveredColumn(index)}
+                                        >
+                                            {formatCurrency(week.intercompanyReceivable)}
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                                 {uniqueManualInflows.map(manualInflow => (
                                     <TableRow key={manualInflow.id}>
@@ -442,13 +485,40 @@ export default function WeeklyViewPage() {
                                         {weeklyBreakdown.map((week, index) => {
                                             const manualInflowTotal = week.manualInflows.filter(t => t.name === manualInflow.name).reduce((sum, t) => sum + t.amount, 0);
                                             const items = week.manualInflows.filter(t => t.name === manualInflow.name);
-                                            return <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `${manualInflow.name} - ${week.weekLabel}`, items: items, total: manualInflowTotal, type: 'inflow' })}>{formatCurrency(manualInflowTotal)}</TableCell>
+                                            return (
+                                                <TableCell 
+                                                    key={index} 
+                                                    className={cn(
+                                                        "text-right font-mono cursor-pointer transition-colors",
+                                                        week.isMonthEnd && "border-r-2 border-border",
+                                                        week.isCurrentWeek && "bg-primary/10",
+                                                        hoveredColumn === index && "bg-muted"
+                                                    )} 
+                                                    onClick={() => handleCellClick({ title: `${manualInflow.name} - ${week.weekLabel}`, items: items, total: manualInflowTotal, type: 'inflow' })}
+                                                    onMouseEnter={() => setHoveredColumn(index)}
+                                                >
+                                                    {formatCurrency(manualInflowTotal)}
+                                                </TableCell>
+                                            )
                                         })}
                                     </TableRow>
                                 ))}
                                 <TableRow className="bg-secondary">
                                     <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Inflow</TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono font-bold text-primary", week.isMonthEnd && "border-r-2 border-border")}>{formatCurrency(week.totalInflow)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => 
+                                        <TableCell 
+                                            key={index} 
+                                            className={cn(
+                                                "text-right font-mono font-bold text-primary", 
+                                                week.isMonthEnd && "border-r-2 border-border",
+                                                week.isCurrentWeek && "bg-primary/10",
+                                                hoveredColumn === index && "bg-muted"
+                                            )}
+                                            onMouseEnter={() => setHoveredColumn(index)}
+                                        >
+                                            {formatCurrency(week.totalInflow)}
+                                        </TableCell>
+                                    )}
                                 </TableRow>
 
                                 <TableRow className="bg-destructive/5">
@@ -464,7 +534,21 @@ export default function WeeklyViewPage() {
                                             <Package className="w-4 h-4 text-muted-foreground"/> Accounts Payable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `Accounts Payable - ${week.weekLabel}`, items: week.apItems, total: week.accountsPayable, type: 'outflow' })}>{formatCurrency(week.accountsPayable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => 
+                                        <TableCell 
+                                            key={index} 
+                                            className={cn(
+                                                "text-right font-mono cursor-pointer transition-colors",
+                                                week.isMonthEnd && "border-r-2 border-border",
+                                                week.isCurrentWeek && "bg-primary/10",
+                                                hoveredColumn === index && "bg-muted"
+                                            )} 
+                                            onClick={() => handleCellClick({ title: `Accounts Payable - ${week.weekLabel}`, items: week.apItems, total: week.accountsPayable, type: 'outflow' })}
+                                            onMouseEnter={() => setHoveredColumn(index)}
+                                        >
+                                            {formatCurrency(week.accountsPayable)}
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
@@ -472,7 +556,21 @@ export default function WeeklyViewPage() {
                                             <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Payable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `Intercompany Payable - ${week.weekLabel}`, items: week.intercompanyApItems, total: week.intercompanyPayable, type: 'outflow' })}>{formatCurrency(week.intercompanyPayable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => 
+                                        <TableCell 
+                                            key={index} 
+                                            className={cn(
+                                                "text-right font-mono cursor-pointer transition-colors",
+                                                week.isMonthEnd && "border-r-2 border-border",
+                                                week.isCurrentWeek && "bg-primary/10",
+                                                hoveredColumn === index && "bg-muted"
+                                            )} 
+                                            onClick={() => handleCellClick({ title: `Intercompany Payable - ${week.weekLabel}`, items: week.intercompanyApItems, total: week.intercompanyPayable, type: 'outflow' })}
+                                            onMouseEnter={() => setHoveredColumn(index)}
+                                        >
+                                            {formatCurrency(week.intercompanyPayable)}
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                                 {uniqueManualOutflows.map(manualOutflow => (
                                     <TableRow key={manualOutflow.id}>
@@ -484,13 +582,40 @@ export default function WeeklyViewPage() {
                                         {weeklyBreakdown.map((week, index) => {
                                             const manualOutflowTotal = week.manualOutflows.filter(t => t.name === manualOutflow.name).reduce((sum, t) => sum + t.amount, 0);
                                             const items = week.manualOutflows.filter(t => t.name === manualOutflow.name);
-                                            return <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `${manualOutflow.name} - ${week.weekLabel}`, items: items, total: manualOutflowTotal, type: 'outflow' })}>{formatCurrency(manualOutflowTotal)}</TableCell>
+                                            return (
+                                                <TableCell 
+                                                    key={index} 
+                                                    className={cn(
+                                                        "text-right font-mono cursor-pointer transition-colors",
+                                                        week.isMonthEnd && "border-r-2 border-border",
+                                                        week.isCurrentWeek && "bg-primary/10",
+                                                        hoveredColumn === index && "bg-muted"
+                                                    )} 
+                                                    onClick={() => handleCellClick({ title: `${manualOutflow.name} - ${week.weekLabel}`, items: items, total: manualOutflowTotal, type: 'outflow' })}
+                                                    onMouseEnter={() => setHoveredColumn(index)}
+                                                >
+                                                    {formatCurrency(manualOutflowTotal)}
+                                                </TableCell>
+                                            );
                                         })}
                                     </TableRow>
                                 ))}
                                 <TableRow className="bg-secondary">
                                     <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Outflow</TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono font-bold text-destructive", week.isMonthEnd && "border-r-2 border-border")}>{formatCurrency(week.totalOutflow)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => 
+                                        <TableCell 
+                                            key={index} 
+                                            className={cn(
+                                                "text-right font-mono font-bold text-destructive",
+                                                week.isMonthEnd && "border-r-2 border-border",
+                                                week.isCurrentWeek && "bg-primary/10",
+                                                hoveredColumn === index && "bg-muted"
+                                            )}
+                                            onMouseEnter={() => setHoveredColumn(index)}
+                                        >
+                                            {formatCurrency(week.totalOutflow)}
+                                        </TableCell>
+                                    )}
                                 </TableRow>
 
                                 <TableRow className="border-t-2 border-border">
@@ -500,7 +625,17 @@ export default function WeeklyViewPage() {
                                         </div>
                                     </TableCell>
                                     {weeklyBreakdown.map((week, index) => (
-                                        <TableCell key={index} className={cn("text-right font-mono font-bold", week.netFlow >= 0 ? "text-primary" : "text-destructive", week.isMonthEnd && "border-r-2 border-border")}>
+                                        <TableCell 
+                                            key={index} 
+                                            className={cn(
+                                                "text-right font-mono font-bold", 
+                                                week.netFlow >= 0 ? "text-primary" : "text-destructive", 
+                                                week.isMonthEnd && "border-r-2 border-border",
+                                                week.isCurrentWeek && "bg-primary/10",
+                                                hoveredColumn === index && "bg-muted"
+                                            )}
+                                            onMouseEnter={() => setHoveredColumn(index)}
+                                        >
                                             {formatCurrency(week.netFlow)}
                                         </TableCell>
                                     ))}
@@ -512,7 +647,17 @@ export default function WeeklyViewPage() {
                                         </div>
                                     </TableCell>
                                     {weeklyBreakdown.map((week, index) => (
-                                        <TableCell key={index} className={cn("text-right font-mono font-extrabold", week.runningBalance >= 0 ? "text-foreground" : "text-destructive", week.isMonthEnd && "border-r-2 border-border")}>
+                                        <TableCell 
+                                            key={index} 
+                                            className={cn(
+                                                "text-right font-mono font-extrabold",
+                                                week.runningBalance >= 0 ? "text-foreground" : "text-destructive",
+                                                week.isMonthEnd && "border-r-2 border-border",
+                                                week.isCurrentWeek && "bg-primary/10",
+                                                hoveredColumn === index && "bg-muted"
+                                            )}
+                                            onMouseEnter={() => setHoveredColumn(index)}
+                                        >
                                             {formatCurrency(week.runningBalance)}
                                         </TableCell>
                                     ))}
