@@ -162,16 +162,6 @@ export default function Home() {
                   </Card>
                   <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">Forecast Balance</CardTitle>
-                          <Wallet className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                          <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.forecastBalance)}</div>
-                          <p className="text-xs text-muted-foreground">End balance after 12 weeks</p>
-                      </CardContent>
-                  </Card>
-                  <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                           <CardTitle className="text-sm font-medium">Total Receivables</CardTitle>
                           <TrendingUp className="h-4 w-4 text-muted-foreground" />
                       </CardHeader>
@@ -188,6 +178,16 @@ export default function Home() {
                       <CardContent>
                           <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables)}</div>
                            <p className="text-xs text-muted-foreground">From 'Open' bills in forecast</p>
+                      </CardContent>
+                  </Card>
+                   <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Forecast Balance</CardTitle>
+                          <Wallet className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                          <div className="text-2xl font-bold">{formatCurrency(summaryMetrics.forecastBalance)}</div>
+                          <p className="text-xs text-muted-foreground">End balance after 12 weeks</p>
                       </CardContent>
                   </Card>
               </div>
