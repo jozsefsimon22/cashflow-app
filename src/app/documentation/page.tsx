@@ -137,8 +137,13 @@ export default function DocumentationPage() {
                   <li><strong>Due Date</strong>: The date the payment is due. Various formats are supported (e.g., YYYY-MM-DD, DD/MM/YYYY).</li>
                   <li><strong>Date</strong>: The transaction date. This is used as a fallback if the 'Due Date' for a row is empty.</li>
                   <li><strong>Amount</strong>: The transaction amount as a number.</li>
+                  <li><strong>Remaining Amount</strong>: The open or outstanding amount of the transaction.</li>
                   <li><strong>Status</strong>: The current state of the transaction (e.g., 'Open', 'Paid In Full'). This column is optional.</li>
                   <li><strong>Date Closed</strong>: The date a transaction was closed. Used to infer status if the 'Status' column is missing.</li>
+                  <li><strong>Installment Due Date</strong>: (Optional) The specific due date for an installment. Overrides 'Due Date'.</li>
+                  <li><strong>Installment Amount</strong>: (Optional) The specific amount for an installment. Overrides 'Remaining Amount'.</li>
+                  <li><strong>Installment Number</strong>: (Optional) The identifier for the installment (e.g., "1/3"). If present, installment logic is triggered.</li>
+                  <li><strong>Installment Status</strong>: (Optional) The status of the specific installment. Overrides 'Status'.</li>
                 </ul>
                 <div className="p-4 bg-secondary/50 rounded-lg">
                   <h4 className="font-semibold text-foreground mb-2">Status-Based Filtering</h4>
@@ -146,7 +151,7 @@ export default function DocumentationPage() {
                     The application automatically filters your data to ensure the forecast is accurate. Only transactions with a status of <strong>'Open'</strong> or <strong>'Pending Approval'</strong> will be included in the cash flow analysis on the dashboard.
                   </p>
                    <p className="text-muted-foreground mt-3">
-                    If the 'Status' column is not provided in your file, the app will try to infer it. If a row has a 'Date Closed', its status will be set to 'Paid In Full' (excluded). Otherwise, it will be set to 'Open' (included).
+                    If the 'Status' column is not provided in your file, the app will try to infer it. If a row has a 'Date Closed', its status will be set to 'Paid In Full' (excluded). Otherwise, it will be set to 'Open' (included). The same logic applies to 'Installment Status' if used.
                   </p>
                   <div className="flex flex-wrap gap-2 mt-3">
                       <Badge variant="secondary">Included: Open</Badge>
@@ -199,17 +204,18 @@ export default function DocumentationPage() {
               <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2">
                   <DatabaseZap className="w-6 h-6" />
-                  Data Storage
+                  Data Storage & Sharing
                 </CardTitle>
                 <CardDescription>
                   Your data privacy is paramount. The application is designed to work entirely within your browser.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-muted-foreground">
-                <ul className="list-disc list-inside space-y-2 pl-4">
+                 <ul className="list-disc list-inside space-y-2 pl-4">
                   <li><strong>No Server Upload</strong>: Your financial data is never sent to or stored on any server. It is processed directly in your browser.</li>
                   <li><strong>Session Storage</strong>: The imported cash flow data is stored in your browser's <strong>sessionStorage</strong>. This means it is temporary and will be cleared when you close the browser tab.</li>
-                  <li><strong>Local Storage</strong>: Your column mapping preferences from the Settings page are saved in your browser's <strong>localStorage</strong>, so they persist between sessions.</li>
+                  <li><strong>Local Storage</strong>: Your column mapping preferences, manual transactions, and other settings are saved in your browser's <strong>localStorage</strong>, so they persist between sessions.</li>
+                  <li><strong>Session Export/Import</strong>: From the <Link href="/export" className="text-primary underline">Export</Link> page, you can download a `.json` file containing your entire application state (imported data, settings, manual transactions, etc.). This file can be shared with other users, who can then upload it on the <Link href="/data" className="text-primary underline">Imported Data</Link> page to load the exact same session.</li>
                 </ul>
               </CardContent>
             </Card>
@@ -220,3 +226,5 @@ export default function DocumentationPage() {
     </>
   );
 }
+
+    

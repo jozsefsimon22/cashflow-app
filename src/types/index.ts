@@ -1,5 +1,4 @@
 
-
 export interface CashFlowItem {
   Type: 'Invoice' | 'Bill' | 'Bill Credit' | 'Credit Memo';
   'Document Number': string | number;
@@ -10,6 +9,10 @@ export interface CashFlowItem {
   Status: string;
   Date?: Date | null;
   'Date Closed'?: Date | null;
+  'Installment Due Date'?: Date | null;
+  'Installment Amount'?: number | null;
+  'Installment Number'?: string | null;
+  'Installment Status'?: string | null;
 }
 
 export interface ManualTransaction {
@@ -42,6 +45,10 @@ export interface ColumnConfig {
   date: string;
   dateClosed: string;
   dateFormat: string;
+  installmentDueDate: string;
+  installmentAmount: string;
+  installmentNumber: string;
+  installmentStatus: string;
 }
 
 export interface WeeklyDetails {

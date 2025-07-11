@@ -291,10 +291,11 @@ export default function WeeklyViewPage() {
         acc[name].items.push(item);
         return acc;
       }, {});
-
-      const getName = (item: (CashFlowItem | ManualTransaction)): string => {
+      
+      const getName = (item: (CashFlowItem | (ManualTransaction & { dueDate: Date }))): string => {
         if (!item) return '';
-        return 'frequency' in item ? item.name : item.Name;
+        const isManual = 'frequency' in item;
+        return isManual ? (item as ManualTransaction).name : (item as CashFlowItem).Name;
       }
 
       const sortedArray = Object.entries(grouped).sort(([, a], [, b]) => {

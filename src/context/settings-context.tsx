@@ -28,6 +28,10 @@ const defaultConfig: ColumnConfig = {
   date: 'Date',
   dateClosed: 'Date Closed',
   dateFormat: 'auto',
+  installmentDueDate: 'Installment Due Date',
+  installmentAmount: 'Installment Amount',
+  installmentNumber: 'Installment Number',
+  installmentStatus: 'Installment Status',
 };
 
 export const SettingsContext = createContext<SettingsContextType>({
@@ -175,3 +179,5 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     </SettingsContext.Provider>
   );
 };
+
+    

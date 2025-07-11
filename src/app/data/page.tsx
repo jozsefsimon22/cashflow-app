@@ -32,7 +32,7 @@ const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
 const INFLOW_TYPES: (CashFlowItem['Type'])[] = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES: (CashFlowItem['Type'])[] = ['Bill', 'Credit Memo'];
 
-type SortKey = keyof CashFlowItem;
+type SortKey = keyof CashFlowItem | 'Installment Number';
 
 export default function DataPage() {
   const { data, setData, columnConfig } = useContext(SettingsContext);
@@ -96,8 +96,8 @@ export default function DataPage() {
     let sortableItems = [...filteredData];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
-        const valA = a[sortConfig.key];
-        const valB = b[sortConfig.key];
+        const valA = a[sortConfig.key as keyof CashFlowItem];
+        const valB = b[sortConfig.key as keyof CashFlowItem];
 
         if (valA === null || valA === undefined) return 1;
         if (valB === null || valB === undefined) return -1;
@@ -188,7 +188,7 @@ export default function DataPage() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive>
+              <SidebarMenuButton asChild>
                 <Link href="/data">
                   <Database />
                   <span>Imported Data</span>
@@ -261,7 +261,7 @@ export default function DataPage() {
                   Upload Your Cash Flow Data
                 </CardTitle>
                 <CardDescription>
-                  Upload an Excel file (.xlsx, .xls, .csv). Use the settings to map your columns if they don't match the defaults.
+                  Upload an Excel file (.xlsx, .xls, .csv), or a previously exported session file (.json).
                   The 'Type' column should contain 'Invoice', 'Bill', 'Bill Credit', or 'Credit Memo'.
                 </CardDescription>
               </CardHeader>
@@ -324,6 +324,7 @@ export default function DataPage() {
                       <TableRow>
                         <SortableHeader sortKey="Type">Type</SortableHeader>
                         <SortableHeader sortKey="Document Number">Document #</SortableHeader>
+                        <SortableHeader sortKey="Installment Number">Installment #</SortableHeader>
                         <SortableHeader sortKey="Name">Name</SortableHeader>
                         <SortableHeader sortKey="Due Date">Due Date</SortableHeader>
                         <SortableHeader sortKey="Date">Date</SortableHeader>
@@ -345,6 +346,7 @@ export default function DataPage() {
                                 </span>
                               </TableCell>
                               <TableCell>{item['Document Number']}</TableCell>
+                              <TableCell>{item['Installment Number']}</TableCell>
                               <TableCell>{item.Name}</TableCell>
                               <TableCell>{formatDate(item['Due Date'])}</TableCell>
                               <TableCell>{formatDate(item.Date)}</TableCell>
@@ -368,7 +370,7 @@ export default function DataPage() {
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={9} className="text-center text-muted-foreground h-24">
+                          <TableCell colSpan={10} className="text-center text-muted-foreground h-24">
                             {isClient ? (data ? "No results match your filters." : "No data has been imported yet.") : "Loading data..."}
                           </TableCell>
                         </TableRow>
@@ -402,3 +404,5 @@ export default function DataPage() {
     </>
   );
 }
+
+    

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useContext } from 'react';
 import * as XLSX from 'xlsx';
 import { UploadCloud, CheckCircle2, XCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,8 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { parse, isValid, parseISO } from 'date-fns';
 import { Progress } from "@/components/ui/progress";
+import { SettingsContext } from '@/context/settings-context';
+
 
 interface FileUploaderProps {
   onDataUploaded: (data: CashFlowItem[]) => void;
@@ -29,7 +31,7 @@ const VALID_TYPES = ['Invoice', 'Bill', 'Bill Credit', 'Credit Memo'];
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps) {
+export function FileUploader({ onDataUploaded, columnConfig: propColumnConfig }: FileUploaderProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -37,6 +39,8 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const { setData, setManualTransactions, setExcludedNames, setStartingBalance, setColumnConfig } = useContext(SettingsContext);
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -44,19 +48,91 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
       setValidationResults(null);
       setProgress(0);
       setProgressMessage('');
-      parseFile(file);
+      
+      if (file.name.endsWith('.json')) {
+        parseJsonFile(file);
+      } else {
+        parseExcelFile(file);
+      }
     }
   };
+
+  const parseJsonFile = (file: File) => {
+    setLoading(true);
+    setFileName(file.name);
+    setProgressMessage('Reading session file...');
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        const sessionData = JSON.parse(text);
+
+        // Validate structure
+        if (!sessionData.data || !sessionData.manualTransactions || !sessionData.columnConfig) {
+          throw new Error("Invalid session file format.");
+        }
+        
+        await sleep(10);
+        setProgress(25);
+        setProgressMessage('Loading settings...');
+        setColumnConfig(sessionData.columnConfig);
+        setStartingBalance(sessionData.startingBalance || 0);
+        setExcludedNames(sessionData.excludedNames || []);
+        
+        await sleep(10);
+        setProgress(50);
+        setProgressMessage('Loading manual transactions...');
+        const transactionsWithDates = sessionData.manualTransactions.map((t: any) => ({
+            ...t,
+            startDate: new Date(t.startDate),
+        }));
+        setManualTransactions(transactionsWithDates);
+
+        await sleep(10);
+        setProgress(75);
+        setProgressMessage('Loading imported data...');
+        const dataWithDates = sessionData.data.map((item: any) => ({
+          ...item,
+          'Due Date': item['Due Date'] ? new Date(item['Due Date']) : null,
+          'Date': item['Date'] ? new Date(item['Date']) : null,
+          'Date Closed': item['Date Closed'] ? new Date(item['Date Closed']) : null,
+        }));
+        setData(dataWithDates);
+
+        await sleep(10);
+        setProgress(100);
+        setProgressMessage('Session loaded successfully!');
+        
+        toast({
+          title: "Session Loaded",
+          description: `Successfully imported session data from ${file.name}.`,
+        });
+
+      } catch (error) {
+        console.error("JSON file parsing error:", error);
+        toast({
+          variant: "destructive",
+          title: "Error Loading Session",
+          description: error instanceof Error ? error.message : "An unknown error occurred.",
+        });
+      } finally {
+        setLoading(false);
+        if (inputRef.current) {
+          inputRef.current.value = "";
+        }
+      }
+    };
+    reader.readAsText(file);
+  }
 
   const parseDate = (dateValue: any): Date | null => {
     if (dateValue === null || dateValue === undefined || String(dateValue).trim() === '') return null;
   
-    // 1. If it's already a valid Date object from XLSX parsing with cellDates:true
     if (dateValue instanceof Date && isValid(dateValue)) {
       return dateValue;
     }
   
-    // 2. If it's a number (Excel date serial number)
     if (typeof dateValue === 'number') {
       const excelEpoch = new Date(Date.UTC(1899, 11, 30));
       const excelDate = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
@@ -65,21 +141,17 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
       }
     }
   
-    // 3. If it's a string, try parsing it
     if (typeof dateValue === 'string') {
       const dateString = dateValue.trim();
       
-      // Attempt with specified format first (if not 'auto')
-      if (columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
-        const parsed = parse(dateString, columnConfig.dateFormat, new Date());
+      if (propColumnConfig.dateFormat && propColumnConfig.dateFormat !== 'auto') {
+        const parsed = parse(dateString, propColumnConfig.dateFormat, new Date());
         if (isValid(parsed)) return parsed;
       }
       
-      // Attempt ISO format (e.g., "2024-07-30T10:00:00.000Z")
       let parsed = parseISO(dateString);
       if (isValid(parsed)) return parsed;
 
-      // Fallback for 'auto' or if specified format fails
       const commonFormats = [
         'dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd', 'MM-dd-yyyy', 'dd-MM-yyyy',
         'dd/MM/yy', 'MM/dd/yy', 'dd-MMM-yy', 'dd-MMM-yyyy'
@@ -90,7 +162,6 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         if (isValid(parsed)) return parsed;
       }
   
-      // Final attempt with native Date constructor for other edge cases
       parsed = new Date(dateString);
       if (isValid(parsed)) return parsed;
     }
@@ -110,7 +181,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
   }
 
 
-  const parseFile = (file: File) => {
+  const parseExcelFile = (file: File) => {
     setLoading(true);
     setFileName(file.name);
 
@@ -140,6 +211,10 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
           { name: 'Status', configKey: 'status', optional: true },
           { name: 'Date (Fallback)', configKey: 'date', optional: false },
           { name: 'Date Closed', configKey: 'dateClosed', optional: true },
+          { name: 'Installment Due Date', configKey: 'installmentDueDate', optional: true },
+          { name: 'Installment Amount', configKey: 'installmentAmount', optional: true },
+          { name: 'Installment Number', configKey: 'installmentNumber', optional: true },
+          { name: 'Installment Status', configKey: 'installmentStatus', optional: true },
         ];
         
         const firstRow = json[0] || {};
@@ -148,28 +223,33 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         let statusColumnFound = false;
 
         const currentValidationResults: ValidationResult[] = requiredColumns.map(col => {
-          const userColumnName = columnConfig[col.configKey as keyof ColumnConfig];
+          const userColumnName = propColumnConfig[col.configKey as keyof ColumnConfig] ?? '';
           const found = availableColumns.includes(String(userColumnName));
 
           if (col.configKey === 'status' && found) {
             statusColumnFound = true;
           }
 
-          if (found) {
-            return { column: `${col.name} (as '${userColumnName}')`, status: 'Passed', message: 'Column found.' };
-          } else {
-            if (col.optional) {
-              return { column: `${col.name} (expected '${userColumnName}')`, status: 'Optional', message: `Column not found. This is optional.` };
-            }
-            return { column: `${col.name} (expected '${userColumnName}')`, status: 'Failed', message: 'Column not found in the uploaded file.' };
+          if (found || !userColumnName) {
+             if (col.optional) {
+                return { column: `${col.name} (as '${userColumnName}')`, status: 'Optional', message: userColumnName ? 'Column found.' : 'Column not configured.' };
+             }
+             if (found) {
+                return { column: `${col.name} (as '${userColumnName}')`, status: 'Passed', message: 'Column found.' };
+             }
           }
+
+          if (col.optional) {
+            return { column: `${col.name} (expected '${userColumnName}')`, status: 'Optional', message: `Column not found. This is optional.` };
+          }
+          return { column: `${col.name} (expected '${userColumnName}')`, status: 'Failed', message: 'Column not found in the uploaded file.' };
         });
 
-        if (!statusColumnFound && !availableColumns.includes(String(columnConfig.dateClosed))) {
+        if (!statusColumnFound && !availableColumns.includes(String(propColumnConfig.dateClosed))) {
             const statusValidation = currentValidationResults.find(r => r.column.startsWith('Status'));
             if(statusValidation) {
               statusValidation.status = 'Failed';
-              statusValidation.message = `Column not found, and the fallback 'Date Closed' column (expected '${columnConfig.dateClosed}') was also not found. One of them is required.`;
+              statusValidation.message = `Column not found, and the fallback 'Date Closed' column (expected '${propColumnConfig.dateClosed}') was also not found. One of them is required.`;
             }
         }
 
@@ -190,16 +270,32 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
 
         for (let i = 0; i < totalRows; i++) {
           const row = json[i];
-          const dueDateValue = row[columnConfig.dueDate];
-          const dateValue = row[columnConfig.date];
-          const dateClosedValue = row[columnConfig.dateClosed];
-
-          const typeValue = row[columnConfig.type];
-          let statusValue = row[columnConfig.status];
+          const typeValue = row[propColumnConfig.type];
           
-          const dateClosed = parseDate(dateClosedValue);
+          let dueDate = parseDate(row[propColumnConfig.dueDate]);
+          let remainingAmount = parseAmount(row[propColumnConfig.remainingAmount]);
+          let statusValue = row[propColumnConfig.status];
+          const dateClosed = parseDate(row[propColumnConfig.dateClosed]);
+          
+          const installmentNumber = row[propColumnConfig.installmentNumber];
 
-          if (!statusColumnFound) {
+          if(installmentNumber !== null && installmentNumber !== undefined && String(installmentNumber).trim() !== '') {
+            const installmentDueDate = parseDate(row[propColumnConfig.installmentDueDate]);
+            const installmentAmount = parseAmount(row[propColumnConfig.installmentAmount]);
+            const installmentStatus = row[propColumnConfig.installmentStatus];
+
+            if(installmentDueDate) {
+              dueDate = installmentDueDate;
+            }
+            if(installmentAmount !== null && installmentAmount > 0) {
+              remainingAmount = installmentAmount;
+            }
+            if(installmentStatus !== null && installmentStatus !== undefined) {
+              statusValue = installmentStatus;
+            }
+          }
+
+          if (!statusValue) {
               if (dateClosed) {
                   statusValue = 'Paid In Full';
               } else {
@@ -213,39 +309,39 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
              }
           }
 
-          let dueDate = parseDate(dueDateValue);
-          const transactionDate = parseDate(dateValue);
+          const transactionDate = parseDate(row[propColumnConfig.date]);
           
           if (!dueDate) {
             dueDate = transactionDate;
           }
           
-          const amount = parseAmount(row[columnConfig.amount]);
-          const remainingAmount = parseAmount(row[columnConfig.remainingAmount]);
+          const amount = parseAmount(row[propColumnConfig.amount]);
 
           if (dueDate === null) {
-            throw new Error(`Invalid or unreadable date in row ${i + 2}. Neither '${columnConfig.dueDate}' nor fallback '${columnConfig.date}' contain a valid date.`);
+            throw new Error(`Invalid or unreadable date in row ${i + 2}. Neither '${propColumnConfig.dueDate}' nor fallback '${propColumnConfig.date}' contain a valid date.`);
           }
           if(amount === null){
-            throw new Error(`Invalid number format in row ${i + 2} for column '${columnConfig.amount}'.`);
+            throw new Error(`Invalid number format in row ${i + 2} for column '${propColumnConfig.amount}'.`);
           }
           if(remainingAmount === null){
-            throw new Error(`Invalid number format in row ${i + 2} for column '${columnConfig.remainingAmount}'.`);
+            throw new Error(`Invalid number format in row ${i + 2} for column '${propColumnConfig.remainingAmount}'.`);
           }
           if(!VALID_TYPES.includes(typeValue)){
-            throw new Error(`Invalid value in row ${i + 2} for column '${columnConfig.type}'. Must be one of: ${VALID_TYPES.join(', ')}.`);
+            throw new Error(`Invalid value in row ${i + 2} for column '${propColumnConfig.type}'. Must be one of: ${VALID_TYPES.join(', ')}.`);
           }
           
           typedData.push({
               'Type': typeValue,
-              'Document Number': row[columnConfig.documentNumber],
-              'Name': row[columnConfig.name],
+              'Document Number': row[propColumnConfig.documentNumber],
+              'Name': row[propColumnConfig.name],
               'Due Date': dueDate,
               'Amount': Math.abs(amount),
               'RemainingAmount': Math.abs(remainingAmount),
               'Status': statusValue,
               'Date': transactionDate,
               'Date Closed': dateClosed,
+              'Installment Number': installmentNumber,
+              'Installment Status': statusValue,
           });
 
           if ((i + 1) % chunkSize === 0 || i === totalRows - 1) {
@@ -296,7 +392,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
             {fileName && !loading && !validationResults?.some(v => v.status === 'Failed') ? <CheckCircle2 className="w-6 h-6 text-green-500" /> : <UploadCloud className="w-6 h-6 text-primary" />}
             <div className="flex flex-col">
               <span className="font-semibold text-foreground">{fileName || "Click to upload a file"}</span>
-              <span className="text-sm text-muted-foreground">XLSX, XLS, CSV</span>
+              <span className="text-sm text-muted-foreground">XLSX, XLS, CSV, JSON</span>
             </div>
           </div>
         </Label>
@@ -306,7 +402,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
           ref={inputRef}
           className="hidden"
           onChange={handleFileChange}
-          accept=".xlsx, .xls, .csv"
+          accept=".xlsx, .xls, .csv, .json"
           disabled={loading}
         />
         <Button onClick={() => inputRef.current?.click()} disabled={loading} className="w-full sm:w-auto">
@@ -355,3 +451,5 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
     </div>
   );
 }
+
+    

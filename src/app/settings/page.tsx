@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +31,10 @@ const columnFormSchema = z.object({
   date: z.string().min(1, "Column name cannot be empty."),
   dateClosed: z.string(),
   dateFormat: z.string(),
+  installmentDueDate: z.string(),
+  installmentAmount: z.string(),
+  installmentNumber: z.string(),
+  installmentStatus: z.string(),
 });
 
 
@@ -54,6 +58,10 @@ const settingsFields: SettingField[] = [
   { key: 'status', label: 'Status', description: "If missing, status is inferred from 'Date Closed'.", isOptional: true, isEditable: true },
   { key: 'dateClosed', label: 'Date Closed', description: "Used for status inference if 'Status' column is not found.", isOptional: true, isEditable: true },
   { key: 'dateFormat', label: 'Date Format', description: 'The date format used in your file.', isEditable: false, isSelect: true },
+  { key: 'installmentDueDate', label: 'Installment Due Date', description: "Optional: The installment's specific due date.", isOptional: true, isEditable: true },
+  { key: 'installmentAmount', label: 'Installment Amount', description: "Optional: The installment's specific amount.", isOptional: true, isEditable: true },
+  { key: 'installmentNumber', label: 'Installment Number', description: "Optional: The installment's identifier (e.g., 1/3).", isOptional: true, isEditable: true },
+  { key: 'installmentStatus', label: 'Installment Status', description: "Optional: The installment's specific status.", isOptional: true, isEditable: true },
 ];
 
 
@@ -65,18 +73,12 @@ export default function SettingsPage() {
     resolver: zodResolver(columnFormSchema),
     defaultValues: {
       ...columnConfig,
-      status: columnConfig.status ?? '',
-      dateClosed: columnConfig.dateClosed ?? '',
-      dateFormat: columnConfig.dateFormat ?? 'auto',
     },
   });
 
   useEffect(() => {
     columnForm.reset({
       ...columnConfig,
-      status: columnConfig.status ?? '',
-      dateClosed: columnConfig.dateClosed ?? '',
-      dateFormat: columnConfig.dateFormat ?? 'auto',
     });
   }, [columnConfig, columnForm]);
 
@@ -136,7 +138,7 @@ export default function SettingsPage() {
               <SidebarMenuButton asChild>
                 <Link href="/data">
                   <Database />
-                  <span>Imported Data</span>
+                  <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -299,3 +301,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
