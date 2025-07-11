@@ -1,35 +1,22 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import type { CashFlowItem } from '@/types';
 import { FileUploader } from '@/components/file-uploader';
 import { InvoiceChart } from '@/components/invoice-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileSpreadsheet, Settings } from 'lucide-react';
-import { SettingsDialog } from '@/components/settings-dialog';
-import type { ColumnConfig } from '@/types';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { SettingsContext } from '@/context/settings-context';
 
 export default function Home() {
   const [data, setData] = useState<CashFlowItem[] | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<ColumnConfig>({
-    type: 'Type',
-    documentNumber: 'Document Number',
-    name: 'Name',
-    dueDate: 'Due Date',
-    amount: 'Amount',
-    dateFormat: 'auto',
-  });
+  const { columnConfig } = useContext(SettingsContext);
 
   const handleDataUploaded = (newData: CashFlowItem[]) => {
     setData(newData);
-  };
-  
-  const handleSettingsSave = (newConfig: ColumnConfig) => {
-    setColumnConfig(newConfig);
-    setIsSettingsOpen(false);
   };
 
   return (
@@ -40,18 +27,15 @@ export default function Home() {
             <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">VizFlow</h1>
             <p className="mt-2 text-lg text-muted-foreground">Your cash flow, visualized.</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
-            <Settings className="w-6 h-6" />
-            <span className="sr-only">Open Settings</span>
-          </Button>
+          <Link href="/settings" passHref>
+            <Button variant="ghost" size="icon" asChild>
+              <a>
+                <Settings className="w-6 h-6" />
+                <span className="sr-only">Open Settings</span>
+              </a>
+            </Button>
+          </Link>
         </header>
-
-        <SettingsDialog 
-            isOpen={isSettingsOpen} 
-            onOpenChange={setIsSettingsOpen}
-            currentConfig={columnConfig}
-            onSave={handleSettingsSave}
-        />
 
         <Card>
           <CardHeader>
