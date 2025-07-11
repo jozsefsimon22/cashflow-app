@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, WeeklyDetails } from '@/types';
 import { FileUploader } from '@/components/file-uploader';
 import { InvoiceChart } from '@/components/invoice-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -45,6 +45,13 @@ export default function Home() {
       currency: 'USD',
     }).format(amount);
   };
+  
+  const weeklyDetails = useMemo(() => {
+    if (!selectedWeek?.details) return { inflow: [], outflow: [] };
+    const inflow = selectedWeek.details.filter(item => item.Type === 'Invoice');
+    const outflow = selectedWeek.details.filter(item => item.Type === 'Bill');
+    return { inflow, outflow };
+  }, [selectedWeek]);
 
   return (
     <>
@@ -110,46 +117,77 @@ export default function Home() {
       </div>
     </main>
     <Dialog open={!!selectedWeek} onOpenChange={() => setSelectedWeek(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Details for {selectedWeek?.weekLabel}</DialogTitle>
             <DialogDescription>
-              All incoming and outgoing transactions for this week.
+              A breakdown of all incoming and outgoing transactions for this week.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
-             <Table>
+          <div className="max-h-[60vh] overflow-y-auto mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Inflow Column */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-lg font-bold text-primary">
+                <ArrowUpCircle className="w-6 h-6" />
+                <span>Inflow (Invoices)</span>
+              </div>
+              <p className="text-2xl font-bold font-mono text-primary">{formatCurrency(selectedWeek?.invoicesDue || 0)}</p>
+              <Table>
                 <TableHeader>
-                    <TableRow>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Document #</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {selectedWeek?.details && selectedWeek.details.length > 0 ? (
-                        selectedWeek.details
-                          .sort((a,b) => a.Type.localeCompare(b.Type))
-                          .map((item, index) => (
-                            <TableRow key={index}>
-                                <TableCell>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                                      {item.Type}
-                                    </span>
-                                </TableCell>
-                                <TableCell>{item['Document Number']}</TableCell>
-                                <TableCell>{item.Name}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
-                            </TableRow>
-                        ))
-                    ) : (
-                        <TableRow>
-                            <TableCell colSpan={4} className="text-center h-24">No transactions this week.</TableCell>
-                        </TableRow>
-                    )}
+                  {weeklyDetails.inflow.length > 0 ? (
+                    weeklyDetails.inflow.map((item, index) => (
+                      <TableRow key={`inflow-${index}`}>
+                        <TableCell>{item.Name}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">No invoices this week.</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
-            </Table>
+              </Table>
+            </div>
+
+            {/* Outflow Column */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-lg font-bold text-destructive">
+                <ArrowDownCircle className="w-6 h-6" />
+                <span>Outflow (Bills)</span>
+              </div>
+              <p className="text-2xl font-bold font-mono text-destructive">{formatCurrency(selectedWeek?.billsDue || 0)}</p>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {weeklyDetails.outflow.length > 0 ? (
+                    weeklyDetails.outflow.map((item, index) => (
+                      <TableRow key={`outflow-${index}`}>
+                        <TableCell>{item.Name}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">No bills this week.</TableCell>
+                      </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            
           </div>
         </DialogContent>
       </Dialog>
