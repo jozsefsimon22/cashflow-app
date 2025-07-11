@@ -4,15 +4,17 @@ import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { UploadCloud, CheckCircle2, XCircle, CheckCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import type { CashFlowItem } from '@/types';
+import type { CashFlowItem, ColumnConfig } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
+import { parse, isValid, parseISO } from 'date-fns';
 
 interface FileUploaderProps {
-  onDataUploaded: (data: CashFlowItem[], fileName: string) => void;
+  onDataUploaded: (data: CashFlowItem[]) => void;
+  columnConfig: ColumnConfig;
 }
 
 interface ValidationResult {
@@ -21,7 +23,7 @@ interface ValidationResult {
   message: string;
 }
 
-export function FileUploader({ onDataUploaded }: FileUploaderProps) {
+export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -36,6 +38,44 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
     }
   };
 
+  const parseDate = (dateValue: any): Date | null => {
+    if (!dateValue) return null;
+    
+    // It's already a date object
+    if (dateValue instanceof Date) {
+        return isValid(dateValue) ? dateValue : null;
+    }
+    
+    // It's an ISO 8601 string
+    if (typeof dateValue === 'string') {
+        const parsedISO = parseISO(dateValue);
+        if (isValid(parsedISO)) return parsedISO;
+    }
+
+    // It's a number (Excel date)
+    if (typeof dateValue === 'number') {
+        // Excel stores dates as days since 1900-01-01.
+        // JS stores dates as ms since 1970-01-01.
+        // The offset is 25569 days.
+        const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+        const jsDate = new Date(excelEpoch.getTime() + dateValue * 24 * 60 * 60 * 1000);
+        if (isValid(jsDate)) return jsDate;
+    }
+
+    // Use a specific format from settings
+    if (columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
+      const parsed = parse(String(dateValue), columnConfig.dateFormat, new Date());
+      if (isValid(parsed)) return parsed;
+    }
+
+    // Last resort, try Date constructor
+    const generalParsed = new Date(dateValue);
+    if (isValid(generalParsed)) return generalParsed;
+
+    return null;
+  };
+
+
   const parseFile = (file: File) => {
     setLoading(true);
     setFileName(file.name);
@@ -48,18 +88,25 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false, dateNF: 'yyyy-mm-dd' });
+        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false });
 
-        const requiredColumns = ['Type', 'Document Number', 'Name', 'Due Date', 'Amount'];
+        const requiredColumns = [
+          { name: 'Type', configKey: 'type' },
+          { name: 'Document Number', configKey: 'documentNumber' },
+          { name: 'Name', configKey: 'name' },
+          { name: 'Due Date', configKey: 'dueDate' },
+          { name: 'Amount', configKey: 'amount' },
+        ];
         
         const firstRow = json[0] || {};
         const availableColumns = Object.keys(firstRow);
         
         const currentValidationResults: ValidationResult[] = requiredColumns.map(col => {
-          if (availableColumns.includes(col)) {
-            return { column: col, status: 'Passed', message: 'Column found.' };
+          const userColumnName = columnConfig[col.configKey as keyof ColumnConfig];
+          if (availableColumns.includes(String(userColumnName))) {
+            return { column: `${col.name} (as '${userColumnName}')`, status: 'Passed', message: 'Column found.' };
           } else {
-            return { column: col, status: 'Failed', message: 'Column not found in the uploaded file.' };
+            return { column: `${col.name} (expected '${userColumnName}')`, status: 'Failed', message: 'Column not found in the uploaded file.' };
           }
         });
         setValidationResults(currentValidationResults);
@@ -71,27 +118,28 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
         }
 
         const typedData: CashFlowItem[] = json.map((row, index) => {
-            const dueDate = new Date(row['Due Date']);
-            if (isNaN(dueDate.getTime())) {
-              throw new Error(`Invalid date format in row ${index + 2} for 'Due Date'.`);
+            const dueDate = parseDate(row[columnConfig.dueDate]);
+
+            if (dueDate === null) {
+              throw new Error(`Invalid or unreadable date in row ${index + 2} for column '${columnConfig.dueDate}'. Check your date format settings.`);
             }
-            if(isNaN(Number(row['Amount']))){
-              throw new Error(`Invalid number format in row ${index + 2} for 'Amount'.`);
+            if(isNaN(Number(row[columnConfig.amount]))){
+              throw new Error(`Invalid number format in row ${index + 2} for column '${columnConfig.amount}'.`);
             }
-            if(row['Type'] !== 'Invoice' && row['Type'] !== 'Bill'){
-              throw new Error(`Invalid value in row ${index + 2} for 'Type'. Must be 'Invoice' or 'Bill'.`);
+            if(row[columnConfig.type] !== 'Invoice' && row[columnConfig.type] !== 'Bill'){
+              throw new Error(`Invalid value in row ${index + 2} for column '${columnConfig.type}'. Must be 'Invoice' or 'Bill'.`);
             }
             
             return {
-                'Type': row['Type'],
-                'Document Number': row['Document Number'],
-                'Name': row['Name'],
+                'Type': row[columnConfig.type],
+                'Document Number': row[columnConfig.documentNumber],
+                'Name': row[columnConfig.name],
                 'Due Date': dueDate,
-                'Amount': Number(row['Amount']),
+                'Amount': Number(row[columnConfig.amount]),
             };
         });
 
-        onDataUploaded(typedData, file.name);
+        onDataUploaded(typedData);
         toast({
           title: "Success!",
           description: `${file.name} processed successfully.`,
@@ -124,7 +172,7 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <Label htmlFor="file-upload" className="flex-1">
           <div className="flex items-center gap-3 p-4 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
-            {fileName && !loading ? <CheckCircle2 className="w-6 h-6 text-green-500" /> : <UploadCloud className="w-6 h-6 text-primary" />}
+            {fileName && !loading && !validationResults?.some(v => v.status === 'Failed') ? <CheckCircle2 className="w-6 h-6 text-green-500" /> : <UploadCloud className="w-6 h-6 text-primary" />}
             <div className="flex flex-col">
               <span className="font-semibold text-foreground">{fileName || "Click to upload a file"}</span>
               <span className="text-sm text-muted-foreground">XLSX, XLS, CSV</span>
@@ -160,7 +208,7 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
                 </div>
                 <div className="flex-1">
                   <p className={cn("font-medium", result.status === 'Failed' && "text-destructive")}>
-                    {result.column} column: {result.status}
+                    {result.column}: {result.status}
                   </p>
                   <p className="text-muted-foreground">{result.message}</p>
                 </div>

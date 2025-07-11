@@ -12,3 +12,12 @@ export interface WeeklySummary {
   invoices: number;
   bills: number;
 }
+
+export interface ColumnConfig {
+  type: string;
+  documentNumber: string;
+  name: string;
+  dueDate: string;
+  amount: string;
+  dateFormat: string;
+}

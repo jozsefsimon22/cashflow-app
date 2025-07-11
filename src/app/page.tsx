@@ -6,22 +6,52 @@ import { FileUploader } from '@/components/file-uploader';
 import { InvoiceChart } from '@/components/invoice-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet } from 'lucide-react';
+import { FileSpreadsheet, Settings } from 'lucide-react';
+import { SettingsDialog } from '@/components/settings-dialog';
+import type { ColumnConfig } from '@/types';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const [data, setData] = useState<CashFlowItem[] | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [columnConfig, setColumnConfig] = useState<ColumnConfig>({
+    type: 'Type',
+    documentNumber: 'Document Number',
+    name: 'Name',
+    dueDate: 'Due Date',
+    amount: 'Amount',
+    dateFormat: 'auto',
+  });
 
-  const handleDataUploaded = (newData: CashFlowItem[], newFileName: string) => {
+  const handleDataUploaded = (newData: CashFlowItem[]) => {
     setData(newData);
+  };
+  
+  const handleSettingsSave = (newConfig: ColumnConfig) => {
+    setColumnConfig(newConfig);
+    setIsSettingsOpen(false);
   };
 
   return (
     <main className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
-        <header className="text-center">
-          <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">VizFlow</h1>
-          <p className="mt-2 text-lg text-muted-foreground">Your cash flow, visualized.</p>
+        <header className="flex justify-between items-center">
+          <div className="text-left">
+            <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">VizFlow</h1>
+            <p className="mt-2 text-lg text-muted-foreground">Your cash flow, visualized.</p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+            <Settings className="w-6 h-6" />
+            <span className="sr-only">Open Settings</span>
+          </Button>
         </header>
+
+        <SettingsDialog 
+            isOpen={isSettingsOpen} 
+            onOpenChange={setIsSettingsOpen}
+            currentConfig={columnConfig}
+            onSave={handleSettingsSave}
+        />
 
         <Card>
           <CardHeader>
@@ -30,13 +60,12 @@ export default function Home() {
               Upload Your Cash Flow Data
             </CardTitle>
             <CardDescription>
-              Upload an Excel file (.xlsx, .xls, .csv) with your cash flow data.
-              Please ensure the file has columns: 'Type', 'Document Number', 'Name', 'Due Date', and 'Amount'.
-              The 'Type' should be either 'Invoice' (for incoming cash) or 'Bill' (for outgoing cash).
+              Upload an Excel file (.xlsx, .xls, .csv). Use the settings to map your columns if they don't match the defaults.
+              The 'Type' column should contain 'Invoice' (for incoming cash) or 'Bill' (for outgoing cash).
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <FileUploader onDataUploaded={handleDataUploaded} />
+            <FileUploader onDataUploaded={handleDataUploaded} columnConfig={columnConfig} />
           </CardContent>
         </Card>
 
@@ -55,7 +84,7 @@ export default function Home() {
               <FileSpreadsheet className="w-12 h-12 text-muted-foreground" />
             </div>
             <h3 className="text-xl font-semibold font-headline text-foreground">Awaiting Data</h3>
-            <p className="text-muted-foreground mt-1">Upload your Excel file to see your cash flow analysis.</p>
+            <p className="text-muted-foreground mt-1">Upload your file to see your cash flow analysis.</p>
           </Card>
         )}
       </div>
