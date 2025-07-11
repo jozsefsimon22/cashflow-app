@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, FileSpreadsheet, BarChart, MousePointerClick, Settings2, DatabaseZap } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, FileSpreadsheet, BarChart, MousePointerClick, Settings2, DatabaseZap, Repeat } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function DocumentationPage() {
@@ -34,6 +34,14 @@ export default function DocumentationPage() {
                 <Link href="/data">
                   <Database />
                   <span>Imported Data</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/manual-transactions">
+                  <Repeat />
+                  <span>Manual Transactions</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -188,5 +196,7 @@ export default function DocumentationPage() {
     </>
   );
 }
+
+    
 
     

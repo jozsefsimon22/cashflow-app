@@ -6,7 +6,7 @@ import type { CashFlowItem, ManualTransaction, WeeklyDetails } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -156,6 +156,14 @@ export default function Home() {
                 <Database />
                 <span>Imported Data</span>
               </Link>
+             </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+             <SidebarMenuButton asChild>
+                <Link href="/manual-transactions">
+                  <Repeat />
+                  <span>Manual Transactions</span>
+                </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
@@ -357,3 +365,5 @@ export default function Home() {
     </>
   );
 }
+
+    
