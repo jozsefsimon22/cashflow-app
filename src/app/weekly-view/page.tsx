@@ -164,9 +164,9 @@ export default function WeeklyViewPage() {
     const overdueManualData = allManualData.filter(item => isBefore(item.dueDate, today));
     
     const overdueInvoices = overdueFileData.filter(item => item.Type === 'Invoice');
-    const overdueCreditMemos = overdueFileData.filter(item => item.Type === 'Credit Memo');
+    const overdueCreditMemos = overdueFileData.filter(item => item.Type === 'Bill Credit');
     const overdueBills = overdueFileData.filter(item => item.Type === 'Bill');
-    const overdueBillCredits = overdueFileData.filter(item => item.Type === 'Bill Credit');
+    const overdueBillCredits = overdueFileData.filter(item => item.Type === 'Credit Memo');
     
     const getTransactionName = (item: CashFlowItem | ManualTransaction & {dueDate: Date}) => 'frequency' in item ? item.name : item.Name;
 
@@ -396,7 +396,7 @@ export default function WeeklyViewPage() {
                         <Table className="min-w-max">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[200px] font-bold text-foreground sticky left-0 bg-card z-10">Category</TableHead>
+                                    <TableHead className="w-[300px] font-bold text-foreground sticky left-0 bg-card z-10">Category</TableHead>
                                     {weeklyBreakdown.map((week, index) => (
                                         <TableHead key={index} className="text-right w-36 font-semibold">{week.weekLabel}</TableHead>
                                     ))}
