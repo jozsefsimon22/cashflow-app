@@ -1,4 +1,5 @@
 
+
 export interface CashFlowItem {
   Type: 'Invoice' | 'Bill' | 'Bill Credit' | 'Credit Memo';
   'Document Number': string | number;

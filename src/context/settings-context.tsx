@@ -17,6 +17,8 @@ interface SettingsContextType {
   setPaidManualOccurrences: (occurrences: ManualTransactionOccurrence[]) => void;
   excludedNames: string[];
   setExcludedNames: (names: string[]) => void;
+  intercompanyNames: string[];
+  setIntercompanyNames: (names: string[]) => void;
 }
 
 const defaultConfig: ColumnConfig = {
@@ -49,6 +51,8 @@ export const SettingsContext = createContext<SettingsContextType>({
   setPaidManualOccurrences: () => {},
   excludedNames: [],
   setExcludedNames: () => {},
+  intercompanyNames: [],
+  setIntercompanyNames: () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -58,6 +62,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [manualTransactions, setManualTransactionsState] = useState<ManualTransaction[]>([]);
   const [paidManualOccurrences, setPaidManualOccurrencesState] = useState<ManualTransactionOccurrence[]>([]);
   const [excludedNames, setExcludedNamesState] = useState<string[]>([]);
+  const [intercompanyNames, setIntercompanyNamesState] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -91,6 +96,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const savedExcludedNames = localStorage.getItem('excludedNames');
       if (savedExcludedNames) {
         setExcludedNamesState(JSON.parse(savedExcludedNames));
+      }
+      const savedIntercompanyNames = localStorage.getItem('intercompanyNames');
+      if (savedIntercompanyNames) {
+        setIntercompanyNamesState(JSON.parse(savedIntercompanyNames));
       }
     } catch (error) {
       console.error("Failed to parse settings from localStorage", error);
@@ -185,6 +194,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
+  const setIntercompanyNames = (names: string[]) => {
+    setIntercompanyNamesState(names);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('intercompanyNames', JSON.stringify(names));
+      } catch (error) {
+        console.error("Failed to save intercompany names to localStorage", error);
+      }
+    }
+  };
+  
   const providerValue = {
     columnConfig,
     setColumnConfig,
@@ -198,6 +218,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setPaidManualOccurrences,
     excludedNames,
     setExcludedNames,
+    intercompanyNames,
+    setIntercompanyNames,
   };
 
   return (

@@ -21,6 +21,7 @@ import {
   XCircle,
   CalendarDays,
   Download,
+  Users,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -30,6 +31,7 @@ interface AppSidebarProps {
     | 'data'
     | 'manual-transactions'
     | 'exclusions'
+    | 'intercompany'
     | 'settings'
     | 'export'
     | 'documentation';
@@ -88,6 +90,14 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                     <Link href="/exclusions">
                     <XCircle />
                     <span>Exclusions</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={activePage === 'intercompany'}>
+                    <Link href="/intercompany">
+                    <Users />
+                    <span>Intercompany</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>

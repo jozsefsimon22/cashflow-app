@@ -42,7 +42,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], forecast
 };
 
 export default function ExportPage() {
-  const { data, manualTransactions, excludedNames, startingBalance, columnConfig, paidManualOccurrences } = useContext(SettingsContext);
+  const { data, manualTransactions, excludedNames, startingBalance, columnConfig, paidManualOccurrences, intercompanyNames } = useContext(SettingsContext);
   const { toast } = useToast();
   const [applyExclusions, setApplyExclusions] = useState(true);
 
@@ -150,6 +150,7 @@ export default function ExportPage() {
         data,
         manualTransactions,
         excludedNames,
+        intercompanyNames,
         startingBalance,
         columnConfig,
         paidManualOccurrences,
