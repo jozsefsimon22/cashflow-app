@@ -27,7 +27,7 @@ export default function Home() {
             <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary">VizFlow</h1>
             <p className="mt-2 text-lg text-muted-foreground">Your cash flow, visualized.</p>
           </div>
-          <Link href="/settings" passHref>
+          <Link href="/settings" passHref legacyBehavior>
             <Button variant="ghost" size="icon" asChild>
               <a>
                 <Settings className="w-6 h-6" />
