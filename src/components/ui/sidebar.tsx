@@ -120,7 +120,7 @@ const SidebarProvider = React.forwardRef<
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
         state,
-        open,
+        open: true,
         setOpen,
         isMobile,
         openMobile,
@@ -169,7 +169,7 @@ const Sidebar = React.forwardRef<
     {
       side = "left",
       variant = "sidebar",
-      collapsible = "offcanvas",
+      collapsible = "none",
       className,
       children,
       ...props

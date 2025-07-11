@@ -188,7 +188,7 @@ export default function RecurringHistoryPage() {
                 <main className="p-4 sm:p-6 md:p-8">
                     <div className="flex justify-between items-center mb-8">
                         <div className="flex items-center gap-4">
-                            <SidebarTrigger />
+                            
                             <Button variant="outline" size="icon" asChild>
                                 <Link href="/manual-transactions">
                                     <ArrowLeft className="w-4 h-4" />

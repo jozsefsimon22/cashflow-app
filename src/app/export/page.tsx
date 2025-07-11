@@ -190,7 +190,7 @@ export default function ExportPage() {
         <main className="p-4 sm:p-6 md:p-8">
           <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
-              <SidebarTrigger />
+              
               <h1 className="text-3xl font-bold font-headline text-foreground">Export Data</h1>
             </div>
           </div>

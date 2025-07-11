@@ -112,7 +112,7 @@ export default function SettingsPage() {
         <main className="p-4 sm:p-6 md:p-8">
             <div className="flex justify-between items-center mb-8">
                 <div className="flex items-center gap-4">
-                  <SidebarTrigger />
+                  
                   <h1 className="text-3xl font-bold font-headline text-foreground">Settings</h1>
                 </div>
             </div>
