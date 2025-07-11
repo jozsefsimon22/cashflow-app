@@ -7,8 +7,8 @@ import * as XLSX from 'xlsx';
 import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download, History } from 'lucide-react';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroupLabel, SidebarTrigger } from "@/components/ui/sidebar";
+import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download } from 'lucide-react';
 import type { CashFlowItem, ManualTransaction } from '@/types';
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
@@ -194,6 +194,7 @@ export default function ExportPage() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+            <SidebarGroupLabel>Analysis</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/">
@@ -218,7 +219,8 @@ export default function ExportPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+
+            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -235,7 +237,8 @@ export default function ExportPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+            
+            <SidebarGroupLabel>Configuration</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/settings">
@@ -252,7 +255,8 @@ export default function ExportPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+
+            <SidebarGroupLabel>Support</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/documentation">

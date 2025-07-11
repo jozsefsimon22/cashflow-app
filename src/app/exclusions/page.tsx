@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, Trash2, Search, PlusCircle, CalendarDays, Download, History } from 'lucide-react';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroupLabel, SidebarTrigger } from "@/components/ui/sidebar";
+import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, Trash2, Search, PlusCircle, CalendarDays, Download } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -91,6 +91,7 @@ export default function ExclusionsPage() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+            <SidebarGroupLabel>Analysis</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/">
@@ -115,7 +116,8 @@ export default function ExclusionsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+            
+            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -132,7 +134,8 @@ export default function ExclusionsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+            
+            <SidebarGroupLabel>Configuration</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/settings">
@@ -149,7 +152,8 @@ export default function ExclusionsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+            
+            <SidebarGroupLabel>Support</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/documentation">

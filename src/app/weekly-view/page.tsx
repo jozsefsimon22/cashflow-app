@@ -4,12 +4,12 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins, Download, ArrowUpDown, History } from 'lucide-react';
+import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins, Download, ArrowUpDown } from 'lucide-react';
 import Link from 'next/link';
 import { SettingsContext } from "@/context/settings-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, startOfWeek, endOfWeek, isWithinInterval, subDays, isBefore } from 'date-fns';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarSeparator } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroupLabel } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import {
@@ -358,6 +358,7 @@ export default function WeeklyViewPage() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
+          <SidebarGroupLabel>Analysis</SidebarGroupLabel>
           <SidebarMenuItem>
              <SidebarMenuButton asChild>
               <Link href="/">
@@ -382,7 +383,8 @@ export default function WeeklyViewPage() {
               </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarSeparator />
+
+          <SidebarGroupLabel>Data Management</SidebarGroupLabel>
            <SidebarMenuItem>
              <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -399,7 +401,8 @@ export default function WeeklyViewPage() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarSeparator />
+          
+          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
            <SidebarMenuItem>
              <SidebarMenuButton asChild>
               <Link href="/settings">
@@ -416,7 +419,8 @@ export default function WeeklyViewPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+            
+            <SidebarGroupLabel>Support</SidebarGroupLabel>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/documentation">

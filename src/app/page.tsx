@@ -6,7 +6,7 @@ import type { CashFlowItem, ManualTransaction, WeeklyDetails } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle, CalendarDays, Info, Download, History } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle, CalendarDays, Info, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -20,7 +20,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarSeparator } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroupLabel } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -220,6 +220,7 @@ export default function Home() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
+          <SidebarGroupLabel>Analysis</SidebarGroupLabel>
           <SidebarMenuItem>
              <SidebarMenuButton asChild isActive>
               <Link href="/">
@@ -244,7 +245,8 @@ export default function Home() {
               </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarSeparator />
+          
+          <SidebarGroupLabel>Data Management</SidebarGroupLabel>
            <SidebarMenuItem>
              <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -261,7 +263,8 @@ export default function Home() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarSeparator />
+          
+          <SidebarGroupLabel>Configuration</SidebarGroupLabel>
            <SidebarMenuItem>
              <SidebarMenuButton asChild>
               <Link href="/settings">
@@ -278,7 +281,8 @@ export default function Home() {
                 </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarSeparator />
+          
+          <SidebarGroupLabel>Support</SidebarGroupLabel>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/documentation">

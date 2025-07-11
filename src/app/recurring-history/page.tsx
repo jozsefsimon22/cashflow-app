@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroupLabel, SidebarTrigger } from "@/components/ui/sidebar";
 import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download, History, ArrowUpCircle, ArrowDownCircle, CheckCircle, ArrowUpDown, ArrowLeft } from 'lucide-react';
 import type { ManualTransaction, ManualTransactionOccurrence } from "@/types";
 import { cn } from "@/lib/utils";
@@ -193,6 +193,7 @@ export default function RecurringHistoryPage() {
                 </SidebarHeader>
                 <SidebarContent>
                     <SidebarMenu>
+                        <SidebarGroupLabel>Analysis</SidebarGroupLabel>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                                 <Link href="/">
@@ -217,7 +218,8 @@ export default function RecurringHistoryPage() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                        <SidebarSeparator />
+
+                        <SidebarGroupLabel>Data Management</SidebarGroupLabel>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive>
                                 <Link href="/manual-transactions">
@@ -234,7 +236,8 @@ export default function RecurringHistoryPage() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                        <SidebarSeparator />
+
+                        <SidebarGroupLabel>Configuration</SidebarGroupLabel>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                                 <Link href="/settings">
@@ -251,7 +254,8 @@ export default function RecurringHistoryPage() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                        <SidebarSeparator />
+
+                        <SidebarGroupLabel>Support</SidebarGroupLabel>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild>
                                 <Link href="/documentation">

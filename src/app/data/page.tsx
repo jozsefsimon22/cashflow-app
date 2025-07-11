@@ -7,7 +7,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle, Search, FileSpreadsheet, Repeat, CalendarDays, Download, History } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle, Search, FileSpreadsheet, Repeat, CalendarDays, Download } from "lucide-react";
 import type { CashFlowItem } from "@/types";
 import { format } from 'date-fns';
 import {
@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarSeparator } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarGroupLabel } from '@/components/ui/sidebar';
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -171,6 +171,7 @@ export default function DataPage() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+            <SidebarGroupLabel>Analysis</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/">
@@ -195,7 +196,8 @@ export default function DataPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+
+            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -212,7 +214,8 @@ export default function DataPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+
+            <SidebarGroupLabel>Configuration</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/settings">
@@ -229,7 +232,8 @@ export default function DataPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+            
+            <SidebarGroupLabel>Support</SidebarGroupLabel>
              <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/documentation">

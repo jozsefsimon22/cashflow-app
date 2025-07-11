@@ -3,8 +3,8 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, FileSpreadsheet, BarChart, MousePointerClick, Settings2, DatabaseZap, Repeat, XCircle, CalendarDays, Download, History } from 'lucide-react';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarGroupLabel, SidebarTrigger } from "@/components/ui/sidebar";
+import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, FileSpreadsheet, BarChart, MousePointerClick, Settings2, DatabaseZap, Repeat, XCircle, CalendarDays, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function DocumentationPage() {
@@ -21,6 +21,7 @@ export default function DocumentationPage() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
+            <SidebarGroupLabel>Analysis</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/">
@@ -45,7 +46,8 @@ export default function DocumentationPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+
+            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -62,7 +64,8 @@ export default function DocumentationPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+
+            <SidebarGroupLabel>Configuration</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/settings">
@@ -79,7 +82,8 @@ export default function DocumentationPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarSeparator />
+            
+            <SidebarGroupLabel>Support</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive>
                 <Link href="/documentation">
