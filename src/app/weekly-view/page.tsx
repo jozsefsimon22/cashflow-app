@@ -8,7 +8,7 @@ import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, Ga
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, addWeeks, addMonths, addQuarters, startOfToday, startOfWeek, endOfWeek } from 'date-fns';
+import { format, addWeeks, addMonths, addQuarters, startOfToday, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -97,6 +97,25 @@ export default function WeeklyViewPage() {
     setIsClient(true);
   }, []);
 
+  const uniqueManualInflows = useMemo(() => {
+    const seen = new Set();
+    return manualTransactions.filter(t => t.type === 'inflow').filter(t => {
+      const duplicate = seen.has(t.name);
+      seen.add(t.name);
+      return !duplicate;
+    });
+  }, [manualTransactions]);
+
+  const uniqueManualOutflows = useMemo(() => {
+    const seen = new Set();
+    return manualTransactions.filter(t => t.type === 'outflow').filter(t => {
+      const duplicate = seen.has(t.name);
+      seen.add(t.name);
+      return !duplicate;
+    });
+  }, [manualTransactions]);
+
+
   const weeklyBreakdown = useMemo((): WeeklyBreakdown[] => {
     if (!isClient) return [];
     
@@ -122,14 +141,11 @@ export default function WeeklyViewPage() {
         const weekFileData = fileData.filter(item => {
             const dueDate = item['Due Date'];
             if (!dueDate) return false;
-            const comparisonDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-            return comparisonDate >= weekStart && comparisonDate <= weekEnd;
+            return isWithinInterval(dueDate, { start: weekStart, end: weekEnd });
         });
 
         const weekManualData = manualData.filter(item => {
-            const dueDate = item.dueDate;
-            const comparisonDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-            return comparisonDate >= weekStart && comparisonDate <= weekEnd;
+            return isWithinInterval(item.dueDate, { start: weekStart, end: weekEnd });
         });
 
         const arItems = weekFileData.filter(item => INFLOW_TYPES.includes(item.Type));
@@ -196,31 +212,6 @@ export default function WeeklyViewPage() {
         return acc;
       }, {});
   }, [dialogDetails]);
-  
-  const ManualTransactionTooltip = ({ transactions, type }: { transactions: ManualTransaction[], type: 'inflow' | 'outflow' }) => {
-    const relevantTransactions = transactions.filter(t => t.type === type);
-    if (relevantTransactions.length === 0) return null;
-
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge variant="outline" className="ml-2">{relevantTransactions.length}</Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <div className="p-2 space-y-1">
-              {relevantTransactions.map(t => (
-                <div key={t.id} className="flex justify-between text-xs gap-4">
-                  <span>{t.name}</span>
-                  <span className="font-mono">{formatCurrency(t.amount)}</span>
-                </div>
-              ))}
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    )
-  }
 
   return (
     <>
@@ -339,18 +330,20 @@ export default function WeeklyViewPage() {
                                     </TableCell>
                                     {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Accounts Receivable - ${week.weekLabel}`, items: week.arItems, total: week.accountsReceivable, type: 'inflow' })}>{formatCurrency(week.accountsReceivable)}</TableCell>)}
                                 </TableRow>
-                                <TableRow>
-                                    <TableCell className="font-medium sticky left-0 bg-card z-10">
-                                        <div className="flex items-center gap-2">
-                                            <Repeat className="w-4 h-4 text-muted-foreground"/> Manual Inflows
-                                            <ManualTransactionTooltip transactions={weeklyBreakdown.flatMap(w => w.manualInflows)} type="inflow" />
-                                        </div>
-                                    </TableCell>
-                                    {weeklyBreakdown.map((week, index) => {
-                                        const manualInflowTotal = week.manualInflows.reduce((sum, t) => sum + t.amount, 0);
-                                        return <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Manual Inflows - ${week.weekLabel}`, items: week.manualInflows, total: manualInflowTotal, type: 'inflow' })}>{formatCurrency(manualInflowTotal)}</TableCell>
-                                    })}
-                                </TableRow>
+                                {uniqueManualInflows.map(manualInflow => (
+                                    <TableRow key={manualInflow.id}>
+                                        <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                            <div className="flex items-center gap-2">
+                                                <Repeat className="w-4 h-4 text-muted-foreground"/> {manualInflow.name}
+                                            </div>
+                                        </TableCell>
+                                        {weeklyBreakdown.map((week, index) => {
+                                            const manualInflowTotal = week.manualInflows.filter(t => t.name === manualInflow.name).reduce((sum, t) => sum + t.amount, 0);
+                                            const items = week.manualInflows.filter(t => t.name === manualInflow.name);
+                                            return <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `${manualInflow.name} - ${week.weekLabel}`, items: items, total: manualInflowTotal, type: 'inflow' })}>{formatCurrency(manualInflowTotal)}</TableCell>
+                                        })}
+                                    </TableRow>
+                                ))}
                                 <TableRow className="bg-secondary">
                                     <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Inflow</TableCell>
                                     {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono font-bold text-primary">{formatCurrency(week.totalInflow)}</TableCell>)}
@@ -371,18 +364,20 @@ export default function WeeklyViewPage() {
                                     </TableCell>
                                     {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Accounts Payable - ${week.weekLabel}`, items: week.apItems, total: week.accountsPayable, type: 'outflow' })}>{formatCurrency(week.accountsPayable)}</TableCell>)}
                                 </TableRow>
-                                <TableRow>
-                                    <TableCell className="font-medium sticky left-0 bg-card z-10">
-                                       <div className="flex items-center gap-2">
-                                            <Repeat className="w-4 h-4 text-muted-foreground"/> Manual Outflows
-                                            <ManualTransactionTooltip transactions={weeklyBreakdown.flatMap(w => w.manualOutflows)} type="outflow" />
-                                        </div>
-                                    </TableCell>
-                                    {weeklyBreakdown.map((week, index) => {
-                                        const manualOutflowTotal = week.manualOutflows.reduce((sum, t) => sum + t.amount, 0);
-                                        return <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Manual Outflows - ${week.weekLabel}`, items: week.manualOutflows, total: manualOutflowTotal, type: 'outflow' })}>{formatCurrency(manualOutflowTotal)}</TableCell>
-                                    })}
-                                </TableRow>
+                                {uniqueManualOutflows.map(manualOutflow => (
+                                    <TableRow key={manualOutflow.id}>
+                                        <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                           <div className="flex items-center gap-2">
+                                                <Repeat className="w-4 h-4 text-muted-foreground"/> {manualOutflow.name}
+                                            </div>
+                                        </TableCell>
+                                        {weeklyBreakdown.map((week, index) => {
+                                            const manualOutflowTotal = week.manualOutflows.filter(t => t.name === manualOutflow.name).reduce((sum, t) => sum + t.amount, 0);
+                                            const items = week.manualOutflows.filter(t => t.name === manualOutflow.name);
+                                            return <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `${manualOutflow.name} - ${week.weekLabel}`, items: items, total: manualOutflowTotal, type: 'outflow' })}>{formatCurrency(manualOutflowTotal)}</TableCell>
+                                        })}
+                                    </TableRow>
+                                ))}
                                 <TableRow className="bg-secondary">
                                     <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Outflow</TableCell>
                                     {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono font-bold text-destructive">{formatCurrency(week.totalOutflow)}</TableCell>)}
