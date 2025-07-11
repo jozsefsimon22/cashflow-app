@@ -19,7 +19,15 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format } from 'date-fns';
+
+type GroupedItems = {
+  [name: string]: {
+    total: number;
+    items: CashFlowItem[];
+  };
+};
 
 export default function Home() {
   const { data, setData, columnConfig } = useContext(SettingsContext);
@@ -47,10 +55,26 @@ export default function Home() {
   };
   
   const weeklyDetails = useMemo(() => {
-    if (!selectedWeek?.details) return { inflow: [], outflow: [] };
-    const inflow = selectedWeek.details.filter(item => item.Type === 'Invoice');
-    const outflow = selectedWeek.details.filter(item => item.Type === 'Bill');
-    return { inflow, outflow };
+    if (!selectedWeek?.details) return { inflow: {}, outflow: {} };
+
+    const groupItems = (items: CashFlowItem[]): GroupedItems => {
+      return items.reduce((acc: GroupedItems, item) => {
+        if (!acc[item.Name]) {
+          acc[item.Name] = { total: 0, items: [] };
+        }
+        acc[item.Name].total += item.Amount;
+        acc[item.Name].items.push(item);
+        return acc;
+      }, {});
+    };
+
+    const inflowItems = selectedWeek.details.filter(item => item.Type === 'Invoice');
+    const outflowItems = selectedWeek.details.filter(item => item.Type === 'Bill');
+
+    return {
+      inflow: groupItems(inflowItems),
+      outflow: groupItems(outflowItems),
+    };
   }, [selectedWeek]);
 
   return (
@@ -121,10 +145,10 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle>Details for {selectedWeek?.weekLabel}</DialogTitle>
             <DialogDescription>
-              A breakdown of all incoming and outgoing transactions for this week.
+              A breakdown of incoming and outgoing transactions for this week, grouped by name.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="max-h-[60vh] overflow-y-auto mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
             
             {/* Inflow Column */}
             <div className="space-y-4">
@@ -133,28 +157,40 @@ export default function Home() {
                 <span>Inflow (Invoices)</span>
               </div>
               <p className="text-2xl font-bold font-mono text-primary">{formatCurrency(selectedWeek?.invoicesDue || 0)}</p>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {weeklyDetails.inflow.length > 0 ? (
-                    weeklyDetails.inflow.map((item, index) => (
-                      <TableRow key={`inflow-${index}`}>
-                        <TableCell>{item.Name}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">No invoices this week.</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <Accordion type="single" collapsible className="w-full">
+                {Object.keys(weeklyDetails.inflow).length > 0 ? (
+                  Object.entries(weeklyDetails.inflow).map(([name, group]) => (
+                    <AccordionItem value={name} key={`inflow-${name}`}>
+                      <AccordionTrigger>
+                        <div className="flex justify-between w-full pr-4">
+                          <span>{name}</span>
+                          <span className="font-mono text-primary">{formatCurrency(group.total)}</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Document #</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.items.map((item, index) => (
+                              <TableRow key={`in-detail-${index}`}>
+                                <TableCell>{item['Document Number']}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No invoices this week.</p>
+                )}
+              </Accordion>
             </div>
 
             {/* Outflow Column */}
@@ -164,28 +200,40 @@ export default function Home() {
                 <span>Outflow (Bills)</span>
               </div>
               <p className="text-2xl font-bold font-mono text-destructive">{formatCurrency(selectedWeek?.billsDue || 0)}</p>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {weeklyDetails.outflow.length > 0 ? (
-                    weeklyDetails.outflow.map((item, index) => (
-                      <TableRow key={`outflow-${index}`}>
-                        <TableCell>{item.Name}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={2} className="text-center h-24 text-muted-foreground">No bills this week.</TableCell>
-                      </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <Accordion type="single" collapsible className="w-full">
+                {Object.keys(weeklyDetails.outflow).length > 0 ? (
+                  Object.entries(weeklyDetails.outflow).map(([name, group]) => (
+                    <AccordionItem value={name} key={`outflow-${name}`}>
+                      <AccordionTrigger>
+                        <div className="flex justify-between w-full pr-4">
+                          <span>{name}</span>
+                          <span className="font-mono text-destructive">{formatCurrency(group.total)}</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Document #</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.items.map((item, index) => (
+                              <TableRow key={`out-detail-${index}`}>
+                                <TableCell>{item['Document Number']}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No bills this week.</p>
+                )}
+              </Accordion>
             </div>
             
           </div>
