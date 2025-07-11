@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useState, useEffect, ReactNode } from 'react';
-import type { CashFlowItem, ColumnConfig, ManualTransaction } from '@/types';
+import type { CashFlowItem, ColumnConfig, ManualTransaction, ManualTransactionOccurrence } from '@/types';
 
 interface SettingsContextType {
   columnConfig: ColumnConfig;
@@ -13,6 +13,8 @@ interface SettingsContextType {
   setStartingBalance: (balance: number) => void;
   manualTransactions: ManualTransaction[];
   setManualTransactions: (transactions: ManualTransaction[]) => void;
+  paidManualOccurrences: ManualTransactionOccurrence[];
+  setPaidManualOccurrences: (occurrences: ManualTransactionOccurrence[]) => void;
   excludedNames: string[];
   setExcludedNames: (names: string[]) => void;
 }
@@ -43,6 +45,8 @@ export const SettingsContext = createContext<SettingsContextType>({
   setStartingBalance: () => {},
   manualTransactions: [],
   setManualTransactions: () => {},
+  paidManualOccurrences: [],
+  setPaidManualOccurrences: () => {},
   excludedNames: [],
   setExcludedNames: () => {},
 });
@@ -52,6 +56,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [data, setDataState] = useState<CashFlowItem[] | null>(null);
   const [startingBalance, setStartingBalanceState] = useState<number>(0);
   const [manualTransactions, setManualTransactionsState] = useState<ManualTransaction[]>([]);
+  const [paidManualOccurrences, setPaidManualOccurrencesState] = useState<ManualTransactionOccurrence[]>([]);
   const [excludedNames, setExcludedNamesState] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -73,6 +78,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           startDate: new Date(t.startDate),
         }));
         setManualTransactionsState(transactionsWithDates);
+      }
+      const savedPaidOccurrences = localStorage.getItem('paidManualOccurrences');
+      if(savedPaidOccurrences) {
+          const parsed = JSON.parse(savedPaidOccurrences);
+          const occurrencesWithDates = parsed.map((o: any) => ({
+              ...o,
+              dueDate: new Date(o.dueDate)
+          }));
+          setPaidManualOccurrencesState(occurrencesWithDates);
       }
       const savedExcludedNames = localStorage.getItem('excludedNames');
       if (savedExcludedNames) {
@@ -149,6 +163,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const setPaidManualOccurrences = (occurrences: ManualTransactionOccurrence[]) => {
+    setPaidManualOccurrencesState(occurrences);
+    if (typeof window !== 'undefined') {
+        try {
+            localStorage.setItem('paidManualOccurrences', JSON.stringify(occurrences));
+        } catch (error) {
+            console.error("Failed to save paid manual occurrences to localStorage", error);
+        }
+    }
+  };
+
   const setExcludedNames = (names: string[]) => {
     setExcludedNamesState(names);
     if (typeof window !== 'undefined') {
@@ -169,6 +194,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setStartingBalance,
     manualTransactions,
     setManualTransactions,
+    paidManualOccurrences,
+    setPaidManualOccurrences,
     excludedNames,
     setExcludedNames,
   };
@@ -179,5 +206,3 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     </SettingsContext.Provider>
   );
 };
-
-    

@@ -6,7 +6,7 @@ import type { CashFlowItem, ManualTransaction, WeeklyDetails } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle, CalendarDays, Info, Download } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle, CalendarDays, Info, Download, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { format, addWeeks, addMonths, addQuarters, startOfToday } from 'date-fns';
+import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -38,28 +38,61 @@ type GroupedItems = {
   };
 };
 
-const generateForecastItems = (manualTransactions: ManualTransaction[]): CashFlowItem[] => {
+const generateForecastItems = (manualTransactions: ManualTransaction[], paidOccurrences: { transactionId: string, dueDate: Date }[]): CashFlowItem[] => {
   const items: CashFlowItem[] = [];
   const forecastEndDate = addWeeks(startOfToday(), 13); // 12 weeks into the future + buffer
+  const today = startOfToday();
+  const paidSet = new Set(paidOccurrences.map(p => `${p.transactionId}-${p.dueDate.toISOString()}`));
 
   manualTransactions.forEach(t => {
+    if (t.frequency === 'once') {
+        if (t.startDate >= today) {
+             items.push({
+              'Name': t.name,
+              'Type': t.type === 'inflow' ? 'Invoice' : 'Bill',
+              'Due Date': t.startDate,
+              'Amount': t.amount,
+              'RemainingAmount': t.amount,
+              'Status': 'Open',
+              'Document Number': `manual-${t.id}-0`
+            });
+        }
+        return;
+    }
+
+
     let currentDate = t.startDate;
     let i = 0; // safety break
     while (currentDate <= forecastEndDate && i < 1000) {
-      if (currentDate >= startOfToday()) {
-        items.push({
-          'Name': t.name,
-          'Type': t.type === 'inflow' ? 'Invoice' : 'Bill', // Treat as standard types
-          'Due Date': currentDate,
-          'Amount': t.amount,
-          'RemainingAmount': t.amount,
-          'Status': 'Open',
-          'Document Number': `manual-${t.id}-${i}`
-        });
+      const isPast = isBefore(currentDate, today);
+      const isPaid = paidSet.has(`${t.id}-${currentDate.toISOString()}`);
+
+      if (!isPaid) {
+          if (isPast) {
+            if (t.pastDueHandling === 'manual') {
+               items.push({
+                'Name': t.name,
+                'Type': t.type === 'inflow' ? 'Invoice' : 'Bill',
+                'Due Date': currentDate,
+                'Amount': t.amount,
+                'RemainingAmount': t.amount,
+                'Status': 'Open', // Treated as Overdue
+                'Document Number': `manual-${t.id}-${i}`
+              });
+            }
+          } else {
+             items.push({
+              'Name': t.name,
+              'Type': t.type === 'inflow' ? 'Invoice' : 'Bill',
+              'Due Date': currentDate,
+              'Amount': t.amount,
+              'RemainingAmount': t.amount,
+              'Status': 'Open',
+              'Document Number': `manual-${t.id}-${i}`
+            });
+          }
       }
-
-      if (t.frequency === 'once') break;
-
+      
       switch (t.frequency) {
         case 'weekly': currentDate = addWeeks(currentDate, 1); break;
         case 'fortnightly': currentDate = addWeeks(currentDate, 2); break;
@@ -74,7 +107,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[]): CashFlo
 };
 
 export default function Home() {
-  const { data, startingBalance, manualTransactions, excludedNames } = useContext(SettingsContext);
+  const { data, startingBalance, manualTransactions, excludedNames, paidManualOccurrences } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
   const [applyExclusions, setApplyExclusions] = useState(true);
@@ -84,24 +117,24 @@ export default function Home() {
   }, []);
 
   const forecastData = useMemo(() => {
-    if (!data) return null;
+    if (!data && manualTransactions.length === 0) return null;
     
     const excludedNamesSet = new Set(excludedNames);
 
-    const fileData = data.filter(item => 
+    const fileData = (data || []).filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
       (INFLOW_TYPES.includes(item.Type) || OUTFLOW_TYPES.includes(item.Type)) &&
       (!applyExclusions || !excludedNamesSet.has(item.Name))
     );
-    const manualData = generateForecastItems(manualTransactions);
+    const manualData = generateForecastItems(manualTransactions, paidManualOccurrences);
 
     const filteredManualData = manualData.filter(item => 
       !applyExclusions || !excludedNamesSet.has(item.Name)
     );
 
     return [...fileData, ...filteredManualData];
-  }, [data, manualTransactions, excludedNames, applyExclusions]);
+  }, [data, manualTransactions, excludedNames, applyExclusions, paidManualOccurrences]);
   
   const handleWeekSelect = (weekData: WeeklyDetails) => {
     setSelectedWeek(weekData);
@@ -219,6 +252,14 @@ export default function Home() {
                 </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
+           <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                    <Link href="/recurring-history">
+                        <History />
+                        <span>Recurring History</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/exclusions">
@@ -259,7 +300,7 @@ export default function Home() {
         <div className="flex justify-between items-center mb-8">
             <div className="flex items-center gap-4">
                 <h1 className="text-3xl font-bold font-headline text-foreground">Dashboard</h1>
-                {isClient && data && (
+                {isClient && (data || manualTransactions.length > 0) && (
                   <div className="flex items-center space-x-2">
                     <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
                     <Label htmlFor="exclusions-toggle" className="text-sm">Apply Exclusions</Label>
@@ -480,5 +521,3 @@ export default function Home() {
     </>
   );
 }
-
-    

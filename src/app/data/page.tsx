@@ -7,7 +7,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle, Search, FileSpreadsheet, Repeat, CalendarDays, Download } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle, Search, FileSpreadsheet, Repeat, CalendarDays, Download, History } from "lucide-react";
 import type { CashFlowItem } from "@/types";
 import { format } from 'date-fns';
 import {
@@ -188,7 +188,7 @@ export default function DataPage() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton asChild isActive>
                 <Link href="/data">
                   <Database />
                   <span>Imported Data</span>
@@ -202,6 +202,14 @@ export default function DataPage() {
                   <span>Manual Transactions</span>
                 </Link>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                    <Link href="/recurring-history">
+                        <History />
+                        <span>Recurring History</span>
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
               <SidebarMenuButton asChild>
@@ -404,5 +412,3 @@ export default function DataPage() {
     </>
   );
 }
-
-    

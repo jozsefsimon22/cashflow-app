@@ -2,7 +2,7 @@
 "use client";
 
 import { useContext, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { ManualTransaction } from "@/types";
@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
-import { Database, GanttChartSquare, LayoutDashboard, Settings, BookOpen, Repeat, CalendarIcon, Trash2, PlusCircle, ArrowUpCircle, ArrowDownCircle, XCircle, CalendarDays, Download, Pencil } from 'lucide-react';
+import { Database, GanttChartSquare, LayoutDashboard, Settings, BookOpen, Repeat, CalendarIcon, Trash2, PlusCircle, ArrowUpCircle, ArrowDownCircle, XCircle, CalendarDays, Download, Pencil, History } from 'lucide-react';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -29,6 +29,15 @@ const manualTransactionSchema = z.object({
   type: z.enum(["inflow", "outflow"], { required_error: "You need to select a transaction type." }),
   startDate: z.date({ required_error: "A start date is required." }),
   frequency: z.enum(["once", "weekly", "fortnightly", "monthly", "quarterly"]),
+  pastDueHandling: z.enum(['auto-paid', 'manual']).optional(),
+}).refine(data => {
+    if (data.frequency !== 'once' && !data.pastDueHandling) {
+        return false;
+    }
+    return true;
+}, {
+    message: "You must select a handling method for past due recurring items.",
+    path: ["pastDueHandling"],
 });
 
 
@@ -43,7 +52,13 @@ export default function ManualTransactionsPage() {
       name: "",
       amount: 0,
       frequency: "once",
+      pastDueHandling: 'auto-paid',
     },
+  });
+  
+  const watchedFrequency = useWatch({
+    control: manualTransactionForm.control,
+    name: 'frequency',
   });
 
   const resetForm = () => {
@@ -53,15 +68,21 @@ export default function ManualTransactionsPage() {
       type: undefined,
       startDate: undefined,
       frequency: "once",
+      pastDueHandling: 'auto-paid',
     });
   }
 
   const onManualTransactionSubmit = (values: z.infer<typeof manualTransactionSchema>) => {
+    const finalValues = { ...values };
+    if (values.frequency === 'once') {
+        delete finalValues.pastDueHandling;
+    }
+
     if (editingTransactionId) {
       // Update existing transaction
       setManualTransactions(
         manualTransactions.map(t =>
-          t.id === editingTransactionId ? { ...t, ...values } : t
+          t.id === editingTransactionId ? { id: t.id, ...finalValues } : t
         )
       );
       toast({
@@ -73,7 +94,7 @@ export default function ManualTransactionsPage() {
       // Add new transaction
       const newTransaction: ManualTransaction = {
         id: new Date().toISOString(), // simple unique id
-        ...values,
+        ...finalValues,
       };
       setManualTransactions([...manualTransactions, newTransaction]);
       toast({
@@ -87,7 +108,10 @@ export default function ManualTransactionsPage() {
   
   const handleEditClick = (transaction: ManualTransaction) => {
     setEditingTransactionId(transaction.id);
-    manualTransactionForm.reset(transaction);
+    manualTransactionForm.reset({
+      ...transaction,
+      pastDueHandling: transaction.pastDueHandling || 'auto-paid',
+    });
   };
   
   const handleCancelEdit = () => {
@@ -151,6 +175,14 @@ export default function ManualTransactionsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+             <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                    <Link href="/recurring-history">
+                        <History />
+                        <span>Recurring History</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/exclusions">
@@ -208,7 +240,7 @@ export default function ManualTransactionsPage() {
                             control={manualTransactionForm.control}
                             name="name"
                             render={({ field }) => (
-                            <FormItem className="lg:col-span-3">
+                            <FormItem className="md:col-span-2 lg:col-span-3">
                                 <FormLabel>Description</FormLabel>
                                 <FormControl>
                                 <Input placeholder="e.g., Office Rent, Subscription" {...field} />
@@ -240,7 +272,7 @@ export default function ManualTransactionsPage() {
                                     <RadioGroup
                                     onValueChange={field.onChange}
                                     value={field.value}
-                                    className="flex items-center space-x-4"
+                                    className="flex items-center space-x-4 pt-2"
                                     >
                                     <FormItem className="flex items-center space-x-2 space-y-0">
                                         <FormControl>
@@ -256,6 +288,30 @@ export default function ManualTransactionsPage() {
                                     </FormItem>
                                     </RadioGroup>
                                 </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                            />
+                             <FormField
+                            control={manualTransactionForm.control}
+                            name="frequency"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Frequency</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                        <SelectValue placeholder="Select frequency" />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="once">Once</SelectItem>
+                                        <SelectItem value="weekly">Weekly</SelectItem>
+                                        <SelectItem value="fortnightly">Fortnightly</SelectItem>
+                                        <SelectItem value="monthly">Monthly</SelectItem>
+                                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                                    </SelectContent>
+                                    </Select>
                                 <FormMessage />
                                 </FormItem>
                             )}
@@ -298,31 +354,39 @@ export default function ManualTransactionsPage() {
                                 </FormItem>
                             )}
                             />
-                            <FormField
-                            control={manualTransactionForm.control}
-                            name="frequency"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Frequency</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                        <SelectValue placeholder="Select frequency" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="once">Once</SelectItem>
-                                        <SelectItem value="weekly">Weekly</SelectItem>
-                                        <SelectItem value="fortnightly">Fortnightly</SelectItem>
-                                        <SelectItem value="monthly">Monthly</SelectItem>
-                                        <SelectItem value="quarterly">Quarterly</SelectItem>
-                                    </SelectContent>
-                                    </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                            />
                         </div>
+                        {watchedFrequency !== 'once' && (
+                             <FormField
+                                control={manualTransactionForm.control}
+                                name="pastDueHandling"
+                                render={({ field }) => (
+                                    <FormItem className="space-y-3 pt-2">
+                                    <FormLabel>How should past due recurrences be handled?</FormLabel>
+                                    <FormControl>
+                                        <RadioGroup
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                        className="flex items-center space-x-4 pt-2"
+                                        >
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl>
+                                            <RadioGroupItem value="auto-paid" />
+                                            </FormControl>
+                                            <FormLabel className="font-normal">Automatically mark as paid</FormLabel>
+                                        </FormItem>
+                                        <FormItem className="flex items-center space-x-2 space-y-0">
+                                            <FormControl>
+                                            <RadioGroupItem value="manual" />
+                                            </FormControl>
+                                            <FormLabel className="font-normal">Show as overdue until manually marked</FormLabel>
+                                        </FormItem>
+                                        </RadioGroup>
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        )}
                         <div className="flex justify-end gap-2">
                            {editingTransactionId && (
                             <Button type="button" variant="outline" onClick={handleCancelEdit}>
@@ -337,7 +401,7 @@ export default function ManualTransactionsPage() {
                     </Form>
                     <div className="mt-6">
                     <h4 className="text-md font-medium mb-2">Your Manual Transactions</h4>
-                    <div className="border rounded-lg max-h-[60vh] overflow-auto">
+                    <div className="border rounded-lg max-h-[50vh] overflow-auto">
                         <Table>
                             <TableHeader>
                             <TableRow>

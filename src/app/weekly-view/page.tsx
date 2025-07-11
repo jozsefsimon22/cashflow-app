@@ -2,9 +2,9 @@
 "use client";
 
 import { useContext, useEffect, useState, useMemo } from 'react';
-import type { CashFlowItem, ManualTransaction } from '@/types';
+import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins, Download, ArrowUpDown } from 'lucide-react';
+import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins, Download, ArrowUpDown, History } from 'lucide-react';
 import Link from 'next/link';
 import { SettingsContext } from "@/context/settings-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -67,20 +67,35 @@ interface DialogDetails {
 type SortKey = 'name' | 'amount';
 type SortDirection = 'asc' | 'desc';
 
-const generateForecastItems = (manualTransactions: ManualTransaction[], forecastEndDate: Date): (ManualTransaction & { dueDate: Date })[] => {
+const generateForecastItems = (manualTransactions: ManualTransaction[], paidOccurrences: ManualTransactionOccurrence[]): (ManualTransaction & { dueDate: Date })[] => {
   const items: (ManualTransaction & { dueDate: Date })[] = [];
+  const forecastEndDate = addWeeks(startOfToday(), 13);
+  const today = startOfToday();
+  const paidSet = new Set(paidOccurrences.map(p => `${p.transactionId}-${p.dueDate.toISOString()}`));
   
   manualTransactions.forEach(t => {
+    if (t.frequency === 'once') {
+        if (t.startDate >= today) {
+            items.push({ ...t, dueDate: t.startDate });
+        }
+        return;
+    }
+
     let currentDate = t.startDate;
     let i = 0;
     while (currentDate <= forecastEndDate && i < 1000) {
-      // Generate all occurrences within the forecast window, including past ones.
-      items.push({
-        ...t,
-        dueDate: currentDate
-      });
-
-      if (t.frequency === 'once') break;
+      const isPast = isBefore(currentDate, today);
+      const isPaid = paidSet.has(`${t.id}-${currentDate.toISOString()}`);
+      
+      if(!isPaid) {
+          if (isPast) {
+             if (t.pastDueHandling === 'manual') {
+                items.push({ ...t, dueDate: currentDate });
+             }
+          } else {
+             items.push({ ...t, dueDate: currentDate });
+          }
+      }
 
       switch (t.frequency) {
         case 'weekly': currentDate = addWeeks(currentDate, 1); break;
@@ -96,7 +111,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], forecast
 };
 
 export default function WeeklyViewPage() {
-  const { data, manualTransactions, excludedNames, startingBalance } = useContext(SettingsContext);
+  const { data, manualTransactions, excludedNames, startingBalance, paidManualOccurrences } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
   const [applyExclusions, setApplyExclusions] = useState(true);
@@ -139,7 +154,7 @@ export default function WeeklyViewPage() {
     ) : [];
 
     const forecastEndDate = addWeeks(today, 13);
-    const allManualData = generateForecastItems(manualTransactions, forecastEndDate)
+    const allManualData = generateForecastItems(manualTransactions, paidManualOccurrences)
         .filter(item => (!applyExclusions || !excludedNamesSet.has(item.name)));
 
     const breakdown: WeeklyBreakdown[] = [];
@@ -236,7 +251,7 @@ export default function WeeklyViewPage() {
 
     return breakdown;
 
-  }, [data, manualTransactions, excludedNames, isClient, startingBalance, applyExclusions]);
+  }, [data, manualTransactions, excludedNames, isClient, startingBalance, applyExclusions, paidManualOccurrences]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -375,6 +390,14 @@ export default function WeeklyViewPage() {
                 </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
+           <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                    <Link href="/recurring-history">
+                        <History />
+                        <span>Recurring History</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/exclusions">

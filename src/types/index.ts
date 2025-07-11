@@ -22,6 +22,12 @@ export interface ManualTransaction {
   type: 'inflow' | 'outflow';
   startDate: Date;
   frequency: 'once' | 'weekly' | 'fortnightly' | 'monthly' | 'quarterly';
+  pastDueHandling?: 'auto-paid' | 'manual';
+}
+
+export interface ManualTransactionOccurrence {
+  transactionId: string;
+  dueDate: Date;
 }
 
 export interface WeeklySummary {
@@ -58,5 +64,3 @@ export interface WeeklyDetails {
   billsDue: number;
   details: CashFlowItem[];
 }
-
-    

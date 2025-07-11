@@ -8,7 +8,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
-import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download, History } from 'lucide-react';
 import type { CashFlowItem, ManualTransaction } from '@/types';
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
@@ -41,7 +41,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], forecast
 };
 
 export default function ExportPage() {
-  const { data, manualTransactions, excludedNames, startingBalance, columnConfig, ...rest } = useContext(SettingsContext);
+  const { data, manualTransactions, excludedNames, startingBalance, columnConfig, paidManualOccurrences } = useContext(SettingsContext);
   const { toast } = useToast();
   const [applyExclusions, setApplyExclusions] = useState(true);
 
@@ -151,6 +151,7 @@ export default function ExportPage() {
         excludedNames,
         startingBalance,
         columnConfig,
+        paidManualOccurrences,
       };
 
       const jsonString = JSON.stringify(sessionData, null, 2);
@@ -224,6 +225,14 @@ export default function ExportPage() {
                   <span>Manual Transactions</span>
                 </Link>
               </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                    <Link href="/recurring-history">
+                        <History />
+                        <span>Recurring History</span>
+                    </Link>
+                </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
@@ -331,5 +340,3 @@ export default function ExportPage() {
     </>
   );
 }
-
-    
