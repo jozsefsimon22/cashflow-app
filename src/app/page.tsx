@@ -91,6 +91,7 @@ export default function Home() {
     const fileData = data.filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
+      (INFLOW_TYPES.includes(item.Type) || OUTFLOW_TYPES.includes(item.Type)) &&
       (!applyExclusions || !excludedNamesSet.has(item.Name))
     );
     const manualData = generateForecastItems(manualTransactions);
@@ -448,3 +449,5 @@ export default function Home() {
     </>
   );
 }
+
+    
