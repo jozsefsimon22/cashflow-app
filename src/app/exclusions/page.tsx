@@ -116,18 +116,18 @@ export default function ExclusionsPage() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/settings">
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive>
                 <Link href="/exclusions">
                   <XCircle />
                   <span>Exclusions</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/settings">
+                  <Settings />
+                  <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -173,14 +173,6 @@ export default function Home() {
                 </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
-           <SidebarMenuItem>
-             <SidebarMenuButton asChild>
-              <Link href="/settings">
-                <Settings />
-                <span>Settings</span>
-              </Link>
-             </SidebarMenuButton>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/exclusions">
@@ -188,6 +180,14 @@ export default function Home() {
                 <span>Exclusions</span>
               </Link>
             </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+             <SidebarMenuButton asChild>
+              <Link href="/settings">
+                <Settings />
+                <span>Settings</span>
+              </Link>
+             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>

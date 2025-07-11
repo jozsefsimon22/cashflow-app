@@ -141,18 +141,18 @@ export default function SettingsPage() {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive>
-                <Link href="/settings">
-                  <SettingsIcon />
-                  <span>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/exclusions">
                   <XCircle />
                   <span>Exclusions</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive>
+                <Link href="/settings">
+                  <SettingsIcon />
+                  <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

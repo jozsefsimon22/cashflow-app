@@ -111,17 +111,17 @@ export default function ManualTransactionsPage() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <Link href="/settings">
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
                 <Link href="/exclusions">
                   <XCircle />
                   <span>Exclusions</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/settings">
+                  <Settings />
+                  <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
