@@ -208,8 +208,9 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
           }
 
           let dueDate = parseDate(dueDateValue);
-          let transactionDate = parseDate(dateValue);
-          if (dueDate === null) {
+          const transactionDate = parseDate(dateValue);
+          
+          if (!dueDate) {
             dueDate = transactionDate;
           }
           
