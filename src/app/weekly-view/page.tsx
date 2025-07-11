@@ -18,20 +18,45 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 
+type GroupedItems = {
+  [name: string]: {
+    total: number;
+    items: (CashFlowItem | ManualTransaction)[];
+  };
+};
+
 interface WeeklyBreakdown {
   weekLabel: string;
   accountsReceivable: number;
   accountsPayable: number;
-  manualInflows: ManualTransaction[];
-  manualOutflows: ManualTransaction[];
+  manualInflows: (ManualTransaction & { dueDate: Date })[];
+  manualOutflows: (ManualTransaction & { dueDate: Date })[];
+  arItems: CashFlowItem[];
+  apItems: CashFlowItem[];
   totalInflow: number;
   totalOutflow: number;
   netFlow: number;
+}
+
+interface DialogDetails {
+    title: string;
+    items: (CashFlowItem | ManualTransaction)[];
+    total: number;
+    type: 'inflow' | 'outflow';
 }
 
 const generateForecastItems = (manualTransactions: ManualTransaction[], forecastEndDate: Date): (ManualTransaction & { dueDate: Date })[] => {
@@ -66,6 +91,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], forecast
 export default function WeeklyViewPage() {
   const { data, manualTransactions, excludedNames } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
+  const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -93,7 +119,6 @@ export default function WeeklyViewPage() {
         const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
         const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
 
-        // Filter imported data for the week
         const weekFileData = fileData.filter(item => {
             const dueDate = item['Due Date'];
             if (!dueDate) return false;
@@ -101,20 +126,17 @@ export default function WeeklyViewPage() {
             return comparisonDate >= weekStart && comparisonDate <= weekEnd;
         });
 
-        // Filter manual data for the week
         const weekManualData = manualData.filter(item => {
             const dueDate = item.dueDate;
             const comparisonDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
             return comparisonDate >= weekStart && comparisonDate <= weekEnd;
         });
 
-        const accountsReceivable = weekFileData
-            .filter(item => INFLOW_TYPES.includes(item.Type))
-            .reduce((sum, item) => sum + item.RemainingAmount, 0);
+        const arItems = weekFileData.filter(item => INFLOW_TYPES.includes(item.Type));
+        const apItems = weekFileData.filter(item => OUTFLOW_TYPES.includes(item.Type));
 
-        const accountsPayable = weekFileData
-            .filter(item => OUTFLOW_TYPES.includes(item.Type))
-            .reduce((sum, item) => sum + item.RemainingAmount, 0);
+        const accountsReceivable = arItems.reduce((sum, item) => sum + item.RemainingAmount, 0);
+        const accountsPayable = apItems.reduce((sum, item) => sum + item.RemainingAmount, 0);
         
         const manualInflows = weekManualData.filter(t => t.type === 'inflow');
         const manualOutflows = weekManualData.filter(t => t.type === 'outflow');
@@ -131,6 +153,8 @@ export default function WeeklyViewPage() {
             accountsPayable,
             manualInflows,
             manualOutflows,
+            arItems,
+            apItems,
             totalInflow,
             totalOutflow,
             netFlow: totalInflow - totalOutflow,
@@ -149,18 +173,43 @@ export default function WeeklyViewPage() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  const handleCellClick = (details: DialogDetails) => {
+    if(details.total > 0) {
+        setDialogDetails(details);
+    }
+  }
   
-  const ManualTransactionTooltip = ({ transactions }: { transactions: ManualTransaction[] }) => {
-    if (transactions.length === 0) return null;
+  const groupedDialogItems = useMemo((): GroupedItems => {
+    if (!dialogDetails) return {};
+
+    return dialogDetails.items.reduce((acc: GroupedItems, item) => {
+        const isManual = 'frequency' in item;
+        const name = isManual ? item.name : item.Name || 'Unnamed';
+        const amount = isManual ? item.amount : item.RemainingAmount;
+
+        if (!acc[name]) {
+          acc[name] = { total: 0, items: [] };
+        }
+        acc[name].total += amount;
+        acc[name].items.push(item);
+        return acc;
+      }, {});
+  }, [dialogDetails]);
+  
+  const ManualTransactionTooltip = ({ transactions, type }: { transactions: ManualTransaction[], type: 'inflow' | 'outflow' }) => {
+    const relevantTransactions = transactions.filter(t => t.type === type);
+    if (relevantTransactions.length === 0) return null;
+
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant="outline" className="ml-2">{transactions.length}</Badge>
+            <Badge variant="outline" className="ml-2">{relevantTransactions.length}</Badge>
           </TooltipTrigger>
           <TooltipContent>
             <div className="p-2 space-y-1">
-              {transactions.map(t => (
+              {relevantTransactions.map(t => (
                 <div key={t.id} className="flex justify-between text-xs gap-4">
                   <span>{t.name}</span>
                   <span className="font-mono">{formatCurrency(t.amount)}</span>
@@ -259,7 +308,7 @@ export default function WeeklyViewPage() {
                     12-Week Transaction Breakdown
                 </CardTitle>
                 <CardDescription>
-                    A detailed look at your expected inflows and outflows for each of the next 12 weeks. All figures are in GBP.
+                    A detailed look at your expected inflows and outflows for each of the next 12 weeks. Click on a figure to see the breakdown.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -288,16 +337,19 @@ export default function WeeklyViewPage() {
                                             <Package className="w-4 h-4 text-muted-foreground"/> Accounts Receivable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono">{formatCurrency(week.accountsReceivable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Accounts Receivable - ${week.weekLabel}`, items: week.arItems, total: week.accountsReceivable, type: 'inflow' })}>{formatCurrency(week.accountsReceivable)}</TableCell>)}
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className="font-medium sticky left-0 bg-card z-10">
                                         <div className="flex items-center gap-2">
                                             <Repeat className="w-4 h-4 text-muted-foreground"/> Manual Inflows
-                                            <ManualTransactionTooltip transactions={weeklyBreakdown.flatMap(w => w.manualInflows)} />
+                                            <ManualTransactionTooltip transactions={weeklyBreakdown.flatMap(w => w.manualInflows)} type="inflow" />
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono">{formatCurrency(week.manualInflows.reduce((sum, t) => sum + t.amount, 0))}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => {
+                                        const manualInflowTotal = week.manualInflows.reduce((sum, t) => sum + t.amount, 0);
+                                        return <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Manual Inflows - ${week.weekLabel}`, items: week.manualInflows, total: manualInflowTotal, type: 'inflow' })}>{formatCurrency(manualInflowTotal)}</TableCell>
+                                    })}
                                 </TableRow>
                                 <TableRow className="bg-secondary">
                                     <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Inflow</TableCell>
@@ -317,16 +369,19 @@ export default function WeeklyViewPage() {
                                             <Package className="w-4 h-4 text-muted-foreground"/> Accounts Payable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono">{formatCurrency(week.accountsPayable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Accounts Payable - ${week.weekLabel}`, items: week.apItems, total: week.accountsPayable, type: 'outflow' })}>{formatCurrency(week.accountsPayable)}</TableCell>)}
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className="font-medium sticky left-0 bg-card z-10">
                                        <div className="flex items-center gap-2">
                                             <Repeat className="w-4 h-4 text-muted-foreground"/> Manual Outflows
-                                            <ManualTransactionTooltip transactions={weeklyBreakdown.flatMap(w => w.manualOutflows)} />
+                                            <ManualTransactionTooltip transactions={weeklyBreakdown.flatMap(w => w.manualOutflows)} type="outflow" />
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono">{formatCurrency(week.manualOutflows.reduce((sum, t) => sum + t.amount, 0))}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => {
+                                        const manualOutflowTotal = week.manualOutflows.reduce((sum, t) => sum + t.amount, 0);
+                                        return <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Manual Outflows - ${week.weekLabel}`, items: week.manualOutflows, total: manualOutflowTotal, type: 'outflow' })}>{formatCurrency(manualOutflowTotal)}</TableCell>
+                                    })}
                                 </TableRow>
                                 <TableRow className="bg-secondary">
                                     <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Outflow</TableCell>
@@ -356,11 +411,68 @@ export default function WeeklyViewPage() {
                 )}
             </CardContent>
         </Card>
-
       </main>
     </SidebarInset>
+
+    <Dialog open={!!dialogDetails} onOpenChange={() => setDialogDetails(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{dialogDetails?.title}</DialogTitle>
+            <DialogDescription>
+              A breakdown of transactions for this category, grouped by name.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto mt-4 p-1">
+            <div className="flex items-center gap-2 text-lg font-bold mb-2" style={{ color: dialogDetails?.type === 'inflow' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))' }}>
+              {dialogDetails?.type === 'inflow' ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
+              <span>Total: {formatCurrency(dialogDetails?.total || 0)}</span>
+            </div>
+
+            <Accordion type="single" collapsible className="w-full">
+                {Object.keys(groupedDialogItems).length > 0 ? (
+                  Object.entries(groupedDialogItems).map(([name, group]) => (
+                    <AccordionItem value={name} key={name}>
+                      <AccordionTrigger>
+                        <div className="flex justify-between w-full pr-4">
+                          <span>{name}</span>
+                          <span className="font-mono" style={{ color: dialogDetails?.type === 'inflow' ? 'hsl(var(--primary))' : 'hsl(var(--destructive))' }}>{formatCurrency(group.total)}</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Identifier</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.items.map((item, index) => {
+                                const isManual = 'frequency' in item;
+                                const id = isManual ? `manual-${item.id}` : item['Document Number'];
+                                const type = isManual ? (item.type === 'inflow' ? 'Manual Inflow' : 'Manual Outflow') : item.Type;
+                                const amount = isManual ? item.amount : item.RemainingAmount;
+                                return (
+                                    <TableRow key={`${id}-${index}`}>
+                                        <TableCell>{isManual ? 'Recurring' : id}</TableCell>
+                                        <TableCell>{type}</TableCell>
+                                        <TableCell className="text-right font-mono">{formatCurrency(amount)}</TableCell>
+                                    </TableRow>
+                                )
+                            })}
+                          </TableBody>
+                        </Table>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No transactions in this category for this week.</p>
+                )}
+              </Accordion>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
-
-    
