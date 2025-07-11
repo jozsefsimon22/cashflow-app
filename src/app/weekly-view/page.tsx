@@ -51,6 +51,7 @@ interface WeeklyBreakdown {
   totalOutflow: number;
   netFlow: number;
   runningBalance: number;
+  isMonthEnd: boolean;
 }
 
 
@@ -202,6 +203,7 @@ export default function WeeklyViewPage() {
       totalOutflow: overdueTotalOutflow,
       netFlow: overdueNetFlow,
       runningBalance: currentBalance,
+      isMonthEnd: false,
     });
     
     // --- Future Weeks Calculation (12 weeks from today) ---
@@ -211,6 +213,9 @@ export default function WeeklyViewPage() {
     for (let i = 0; i < 12; i++) {
         const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
         const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
+        const nextWeekStart = addWeeks(weekStart, 1);
+        const isMonthEnd = weekStart.getMonth() !== nextWeekStart.getMonth();
+
 
         const weekFileData = futureFileData.filter(item => {
             const dueDate = item['Due Date'];
@@ -263,6 +268,7 @@ export default function WeeklyViewPage() {
             totalOutflow,
             netFlow: netFlow,
             runningBalance: currentBalance,
+            isMonthEnd: isMonthEnd,
         });
     }
 
@@ -398,7 +404,7 @@ export default function WeeklyViewPage() {
                                 <TableRow>
                                     <TableHead className="w-[300px] font-bold text-foreground sticky left-0 bg-card z-10">Category</TableHead>
                                     {weeklyBreakdown.map((week, index) => (
-                                        <TableHead key={index} className="text-right w-36 font-semibold">{week.weekLabel}</TableHead>
+                                        <TableHead key={index} className={cn("text-right w-36 font-semibold", week.isMonthEnd && "border-r-2 border-border")}>{week.weekLabel}</TableHead>
                                     ))}
                                 </TableRow>
                             </TableHeader>
@@ -416,7 +422,7 @@ export default function WeeklyViewPage() {
                                             <Package className="w-4 h-4 text-muted-foreground"/> Accounts Receivable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Accounts Receivable - ${week.weekLabel}`, items: week.arItems, total: week.accountsReceivable, type: 'inflow' })}>{formatCurrency(week.accountsReceivable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `Accounts Receivable - ${week.weekLabel}`, items: week.arItems, total: week.accountsReceivable, type: 'inflow' })}>{formatCurrency(week.accountsReceivable)}</TableCell>)}
                                 </TableRow>
                                  <TableRow>
                                     <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
@@ -424,7 +430,7 @@ export default function WeeklyViewPage() {
                                             <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Receivable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Intercompany Receivable - ${week.weekLabel}`, items: week.intercompanyArItems, total: week.intercompanyReceivable, type: 'inflow' })}>{formatCurrency(week.intercompanyReceivable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `Intercompany Receivable - ${week.weekLabel}`, items: week.intercompanyArItems, total: week.intercompanyReceivable, type: 'inflow' })}>{formatCurrency(week.intercompanyReceivable)}</TableCell>)}
                                 </TableRow>
                                 {uniqueManualInflows.map(manualInflow => (
                                     <TableRow key={manualInflow.id}>
@@ -436,13 +442,13 @@ export default function WeeklyViewPage() {
                                         {weeklyBreakdown.map((week, index) => {
                                             const manualInflowTotal = week.manualInflows.filter(t => t.name === manualInflow.name).reduce((sum, t) => sum + t.amount, 0);
                                             const items = week.manualInflows.filter(t => t.name === manualInflow.name);
-                                            return <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `${manualInflow.name} - ${week.weekLabel}`, items: items, total: manualInflowTotal, type: 'inflow' })}>{formatCurrency(manualInflowTotal)}</TableCell>
+                                            return <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `${manualInflow.name} - ${week.weekLabel}`, items: items, total: manualInflowTotal, type: 'inflow' })}>{formatCurrency(manualInflowTotal)}</TableCell>
                                         })}
                                     </TableRow>
                                 ))}
                                 <TableRow className="bg-secondary">
                                     <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Inflow</TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono font-bold text-primary">{formatCurrency(week.totalInflow)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono font-bold text-primary", week.isMonthEnd && "border-r-2 border-border")}>{formatCurrency(week.totalInflow)}</TableCell>)}
                                 </TableRow>
 
                                 <TableRow className="bg-destructive/5">
@@ -458,7 +464,7 @@ export default function WeeklyViewPage() {
                                             <Package className="w-4 h-4 text-muted-foreground"/> Accounts Payable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Accounts Payable - ${week.weekLabel}`, items: week.apItems, total: week.accountsPayable, type: 'outflow' })}>{formatCurrency(week.accountsPayable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `Accounts Payable - ${week.weekLabel}`, items: week.apItems, total: week.accountsPayable, type: 'outflow' })}>{formatCurrency(week.accountsPayable)}</TableCell>)}
                                 </TableRow>
                                 <TableRow>
                                     <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
@@ -466,7 +472,7 @@ export default function WeeklyViewPage() {
                                             <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Payable
                                         </div>
                                     </TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `Intercompany Payable - ${week.weekLabel}`, items: week.intercompanyApItems, total: week.intercompanyPayable, type: 'outflow' })}>{formatCurrency(week.intercompanyPayable)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `Intercompany Payable - ${week.weekLabel}`, items: week.intercompanyApItems, total: week.intercompanyPayable, type: 'outflow' })}>{formatCurrency(week.intercompanyPayable)}</TableCell>)}
                                 </TableRow>
                                 {uniqueManualOutflows.map(manualOutflow => (
                                     <TableRow key={manualOutflow.id}>
@@ -478,13 +484,13 @@ export default function WeeklyViewPage() {
                                         {weeklyBreakdown.map((week, index) => {
                                             const manualOutflowTotal = week.manualOutflows.filter(t => t.name === manualOutflow.name).reduce((sum, t) => sum + t.amount, 0);
                                             const items = week.manualOutflows.filter(t => t.name === manualOutflow.name);
-                                            return <TableCell key={index} className="text-right font-mono cursor-pointer hover:bg-muted" onClick={() => handleCellClick({ title: `${manualOutflow.name} - ${week.weekLabel}`, items: items, total: manualOutflowTotal, type: 'outflow' })}>{formatCurrency(manualOutflowTotal)}</TableCell>
+                                            return <TableCell key={index} className={cn("text-right font-mono cursor-pointer hover:bg-muted", week.isMonthEnd && "border-r-2 border-border")} onClick={() => handleCellClick({ title: `${manualOutflow.name} - ${week.weekLabel}`, items: items, total: manualOutflowTotal, type: 'outflow' })}>{formatCurrency(manualOutflowTotal)}</TableCell>
                                         })}
                                     </TableRow>
                                 ))}
                                 <TableRow className="bg-secondary">
                                     <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Outflow</TableCell>
-                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className="text-right font-mono font-bold text-destructive">{formatCurrency(week.totalOutflow)}</TableCell>)}
+                                    {weeklyBreakdown.map((week, index) => <TableCell key={index} className={cn("text-right font-mono font-bold text-destructive", week.isMonthEnd && "border-r-2 border-border")}>{formatCurrency(week.totalOutflow)}</TableCell>)}
                                 </TableRow>
 
                                 <TableRow className="border-t-2 border-border">
@@ -494,7 +500,7 @@ export default function WeeklyViewPage() {
                                         </div>
                                     </TableCell>
                                     {weeklyBreakdown.map((week, index) => (
-                                        <TableCell key={index} className={cn("text-right font-mono font-bold", week.netFlow >= 0 ? "text-primary" : "text-destructive")}>
+                                        <TableCell key={index} className={cn("text-right font-mono font-bold", week.netFlow >= 0 ? "text-primary" : "text-destructive", week.isMonthEnd && "border-r-2 border-border")}>
                                             {formatCurrency(week.netFlow)}
                                         </TableCell>
                                     ))}
@@ -506,7 +512,7 @@ export default function WeeklyViewPage() {
                                         </div>
                                     </TableCell>
                                     {weeklyBreakdown.map((week, index) => (
-                                        <TableCell key={index} className={cn("text-right font-mono font-extrabold", week.runningBalance >= 0 ? "text-foreground" : "text-destructive")}>
+                                        <TableCell key={index} className={cn("text-right font-mono font-extrabold", week.runningBalance >= 0 ? "text-foreground" : "text-destructive", week.isMonthEnd && "border-r-2 border-border")}>
                                             {formatCurrency(week.runningBalance)}
                                         </TableCell>
                                     ))}
