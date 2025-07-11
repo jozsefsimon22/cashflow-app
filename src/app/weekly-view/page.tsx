@@ -377,17 +377,11 @@ export default function WeeklyViewPage() {
     <AppSidebar activePage="weekly-view" />
     <SidebarInset>
       <main className="p-4 sm:p-6 md:p-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
               <SidebarTrigger />
               <h1 className="text-3xl font-bold font-headline text-foreground">Weekly View</h1>
             </div>
-            {isClient && (data || manualTransactions.length > 0) && (
-              <div className="flex items-center space-x-2">
-                <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
-                <Label htmlFor="exclusions-toggle" className="text-sm">Apply Exclusions</Label>
-              </div>
-            )}
         </div>
         
         <Card>
@@ -396,9 +390,17 @@ export default function WeeklyViewPage() {
                     <CalendarDays className="w-6 h-6" />
                     12-Week Transaction Breakdown
                 </CardTitle>
-                <CardDescription>
-                    A detailed look at your expected inflows and outflows for each of the next 12 weeks. Click on a figure to see the breakdown.
-                </CardDescription>
+                 <div className="flex justify-between items-center">
+                    <CardDescription>
+                        A detailed look at your expected inflows and outflows for each of the next 12 weeks. Click on a figure to see the breakdown.
+                    </CardDescription>
+                    {isClient && (data || manualTransactions.length > 0) && (
+                    <div className="flex items-center space-x-2">
+                        <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
+                        <Label htmlFor="exclusions-toggle" className="text-sm">Apply Name Exclusions</Label>
+                    </div>
+                    )}
+                </div>
             </CardHeader>
             <CardContent>
                 {isClient && (data || manualTransactions.length > 0) ? (
