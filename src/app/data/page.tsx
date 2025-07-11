@@ -7,7 +7,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle, Search, FileSpreadsheet, Repeat } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle, Search, FileSpreadsheet, Repeat, CalendarDays } from "lucide-react";
 import type { CashFlowItem } from "@/types";
 import { format } from 'date-fns';
 import {
@@ -176,6 +176,14 @@ export default function DataPage() {
                 <Link href="/">
                   <LayoutDashboard />
                   <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/weekly-view">
+                  <CalendarDays />
+                  <span>Weekly View</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

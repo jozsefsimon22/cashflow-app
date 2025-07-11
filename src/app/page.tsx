@@ -6,7 +6,7 @@ import type { CashFlowItem, ManualTransaction, WeeklyDetails } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle } from 'lucide-react';
+import { FileSpreadsheet, Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, Wallet, TrendingUp, TrendingDown, BookOpen, Landmark, Repeat, XCircle, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -162,6 +162,14 @@ export default function Home() {
               <Link href="/">
                 <LayoutDashboard />
                 <span>Dashboard</span>
+              </Link>
+             </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+             <SidebarMenuButton asChild>
+              <Link href="/weekly-view">
+                <CalendarDays />
+                <span>Weekly View</span>
               </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
