@@ -5,7 +5,7 @@ import { useMemo, useEffect, useState } from 'react';
 import type { CashFlowItem, WeeklySummary, WeeklyDetails } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { addWeeks, startOfWeek, isWithinInterval, endOfWeek, getWeek, format } from 'date-fns';
+import { addWeeks, startOfWeek, isWithinInterval, endOfWeek, format, parse } from 'date-fns';
 import { ListTodo } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,8 +43,8 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
             .reduce((sum, item) => sum + item.Amount, 0);
 
         weeklySummaries.push({
-            week: getWeek(weekStart, { weekStartsOn: 1 }),
-            weekLabel: `W${getWeek(weekStart, { weekStartsOn: 1 })}`,
+            week: `w/c ${format(weekStart, 'dd/MM')}`,
+            weekLabel: `w/c ${format(weekStart, 'dd/MM')}`,
             invoices,
             bills,
             details: weekItems,
@@ -55,12 +55,14 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
   }, [data, isClient]);
 
   const handleRowClick = (week: WeeklySummary) => {
-    const weekStart = startOfWeek(addWeeks(new Date(), week.week - getWeek(new Date())), { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-    
+    const weekStartStr = week.week.replace('w/c ', '');
+    // We need to provide a reference date to parse, year is important for correctness
+    const currentYear = new Date().getFullYear();
+    const weekStart = parse(`${weekStartStr}/${currentYear}`, 'dd/MM/yyyy', new Date());
+
     const weekDetails: WeeklyDetails = {
-        week: week.weekLabel,
-        weekLabel: `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`,
+        week: week.week,
+        weekLabel: `Week commencing ${format(weekStart, 'do MMMM yyyy')}`,
         invoicesDue: week.invoices,
         billsDue: week.bills,
         details: week.details,
@@ -106,7 +108,7 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
               )}
               {summaryData.map((week) => (
                 <TableRow key={week.week} onClick={() => handleRowClick(week)} className="cursor-pointer">
-                  <TableCell className="font-medium">{`Week ${week.week}`}</TableCell>
+                  <TableCell className="font-medium">{week.weekLabel}</TableCell>
                   <TableCell className="text-right font-semibold text-primary">{formatCurrency(week.invoices)}</TableCell>
                   <TableCell className="text-right font-semibold text-destructive">{formatCurrency(week.bills)}</TableCell>
                 </TableRow>

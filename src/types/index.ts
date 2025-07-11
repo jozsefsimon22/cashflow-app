@@ -1,3 +1,4 @@
+
 export interface CashFlowItem {
   Type: 'Invoice' | 'Bill';
   'Document Number': string | number;
@@ -7,7 +8,7 @@ export interface CashFlowItem {
 }
 
 export interface WeeklySummary {
-  week: number;
+  week: string;
   weekLabel: string;
   invoices: number;
   bills: number;

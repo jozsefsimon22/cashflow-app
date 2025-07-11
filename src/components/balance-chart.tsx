@@ -6,7 +6,7 @@ import type { CashFlowItem, WeeklyDetails } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
-import { addWeeks, format, startOfWeek, isWithinInterval, endOfWeek, getWeek } from 'date-fns';
+import { addWeeks, format, startOfWeek, isWithinInterval, endOfWeek } from 'date-fns';
 import { TrendingUp } from 'lucide-react';
 
 
@@ -44,8 +44,8 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
         runningBalance += totalInvoices - totalBills;
 
         weeklyData.push({
-            week: `W${getWeek(weekStart, { weekStartsOn: 1 })}`,
-            weekLabel: `${format(weekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`,
+            week: `w/c ${format(weekStart, 'dd/MM')}`,
+            weekLabel: `Week commencing ${format(weekStart, 'do MMMM yyyy')}`,
             invoicesDue: totalInvoices,
             billsDue: totalBills,
             balance: runningBalance,
