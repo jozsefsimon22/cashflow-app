@@ -38,7 +38,7 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
-        const json = XLSX.utils.sheet_to_json<any>(worksheet);
+        const json = XLSX.utils.sheet_to_json<any>(worksheet, { raw: false, dateNF: 'yyyy-mm-dd' });
 
         const requiredColumns = ['Type', 'Document Number', 'Name', 'Due Date', 'Amount'];
         const firstRow = json[0] || {};
@@ -50,14 +50,15 @@ export function FileUploader({ onDataUploaded }: FileUploaderProps) {
         }
 
         const typedData: CashFlowItem[] = json.map((row, index) => {
-            if (!(row['Due Date'] instanceof Date) || isNaN(Number(row['Amount'])) || (row['Type'] !== 'Invoice' && row['Type'] !== 'Bill')) {
-                throw new Error(`Invalid data in row ${index + 2}. 'Due Date' must be a date, 'Amount' must be a number, and 'Type' must be 'Invoice' or 'Bill'.`);
+            const dueDate = new Date(row['Due Date']);
+            if (isNaN(dueDate.getTime()) || isNaN(Number(row['Amount'])) || (row['Type'] !== 'Invoice' && row['Type'] !== 'Bill')) {
+                throw new Error(`Invalid data in row ${index + 2}. 'Due Date' must be a valid date, 'Amount' must be a number, and 'Type' must be 'Invoice' or 'Bill'.`);
             }
             return {
                 'Type': row['Type'],
                 'Document Number': row['Document Number'],
                 'Name': row['Name'],
-                'Due Date': row['Due Date'],
+                'Due Date': dueDate,
                 'Amount': Number(row['Amount']),
             };
         });
