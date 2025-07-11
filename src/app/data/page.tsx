@@ -7,7 +7,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Database, Trash2, Settings, LayoutDashboard, GanttChartSquare, BookOpen, CheckCircle, XCircle, Search } from "lucide-react";
 import type { CashFlowItem } from "@/types";
 import { format } from 'date-fns';
 import {
@@ -23,6 +23,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
 type SortKey = keyof CashFlowItem;
@@ -33,6 +36,10 @@ export default function DataPage() {
   const [isClient, setIsClient] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const { toast } = useToast();
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     setIsClient(true);
@@ -46,10 +53,37 @@ export default function DataPage() {
     });
     setIsAlertOpen(false);
   };
+  
+  const uniqueTypes = useMemo(() => {
+    if (!data) return [];
+    return ['all', ...Array.from(new Set(data.map(item => item.Type)))];
+  }, [data]);
+
+  const uniqueStatuses = useMemo(() => {
+    if (!data) return [];
+    return ['all', ...Array.from(new Set(data.map(item => item.Status)))];
+  }, [data]);
+  
+  const filteredData = useMemo(() => {
+    if (!isClient || !data) return [];
+    
+    return data.filter(item => {
+      const searchTermLower = searchTerm.toLowerCase();
+      const matchesSearch = searchTerm === '' ||
+        item.Name.toLowerCase().includes(searchTermLower) ||
+        String(item['Document Number']).toLowerCase().includes(searchTermLower);
+        
+      const matchesType = typeFilter === 'all' || item.Type === typeFilter;
+      const matchesStatus = statusFilter === 'all' || item.Status === statusFilter;
+      
+      return matchesSearch && matchesType && matchesStatus;
+    });
+    
+  }, [data, isClient, searchTerm, typeFilter, statusFilter]);
 
   const sortedData = useMemo(() => {
-    if (!isClient || !data) return [];
-    let sortableItems = [...data];
+    if (!filteredData) return [];
+    let sortableItems = [...filteredData];
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -62,7 +96,7 @@ export default function DataPage() {
       });
     }
     return sortableItems;
-  }, [data, sortConfig, isClient]);
+  }, [filteredData, sortConfig]);
 
   const requestSort = (key: SortKey) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -166,7 +200,46 @@ export default function DataPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="max-h-[70vh] overflow-y-auto">
+              {isClient && data && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 p-4 border rounded-lg bg-card">
+                  <div className="sm:col-span-1">
+                     <div className="relative">
+                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                         placeholder="Search name or doc #"
+                         value={searchTerm}
+                         onChange={(e) => setSearchTerm(e.target.value)}
+                         className="pl-10"
+                       />
+                     </div>
+                  </div>
+                  <div>
+                    <Select value={typeFilter} onValueChange={setTypeFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {uniqueTypes.map(type => (
+                          <SelectItem key={type} value={type}>{type === 'all' ? 'All Types' : type}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                         {uniqueStatuses.map(status => (
+                          <SelectItem key={status} value={status}>{status === 'all' ? 'All Statuses' : status}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+              <div className="max-h-[60vh] overflow-y-auto">
                 <Table>
                   <TableHeader className="sticky top-0 bg-card z-10">
                     <TableRow>
@@ -211,7 +284,7 @@ export default function DataPage() {
                     ) : (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
-                          {isClient ? "No data has been imported yet. Go to the dashboard to upload a file." : "Loading data..."}
+                          {isClient ? (data ? "No results match your filters." : "No data has been imported yet. Go to the dashboard to upload a file.") : "Loading data..."}
                         </TableCell>
                       </TableRow>
                     )}
