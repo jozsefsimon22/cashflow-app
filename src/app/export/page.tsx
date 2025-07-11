@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { SettingsContext } from "@/context/settings-context";
@@ -12,6 +12,8 @@ import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat
 import type { CashFlowItem, ManualTransaction } from '@/types';
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
@@ -41,6 +43,7 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], forecast
 export default function ExportPage() {
   const { data, manualTransactions, excludedNames, startingBalance } = useContext(SettingsContext);
   const { toast } = useToast();
+  const [applyExclusions, setApplyExclusions] = useState(true);
 
   const handleExport = () => {
     try {
@@ -51,12 +54,12 @@ export default function ExportPage() {
       const fileData = data ? data.filter(item => 
         item.Status && 
         INCLUDED_STATUSES.includes(item.Status) &&
-        !excludedNamesSet.has(item.Name)
+        (!applyExclusions || !excludedNamesSet.has(item.Name))
       ) : [];
 
       const forecastEndDate = addWeeks(today, 13);
       const allManualData = generateForecastItems(manualTransactions, forecastEndDate)
-          .filter(item => !excludedNamesSet.has(item.name));
+          .filter(item => (!applyExclusions || !excludedNamesSet.has(item.name)));
 
       const breakdownRows = [];
       let currentBalance = startingBalance;
@@ -238,6 +241,14 @@ export default function ExportPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="flex items-center space-x-2 mb-4">
+                <Switch 
+                  id="exclusions-toggle" 
+                  checked={applyExclusions} 
+                  onCheckedChange={setApplyExclusions} 
+                />
+                <Label htmlFor="exclusions-toggle">Apply Name Exclusions</Label>
+              </div>
               <div className="flex justify-start">
                  <Button onClick={handleExport} disabled={!data && manualTransactions.length === 0}>
                     <Download className="w-4 h-4 mr-2" />
