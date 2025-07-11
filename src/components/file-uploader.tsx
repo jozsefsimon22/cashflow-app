@@ -46,7 +46,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
 
     // Use a specific format from settings first if it's not auto
     if (typeof dateValue === 'string' && columnConfig.dateFormat && columnConfig.dateFormat !== 'auto') {
-        const parsed = parse(dateValue, columnConfig.dateFormat.replace(/yyyy/g, 'yyyy').replace(/dd/g, 'dd'), new Date());
+        const parsed = parse(dateValue, columnConfig.dateFormat, new Date());
         if (isValid(parsed)) return parsed;
     }
     
