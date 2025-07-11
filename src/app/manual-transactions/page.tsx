@@ -304,7 +304,7 @@ export default function ManualTransactionsPage() {
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Frequency</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                         <SelectTrigger>
                                         <SelectValue placeholder="Select frequency" />
@@ -331,7 +331,7 @@ export default function ManualTransactionsPage() {
                            )}
                            <Button type="submit">
                                 {editingTransactionId ? "Update Transaction" : <><PlusCircle className="mr-2 h-4 w-4" /> Add Transaction</>}
-                            </Button>
+                           </Button>
                         </div>
                     </form>
                     </Form>
