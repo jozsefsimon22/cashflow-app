@@ -113,12 +113,20 @@ export default function Home() {
   
   const summaryMetrics = useMemo(() => {
     if (!forecastData) return { totalReceivables: 0, totalPayables: 0, netCashFlow: 0, forecastBalance: startingBalance };
-    const totalReceivables = forecastData.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalPayables = forecastData.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
+
+    const totalInvoices = forecastData.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalCreditMemos = forecastData.filter(item => item.Type === 'Credit Memo').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalBills = forecastData.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalBillCredits = forecastData.filter(item => item.Type === 'Bill Credit').reduce((sum, item) => sum + item.RemainingAmount, 0);
+
+    const totalReceivables = totalInvoices - totalCreditMemos;
+    const totalPayables = totalBills - totalBillCredits;
+
     const netCashFlow = totalReceivables - totalPayables;
     const forecastBalance = startingBalance + netCashFlow;
+
     return { totalReceivables, totalPayables, netCashFlow, forecastBalance };
-  }, [forecastData, startingBalance]);
+}, [forecastData, startingBalance]);
 
   const weeklyDetails = useMemo(() => {
     if (!selectedWeek?.details) return { inflow: {}, outflow: {} };
