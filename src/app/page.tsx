@@ -20,7 +20,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarSeparator } from '@/components/ui/sidebar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -244,6 +244,7 @@ export default function Home() {
               </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarSeparator />
            <SidebarMenuItem>
              <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -260,6 +261,7 @@ export default function Home() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarSeparator />
            <SidebarMenuItem>
              <SidebarMenuButton asChild>
               <Link href="/settings">
@@ -276,6 +278,7 @@ export default function Home() {
                 </Link>
              </SidebarMenuButton>
           </SidebarMenuItem>
+          <SidebarSeparator />
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
               <Link href="/documentation">

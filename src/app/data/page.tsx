@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset, SidebarSeparator } from '@/components/ui/sidebar';
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -195,6 +195,7 @@ export default function DataPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarSeparator />
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -211,6 +212,7 @@ export default function DataPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarSeparator />
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/settings">
@@ -227,6 +229,7 @@ export default function DataPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarSeparator />
              <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/documentation">

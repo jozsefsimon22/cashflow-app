@@ -16,7 +16,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { Database, GanttChartSquare, LayoutDashboard, Settings as SettingsIcon, BookOpen, Wallet, Repeat, XCircle, CalendarDays, Download, History } from 'lucide-react';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
@@ -142,6 +142,7 @@ export default function SettingsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarSeparator />
              <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -158,6 +159,7 @@ export default function SettingsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarSeparator />
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive>
                 <Link href="/settings">
@@ -174,6 +176,7 @@ export default function SettingsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarSeparator />
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/documentation">

@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator, SidebarTrigger } from "@/components/ui/sidebar";
 import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download, History } from 'lucide-react';
 import type { CashFlowItem, ManualTransaction } from '@/types';
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
@@ -218,6 +218,7 @@ export default function ExportPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarSeparator />
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
@@ -234,6 +235,7 @@ export default function ExportPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarSeparator />
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/settings">
@@ -250,6 +252,7 @@ export default function ExportPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarSeparator />
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/documentation">
