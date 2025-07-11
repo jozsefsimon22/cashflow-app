@@ -124,6 +124,11 @@ export default function DataPage() {
       currency: 'GBP',
     }).format(amount);
   };
+
+  const formatDate = (date: Date | null | undefined) => {
+    if (!date) return '';
+    return format(date, 'yyyy-MM-dd');
+  }
   
   const SortableHeader = ({ sortKey, children }: { sortKey: SortKey, children: React.ReactNode }) => {
     const isSorted = sortConfig?.key === sortKey;
@@ -269,6 +274,8 @@ export default function DataPage() {
                       <SortableHeader sortKey="Document Number">Document #</SortableHeader>
                       <SortableHeader sortKey="Name">Name</SortableHeader>
                       <SortableHeader sortKey="Due Date">Due Date</SortableHeader>
+                      <SortableHeader sortKey="Date">Date</SortableHeader>
+                      <SortableHeader sortKey="Date Closed">Date Closed</SortableHeader>
                       <SortableHeader sortKey="Amount">Amount</SortableHeader>
                       <SortableHeader sortKey="Status">Status</SortableHeader>
                     </TableRow>
@@ -286,7 +293,9 @@ export default function DataPage() {
                             </TableCell>
                             <TableCell>{item['Document Number']}</TableCell>
                             <TableCell>{item.Name}</TableCell>
-                            <TableCell>{item['Due Date'] ? format(item['Due Date'], 'yyyy-MM-dd') : ''}</TableCell>
+                            <TableCell>{formatDate(item['Due Date'])}</TableCell>
+                            <TableCell>{formatDate(item.Date)}</TableCell>
+                            <TableCell>{formatDate(item['Date Closed'])}</TableCell>
                             <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
                             <TableCell>
                                <div className="flex items-center gap-2">
@@ -305,7 +314,7 @@ export default function DataPage() {
                       })
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
+                        <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
                           {isClient ? (data ? "No results match your filters." : "No data has been imported yet. Go to the dashboard to upload a file.") : "Loading data..."}
                         </TableCell>
                       </TableRow>

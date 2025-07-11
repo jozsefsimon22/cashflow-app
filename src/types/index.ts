@@ -6,6 +6,8 @@ export interface CashFlowItem {
   'Due Date': Date;
   Amount: number;
   Status: string;
+  Date?: Date | null;
+  'Date Closed'?: Date | null;
 }
 
 export interface WeeklySummary {

@@ -53,7 +53,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           const parsedData = JSON.parse(savedData);
           return parsedData.map((item: any) => ({
             ...item,
-            'Due Date': new Date(item['Due Date']),
+            'Due Date': item['Due Date'] ? new Date(item['Due Date']) : null,
+            'Date': item['Date'] ? new Date(item['Date']) : null,
+            'Date Closed': item['Date Closed'] ? new Date(item['Date Closed']) : null,
           }));
         }
         return null;

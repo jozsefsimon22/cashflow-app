@@ -160,13 +160,15 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         const typedData: CashFlowItem[] = json.map((row, index) => {
             const dueDateValue = row[columnConfig.dueDate];
             const dateValue = row[columnConfig.date];
+            const dateClosedValue = row[columnConfig.dateClosed];
+
             const typeValue = row[columnConfig.type];
             let statusValue = row[columnConfig.status];
+            
+            const dateClosed = parseDate(dateClosedValue);
 
             // Status inference logic
             if (!statusColumnFound) {
-                const dateClosedValue = row[columnConfig.dateClosed];
-                const dateClosed = parseDate(dateClosedValue);
                 if (dateClosed) {
                     statusValue = 'Paid In Full';
                 } else {
@@ -174,10 +176,10 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
                 }
             }
 
-
             let dueDate = parseDate(dueDateValue);
+            let transactionDate = parseDate(dateValue);
             if (dueDate === null) {
-              dueDate = parseDate(dateValue);
+              dueDate = transactionDate;
             }
             
             const amount = parseAmount(row[columnConfig.amount]);
@@ -199,6 +201,8 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
                 'Due Date': dueDate,
                 'Amount': amount,
                 'Status': statusValue,
+                'Date': transactionDate,
+                'Date Closed': dateClosed,
             };
         });
 
