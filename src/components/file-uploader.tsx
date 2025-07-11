@@ -50,9 +50,9 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
         if (isValid(parsed)) return parsed;
     }
     
-    // It's already a date object (less likely now, but good fallback)
-    if (dateValue instanceof Date) {
-        return isValid(dateValue) ? dateValue : null;
+    // It's already a date object
+    if (dateValue instanceof Date && isValid(dateValue)) {
+      return dateValue;
     }
 
     // It's an ISO 8601 string
@@ -111,7 +111,8 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
           { name: 'Document Number', configKey: 'documentNumber', optional: false },
           { name: 'Name', configKey: 'name', optional: false },
           { name: 'Due Date', configKey: 'dueDate', optional: false },
-          { name: 'Amount', configKey: 'amount', optional: false },
+          { name: 'Amount (Original)', configKey: 'amount', optional: false },
+          { name: 'Remaining Amount', configKey: 'remainingAmount', optional: false },
           { name: 'Status', configKey: 'status', optional: true },
           { name: 'Date (Fallback)', configKey: 'date', optional: false },
           { name: 'Date Closed', configKey: 'dateClosed', optional: true },
@@ -183,12 +184,16 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
             }
             
             const amount = parseAmount(row[columnConfig.amount]);
+            const remainingAmount = parseAmount(row[columnConfig.remainingAmount]);
 
             if (dueDate === null) {
               throw new Error(`Invalid or unreadable date in row ${index + 2}. Neither '${columnConfig.dueDate}' nor fallback '${columnConfig.date}' contain a valid date.`);
             }
             if(amount === null){
               throw new Error(`Invalid number format in row ${index + 2} for column '${columnConfig.amount}'.`);
+            }
+             if(remainingAmount === null){
+              throw new Error(`Invalid number format in row ${index + 2} for column '${columnConfig.remainingAmount}'.`);
             }
             if(!VALID_TYPES.includes(typeValue)){
               throw new Error(`Invalid value in row ${index + 2} for column '${columnConfig.type}'. Must be one of: ${VALID_TYPES.join(', ')}.`);
@@ -200,6 +205,7 @@ export function FileUploader({ onDataUploaded, columnConfig }: FileUploaderProps
                 'Name': row[columnConfig.name],
                 'Due Date': dueDate,
                 'Amount': amount,
+                'RemainingAmount': remainingAmount,
                 'Status': statusValue,
                 'Date': transactionDate,
                 'Date Closed': dateClosed,

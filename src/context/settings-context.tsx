@@ -17,6 +17,7 @@ const defaultConfig: ColumnConfig = {
   name: 'Name',
   dueDate: 'Due Date',
   amount: 'Amount',
+  remainingAmount: 'Remaining Amount',
   status: 'Status',
   date: 'Date',
   dateClosed: 'Date Closed',
@@ -35,7 +36,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window !== 'undefined') {
         try {
           const savedConfig = localStorage.getItem('columnConfig');
-          return savedConfig ? JSON.parse(savedConfig) : defaultConfig;
+          return savedConfig ? { ...defaultConfig, ...JSON.parse(savedConfig) } : defaultConfig;
         } catch (error) {
           console.error("Failed to parse columnConfig from localStorage", error);
           return defaultConfig;

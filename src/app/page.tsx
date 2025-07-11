@@ -61,8 +61,8 @@ export default function Home() {
   
   const summaryMetrics = useMemo(() => {
     if (!forecastData) return { totalReceivables: 0, totalPayables: 0, currentBalance: 0 };
-    const totalReceivables = forecastData.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.Amount, 0);
-    const totalPayables = forecastData.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.Amount, 0);
+    const totalReceivables = forecastData.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalPayables = forecastData.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
     const currentBalance = totalReceivables - totalPayables;
     return { totalReceivables, totalPayables, currentBalance };
   }, [forecastData]);
@@ -76,7 +76,7 @@ export default function Home() {
         if (!acc[name]) {
           acc[name] = { total: 0, items: [] };
         }
-        acc[name].total += item.Amount;
+        acc[name].total += item.RemainingAmount;
         acc[name].items.push(item);
         return acc;
       }, {});
@@ -244,7 +244,7 @@ export default function Home() {
                               <TableRow key={`in-detail-${index}`}>
                                 <TableCell>{item['Document Number']}</TableCell>
                                 <TableCell>{item.Type}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(item.RemainingAmount)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -289,7 +289,7 @@ export default function Home() {
                               <TableRow key={`out-detail-${index}`}>
                                 <TableCell>{item['Document Number']}</TableCell>
                                 <TableCell>{item.Type}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency(item.RemainingAmount)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -309,5 +309,3 @@ export default function Home() {
     </>
   );
 }
-
-    

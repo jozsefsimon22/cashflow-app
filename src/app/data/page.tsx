@@ -297,6 +297,7 @@ export default function DataPage() {
                         <SortableHeader sortKey="Date">Date</SortableHeader>
                         <SortableHeader sortKey="Date Closed">Date Closed</SortableHeader>
                         <SortableHeader sortKey="Amount">Amount</SortableHeader>
+                        <SortableHeader sortKey="RemainingAmount">Remaining Amt</SortableHeader>
                         <SortableHeader sortKey="Status">Status</SortableHeader>
                       </TableRow>
                     </TableHeader>
@@ -317,6 +318,7 @@ export default function DataPage() {
                               <TableCell>{formatDate(item.Date)}</TableCell>
                               <TableCell>{formatDate(item['Date Closed'])}</TableCell>
                               <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                              <TableCell className="text-right font-mono">{formatCurrency(item.RemainingAmount)}</TableCell>
                               <TableCell>
                                  <div className="flex items-center gap-2">
                                   {isIncluded ? (
@@ -334,7 +336,7 @@ export default function DataPage() {
                         })
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground h-24">
+                          <TableCell colSpan={9} className="text-center text-muted-foreground h-24">
                             {isClient ? (data ? "No results match your filters." : "No data has been imported yet.") : "Loading data..."}
                           </TableCell>
                         </TableRow>
@@ -368,5 +370,3 @@ export default function DataPage() {
     </>
   );
 }
-
-    

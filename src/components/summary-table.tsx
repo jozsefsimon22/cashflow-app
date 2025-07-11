@@ -39,11 +39,11 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
 
         const invoices = weekItems
             .filter(item => INFLOW_TYPES.includes(item.Type))
-            .reduce((sum, item) => sum + item.Amount, 0);
+            .reduce((sum, item) => sum + item.RemainingAmount, 0);
         
         const bills = weekItems
             .filter(item => OUTFLOW_TYPES.includes(item.Type))
-            .reduce((sum, item) => sum + item.Amount, 0);
+            .reduce((sum, item) => sum + item.RemainingAmount, 0);
 
         weeklySummaries.push({
             week: `w/c ${format(weekStart, 'dd/MM')}`,

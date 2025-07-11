@@ -5,6 +5,7 @@ export interface CashFlowItem {
   Name: string;
   'Due Date': Date;
   Amount: number;
+  RemainingAmount: number;
   Status: string;
   Date?: Date | null;
   'Date Closed'?: Date | null;
@@ -24,6 +25,7 @@ export interface ColumnConfig {
   name: string;
   dueDate: string;
   amount: string;
+  remainingAmount: string;
   status: string;
   date: string;
   dateClosed: string;
