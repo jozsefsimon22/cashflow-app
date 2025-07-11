@@ -108,6 +108,8 @@ export default function ExclusionsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            
+            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/data">
@@ -116,8 +118,6 @@ export default function ExclusionsPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            
-            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">

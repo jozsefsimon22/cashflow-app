@@ -188,6 +188,8 @@ export default function DataPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+
+            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive>
                 <Link href="/data">
@@ -196,8 +198,6 @@ export default function DataPage() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-
-            <SidebarGroupLabel>Data Management</SidebarGroupLabel>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <Link href="/manual-transactions">
