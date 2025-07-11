@@ -6,7 +6,7 @@ import type { CashFlowItem, ManualTransaction } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Settings, Database, ArrowUpCircle, ArrowDownCircle, LayoutDashboard, GanttChartSquare, BookOpen, Repeat, XCircle, CalendarDays, TrendingUp, TrendingDown, Package, Coins, Download } from 'lucide-react';
 import Link from 'next/link';
-import { SettingsContext } from '@/context/settings-context';
+import { SettingsContext } from "@/context/settings-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, startOfWeek, endOfWeek, isWithinInterval, subDays, isBefore } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
@@ -26,6 +26,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval'];
@@ -92,6 +94,7 @@ export default function WeeklyViewPage() {
   const { data, manualTransactions, excludedNames, startingBalance } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
+  const [applyExclusions, setApplyExclusions] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -125,12 +128,12 @@ export default function WeeklyViewPage() {
     const fileData = data ? data.filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
-      !excludedNamesSet.has(item.Name)
+      (!applyExclusions || !excludedNamesSet.has(item.Name))
     ) : [];
 
     const forecastEndDate = addWeeks(today, 13);
     const allManualData = generateForecastItems(manualTransactions, forecastEndDate)
-        .filter(item => !excludedNamesSet.has(item.name));
+        .filter(item => (!applyExclusions || !excludedNamesSet.has(item.name)));
 
     const breakdown: WeeklyBreakdown[] = [];
     let currentBalance = startingBalance;
@@ -220,7 +223,7 @@ export default function WeeklyViewPage() {
 
     return breakdown;
 
-  }, [data, manualTransactions, excludedNames, isClient, startingBalance]);
+  }, [data, manualTransactions, excludedNames, isClient, startingBalance, applyExclusions]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -337,7 +340,15 @@ export default function WeeklyViewPage() {
     <SidebarInset>
       <main className="p-4 sm:p-6 md:p-8">
         <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold font-headline text-foreground">Weekly View</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold font-headline text-foreground">Weekly View</h1>
+               {isClient && (data || manualTransactions.length > 0) && (
+                  <div className="flex items-center space-x-2">
+                    <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
+                    <Label htmlFor="exclusions-toggle" className="text-sm">Apply Exclusions</Label>
+                  </div>
+                )}
+            </div>
             <SidebarTrigger />
         </div>
         
@@ -532,3 +543,5 @@ export default function WeeklyViewPage() {
     </>
   );
 }
+
+    
