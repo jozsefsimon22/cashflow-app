@@ -47,8 +47,8 @@ interface WeeklyBreakdown {
   accountsPayable: number;
   manualInflows: (ManualTransaction & { dueDate: Date })[];
   manualOutflows: (ManualTransaction & { dueDate: Date })[];
-  arItems: CashFlowItem[];
-  apItems: CashFlowItem[];
+  arItems: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
+  apItems: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
   totalInflow: number;
   totalOutflow: number;
   netFlow: number;
@@ -141,7 +141,7 @@ export default function WeeklyViewPage() {
     // --- Overdue Calculation ---
     const overdueFileData = fileData.filter(item => item['Due Date'] && isBefore(item['Due Date'], today));
     const overdueManualData = allManualData.filter(item => isBefore(item.dueDate, today));
-
+    
     const overdueInvoices = overdueFileData.filter(item => item.Type === 'Invoice');
     const overdueCreditMemos = overdueFileData.filter(item => item.Type === 'Credit Memo');
     const overdueBills = overdueFileData.filter(item => item.Type === 'Bill');
@@ -167,8 +167,8 @@ export default function WeeklyViewPage() {
       accountsPayable: overdueAP,
       manualInflows: overdueManualInflows,
       manualOutflows: overdueManualOutflows,
-      arItems: [...overdueInvoices, ...overdueCreditMemos],
-      apItems: [...overdueBills, ...overdueBillCredits],
+      arItems: [...overdueInvoices, ...overdueCreditMemos, ...overdueManualInflows],
+      apItems: [...overdueBills, ...overdueBillCredits, ...overdueManualOutflows],
       totalInflow: overdueTotalInflow,
       totalOutflow: overdueTotalOutflow,
       netFlow: overdueNetFlow,
@@ -218,8 +218,8 @@ export default function WeeklyViewPage() {
             accountsPayable,
             manualInflows,
             manualOutflows,
-            arItems: [...invoices, ...creditMemos],
-            apItems: [...bills, ...billCredits],
+            arItems: [...invoices, ...creditMemos, ...manualInflows],
+            apItems: [...bills, ...billCredits, ...manualOutflows],
             totalInflow,
             totalOutflow,
             netFlow: netFlow,
@@ -239,6 +239,10 @@ export default function WeeklyViewPage() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+  
+  const formatDate = (date: Date) => {
+    return format(date, 'dd/MM/yy');
+  }
 
   const handleCellClick = (details: DialogDetails) => {
     if(details.total > 0) {
@@ -524,7 +528,7 @@ export default function WeeklyViewPage() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>Identifier</TableHead>
+                              <TableHead>Details</TableHead>
                               <TableHead>Type</TableHead>
                               <TableHead className="text-right">Amount</TableHead>
                             </TableRow>
@@ -534,6 +538,7 @@ export default function WeeklyViewPage() {
                                 const isManual = 'frequency' in item;
                                 const id = isManual ? 'Recurring' : (item as CashFlowItem)['Document Number'];
                                 const type = isManual ? (item.type === 'inflow' ? 'Manual Inflow' : 'Manual Outflow') : (item as CashFlowItem).Type;
+                                const dueDate = isManual ? (item as any).dueDate : (item as CashFlowItem)['Due Date'];
                                 
                                 let amount;
                                 if (isManual) {
@@ -547,7 +552,10 @@ export default function WeeklyViewPage() {
 
                                 return (
                                     <TableRow key={`${id}-${index}`}>
-                                        <TableCell>{id}</TableCell>
+                                        <TableCell>
+                                          <div>{id}</div>
+                                          {dueDate && <div className="text-xs text-muted-foreground">{formatDate(dueDate)}</div>}
+                                        </TableCell>
                                         <TableCell>{type}</TableCell>
                                         <TableCell className="text-right font-mono">{formatCurrency(amountDisplay)}</TableCell>
                                     </TableRow>
@@ -568,3 +576,5 @@ export default function WeeklyViewPage() {
     </>
   );
 }
+
+    
