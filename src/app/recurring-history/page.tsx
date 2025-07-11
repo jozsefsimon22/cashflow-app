@@ -7,6 +7,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarTrigger } from "@/components/ui/sidebar";
 import { LayoutDashboard, Database, Settings, BookOpen, GanttChartSquare, Repeat, XCircle, CalendarDays, Download, History, ArrowUpCircle, ArrowDownCircle, CheckCircle } from 'lucide-react';
@@ -68,8 +69,19 @@ export default function RecurringHistoryPage() {
         if (showPaid) {
             return allOccurrences;
         }
-        return allOccurrences.filter(item => !item.isPaid);
+        // Hide items that are manually paid OR are past and set to auto-paid
+        return allOccurrences.filter(item => !item.isPaid && !(item.isPast && item.pastDueHandling === 'auto-paid'));
     }, [allOccurrences, showPaid]);
+
+    const groupedOccurrences = useMemo(() => {
+        return filteredOccurrences.reduce((acc, item) => {
+            if (!acc[item.name]) {
+                acc[item.name] = [];
+            }
+            acc[item.name].push(item);
+            return acc;
+        }, {} as Record<string, Occurrence[]>);
+    }, [filteredOccurrences]);
 
     const handleMarkAsPaid = (transactionId: string, dueDate: Date) => {
         const newPaidOccurrence: ManualTransactionOccurrence = { transactionId, dueDate };
@@ -198,7 +210,7 @@ export default function RecurringHistoryPage() {
                                     Manage Recurring Payments
                                 </CardTitle>
                                 <CardDescription>
-                                    View all past and future occurrences of your recurring manual transactions. For items set to manual handling, you can mark past due items as paid.
+                                    View all past and future occurrences of your recurring manual transactions, grouped by description. For items set to manual handling, you can mark past due items as paid.
                                 </CardDescription>
                             </div>
                             <div className="flex items-center space-x-2 pt-1">
@@ -211,66 +223,75 @@ export default function RecurringHistoryPage() {
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="max-h-[70vh] overflow-y-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Due Date</TableHead>
-                                            <TableHead>Description</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead className="text-right">Action</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredOccurrences.length > 0 ? (
-                                            filteredOccurrences.map((item, index) => (
-                                                <TableRow key={`${item.id}-${item.dueDate.toISOString()}`} className={cn(item.isPaid && "bg-green-500/10", item.isPast && !item.isPaid && item.pastDueHandling === 'manual' && "bg-destructive/10")}>
-                                                    <TableCell>{format(item.dueDate, "dd/MM/yyyy")}</TableCell>
-                                                    <TableCell>{item.name}</TableCell>
-                                                    <TableCell>
-                                                        <span className={cn("inline-flex items-center gap-1.5 capitalize", item.type === 'inflow' ? 'text-primary' : 'text-destructive')}>
-                                                            {item.type === 'inflow' ? <ArrowUpCircle className="w-4 h-4" /> : <ArrowDownCircle className="w-4 h-4" />}
-                                                            {formatCurrency(item.amount)}
+                             <div className="max-h-[70vh] overflow-y-auto">
+                                {Object.keys(groupedOccurrences).length > 0 ? (
+                                    <Accordion type="multiple" className="w-full">
+                                        {Object.entries(groupedOccurrences).map(([name, items]) => (
+                                            <AccordionItem value={name} key={name}>
+                                                <AccordionTrigger>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={cn("inline-flex items-center gap-1.5 capitalize", items[0].type === 'inflow' ? 'text-primary' : 'text-destructive')}>
+                                                            {items[0].type === 'inflow' ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
                                                         </span>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        {item.isPaid ? (
-                                                            <Badge variant="secondary" className="bg-green-500/20 text-green-700">Paid</Badge>
-                                                        ) : item.isPast ? (
-                                                            item.pastDueHandling === 'manual' ? (
-                                                                <Badge variant="destructive">Overdue</Badge>
-                                                            ) : (
-                                                                <Badge variant="secondary">Auto-Paid (Past)</Badge>
-                                                            )
-                                                        ) : (
-                                                            <Badge variant="outline">Upcoming</Badge>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        {item.isPast && item.pastDueHandling === 'manual' && !item.isPaid && (
-                                                            <Button size="sm" onClick={() => handleMarkAsPaid(item.id, item.dueDate)}>
-                                                                <CheckCircle className="w-4 h-4 mr-2" />
-                                                                Mark as Paid
-                                                            </Button>
-                                                        )}
-                                                        {item.isPaid && (
-                                                            <Button size="sm" variant="outline" onClick={() => handleMarkAsUnpaid(item.id, item.dueDate)}>
-                                                                Mark as Unpaid
-                                                            </Button>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                                                   {allOccurrences.length > 0 ? "All recurring transactions have been paid." : "No recurring transactions have been added yet."}
-                                                </TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
+                                                        <span className="font-semibold">{name}</span>
+                                                        <span className="text-muted-foreground font-mono">({formatCurrency(items[0].amount)})</span>
+                                                    </div>
+                                                </AccordionTrigger>
+                                                <AccordionContent>
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>Due Date</TableHead>
+                                                                <TableHead>Status</TableHead>
+                                                                <TableHead className="text-right">Action</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {items.map((item) => (
+                                                                <TableRow key={`${item.id}-${item.dueDate.toISOString()}`} className={cn(item.isPaid && "bg-green-500/10", item.isPast && !item.isPaid && item.pastDueHandling === 'manual' && "bg-destructive/10")}>
+                                                                    <TableCell>{format(item.dueDate, "dd/MM/yyyy")}</TableCell>
+                                                                    <TableCell>
+                                                                        {item.isPaid ? (
+                                                                            <Badge variant="secondary" className="bg-green-500/20 text-green-700">Paid</Badge>
+                                                                        ) : item.isPast ? (
+                                                                            item.pastDueHandling === 'manual' ? (
+                                                                                <Badge variant="destructive">Overdue</Badge>
+                                                                            ) : (
+                                                                                <Badge variant="secondary">Auto-Paid (Past)</Badge>
+                                                                            )
+                                                                        ) : (
+                                                                            <Badge variant="outline">Upcoming</Badge>
+                                                                        )}
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right">
+                                                                        {item.isPast && item.pastDueHandling === 'manual' && !item.isPaid && (
+                                                                            <Button size="sm" onClick={() => handleMarkAsPaid(item.id, item.dueDate)}>
+                                                                                <CheckCircle className="w-4 h-4 mr-2" />
+                                                                                Mark as Paid
+                                                                            </Button>
+                                                                        )}
+                                                                        {item.isPaid && (
+                                                                            <Button size="sm" variant="outline" onClick={() => handleMarkAsUnpaid(item.id, item.dueDate)}>
+                                                                                Mark as Unpaid
+                                                                            </Button>
+                                                                        )}
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                    </Accordion>
+                                ) : (
+                                    <div className="flex items-center justify-center text-center text-muted-foreground h-24">
+                                        <div>
+                                            {allOccurrences.length > 0 ? "All recurring transactions have been paid or are handled automatically." : "No recurring transactions have been added yet."}
+                                            {allOccurrences.length > 0 && <p className="text-xs">Toggle "Show Paid" to see all occurrences.</p>}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -279,3 +300,4 @@ export default function RecurringHistoryPage() {
         </>
     );
 }
+
