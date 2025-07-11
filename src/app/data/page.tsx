@@ -7,21 +7,42 @@ import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowUpDown, Database } from "lucide-react";
+import { ArrowLeft, ArrowUpDown, Database, Trash2 } from "lucide-react";
 import type { CashFlowItem } from "@/types";
 import { format } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 type SortKey = keyof CashFlowItem;
 
 export default function DataPage() {
-  const { data } = useContext(SettingsContext);
+  const { data, setData } = useContext(SettingsContext);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: 'ascending' | 'descending' } | null>({ key: 'Due Date', direction: 'ascending' });
   const [isClient, setIsClient] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  const handleClearData = () => {
+    setData(null);
+    toast({
+      title: "Data Cleared",
+      description: "Your imported data has been removed.",
+    });
+    setIsAlertOpen(false);
+  };
 
   const sortedData = useMemo(() => {
     if (!isClient || !data) return [];
@@ -69,67 +90,94 @@ export default function DataPage() {
 
 
   return (
-    <main className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="flex items-center gap-4">
-          <Link href="/" passHref>
-             <Button variant="outline" size="icon">
-                <ArrowLeft className="h-4 w-4" />
-             </Button>
-          </Link>
-          <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">Imported Data</h1>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline flex items-center gap-2">
-              <Database className="w-6 h-6" />
-              Cash Flow Items
-            </CardTitle>
-            <CardDescription>
-              This table displays the raw data imported from your file. You can sort by clicking the column headers.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="max-h-[60vh] overflow-y-auto">
-              <Table>
-                <TableHeader className="sticky top-0 bg-card z-10">
-                  <TableRow>
-                    <SortableHeader sortKey="Type">Type</SortableHeader>
-                    <SortableHeader sortKey="Document Number">Document #</SortableHeader>
-                    <SortableHeader sortKey="Name">Name</SortableHeader>
-                    <SortableHeader sortKey="Due Date">Due Date</SortableHeader>
-                    <SortableHeader sortKey="Amount">Amount</SortableHeader>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isClient && sortedData.length > 0 ? (
-                    sortedData.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
-                            {item.Type}
-                          </span>
-                        </TableCell>
-                        <TableCell>{item['Document Number']}</TableCell>
-                        <TableCell>{item.Name}</TableCell>
-                        <TableCell>{format(item['Due Date'], 'yyyy-MM-dd')}</TableCell>
-                        <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
-                        {isClient ? "No data has been imported yet. Go to the home page to upload a file." : "Loading data..."}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+    <>
+      <main className="min-h-screen bg-background text-foreground p-4 sm:p-6 md:p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="flex justify-between items-center gap-4">
+            <div className="flex items-center gap-4">
+              <Link href="/" passHref>
+                 <Button variant="outline" size="icon">
+                    <ArrowLeft className="h-4 w-4" />
+                 </Button>
+              </Link>
+              <h1 className="text-3xl md:text-4xl font-bold font-headline text-primary">Imported Data</h1>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
+            {isClient && data && (
+                <Button variant="destructive" onClick={() => setIsAlertOpen(true)}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear Data
+                </Button>
+            )}
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline flex items-center gap-2">
+                <Database className="w-6 h-6" />
+                Cash Flow Items
+              </CardTitle>
+              <CardDescription>
+                This table displays the raw data imported from your file. You can sort by clicking the column headers.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-[60vh] overflow-y-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-card z-10">
+                    <TableRow>
+                      <SortableHeader sortKey="Type">Type</SortableHeader>
+                      <SortableHeader sortKey="Document Number">Document #</SortableHeader>
+                      <SortableHeader sortKey="Name">Name</SortableHeader>
+                      <SortableHeader sortKey="Due Date">Due Date</SortableHeader>
+                      <SortableHeader sortKey="Amount">Amount</SortableHeader>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isClient && sortedData.length > 0 ? (
+                      sortedData.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.Type === 'Invoice' ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                              {item.Type}
+                            </span>
+                          </TableCell>
+                          <TableCell>{item['Document Number']}</TableCell>
+                          <TableCell>{item.Name}</TableCell>
+                          <TableCell>{format(item['Due Date'], 'yyyy-MM-dd')}</TableCell>
+                          <TableCell className="text-right font-mono">{formatCurrency(item.Amount)}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                          {isClient ? "No data has been imported yet. Go to the home page to upload a file." : "Loading data..."}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently clear the
+              imported data from your session. You will need to upload the file again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleClearData}>
+              Yes, clear data
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
