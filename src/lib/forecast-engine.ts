@@ -1,6 +1,6 @@
 
 import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence, WeeklyBreakdown, SummaryMetrics } from '@/types';
-import { addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
