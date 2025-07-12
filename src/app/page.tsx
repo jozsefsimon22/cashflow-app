@@ -2,7 +2,7 @@
 "use client";
 
 import { useContext, useEffect, useState, useMemo } from 'react';
-import type { CashFlowItem, ManualTransaction, WeeklyDetails } from '@/types';
+import type { CashFlowItem, WeeklyDetails, GroupedItems } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,105 +19,27 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore } from 'date-fns';
+import { format } from 'date-fns';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { calculateForecastMetrics } from '@/lib/forecast-engine';
 
 
-const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 
-
-type GroupedItems = {
-  [name: string]: {
-    total: number;
-    items: CashFlowItem[];
-  };
-};
-
-const generateForecastItems = (manualTransactions: ManualTransaction[], paidOccurrences: { transactionId: string, dueDate: Date }[]): CashFlowItem[] => {
-  const items: CashFlowItem[] = [];
-  const forecastEndDate = addWeeks(startOfToday(), 13); // 12 weeks into the future + buffer
-  const today = startOfToday();
-  const paidSet = new Set(paidOccurrences.map(p => `${p.transactionId}-${p.dueDate.toISOString()}`));
-
-  manualTransactions.forEach(t => {
-    let occurrenceCount = 0;
-    
-    if (t.frequency === 'once') {
-        if (t.startDate >= today) {
-             items.push({
-              'Name': t.name,
-              'Type': t.type === 'inflow' ? 'Invoice' : 'Bill',
-              'Due Date': t.startDate,
-              'Amount': t.amount,
-              'RemainingAmount': t.amount,
-              'Status': 'Open',
-              'Document Number': `manual-${t.id}-0`
-            });
-        }
-        return;
-    }
-
-    let currentDate = t.startDate;
-    let i = 0; // safety break
-    while (currentDate <= forecastEndDate && i < 1000) {
-      if (t.endCondition === 'date' && t.endDate && currentDate > t.endDate) {
-        break;
-      }
-      if (t.endCondition === 'occurrences' && t.occurrences && occurrenceCount >= t.occurrences) {
-        break;
-      }
-
-      const isPast = isBefore(currentDate, today);
-      const isPaid = paidSet.has(`${t.id}-${currentDate.toISOString()}`);
-
-      if (!isPaid) {
-          if (isPast) {
-            if (t.pastDueHandling === 'manual') {
-               items.push({
-                'Name': t.name,
-                'Type': t.type === 'inflow' ? 'Invoice' : 'Bill',
-                'Due Date': currentDate,
-                'Amount': t.amount,
-                'RemainingAmount': t.amount,
-                'Status': 'Open', // Treated as Overdue
-                'Document Number': `manual-${t.id}-${i}`
-              });
-            }
-          } else {
-             items.push({
-              'Name': t.name,
-              'Type': t.type === 'inflow' ? 'Invoice' : 'Bill',
-              'Due Date': currentDate,
-              'Amount': t.amount,
-              'RemainingAmount': t.amount,
-              'Status': 'Open',
-              'Document Number': `manual-${t.id}-${i}`
-            });
-          }
-      }
-      
-      occurrenceCount++;
-      switch (t.frequency) {
-        case 'weekly': currentDate = addWeeks(currentDate, 1); break;
-        case 'fortnightly': currentDate = addWeeks(currentDate, 2); break;
-        case 'monthly': currentDate = addMonths(currentDate, 1); break;
-        case 'quarterly': currentDate = addQuarters(currentDate, 1); break;
-      }
-      i++;
-    }
-  });
-
-  return items;
-};
-
 export default function Home() {
-  const { data, startingBalance, manualTransactions, excludedNames, paidManualOccurrences } = useContext(SettingsContext);
+  const { 
+    data, 
+    startingBalance, 
+    manualTransactions, 
+    excludedNames, 
+    paidManualOccurrences,
+    intercompanyNames 
+  } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
   const [applyExclusions, setApplyExclusions] = useState(true);
@@ -126,25 +48,17 @@ export default function Home() {
     setIsClient(true);
   }, []);
 
-  const forecastData = useMemo(() => {
-    if (!data && manualTransactions.length === 0) return null;
-    
-    const excludedNamesSet = new Set(excludedNames);
-
-    const fileData = (data || []).filter(item => 
-      item.Status && 
-      INCLUDED_STATUSES.includes(item.Status) &&
-      (INFLOW_TYPES.includes(item.Type) || OUTFLOW_TYPES.includes(item.Type)) &&
-      (!applyExclusions || !excludedNamesSet.has(item.Name))
-    );
-    const manualData = generateForecastItems(manualTransactions, paidManualOccurrences);
-
-    const filteredManualData = manualData.filter(item => 
-      !applyExclusions || !excludedNamesSet.has(item.Name)
-    );
-
-    return [...fileData, ...filteredManualData];
-  }, [data, manualTransactions, excludedNames, applyExclusions, paidManualOccurrences]);
+  const { forecastData, summaryMetrics } = useMemo(() => {
+    return calculateForecastMetrics({
+      data,
+      manualTransactions,
+      paidManualOccurrences,
+      startingBalance,
+      excludedNames,
+      intercompanyNames,
+      applyExclusions,
+    });
+  }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions]);
   
   const handleWeekSelect = (weekData: WeeklyDetails) => {
     setSelectedWeek(weekData);
@@ -165,34 +79,6 @@ export default function Home() {
     }).format(amount);
   };
   
-  const summaryMetrics = useMemo(() => {
-    if (!forecastData) return { totalReceivables: 0, totalPayables: 0, netCashFlow: 0, forecastBalance: startingBalance, totalInvoices: 0, totalCreditMemos: 0, totalBills: 0, totalBillCredits: 0, totalInvoicesPending: 0, totalBillsPending: 0, totalInvoicesOpen: 0, totalBillsOpen: 0 };
-
-    const invoices = forecastData.filter(item => item.Type === 'Invoice');
-    const creditMemos = forecastData.filter(item => item.Type === 'Credit Memo');
-    const bills = forecastData.filter(item => item.Type === 'Bill');
-    const billCredits = forecastData.filter(item => item.Type === 'Bill Credit');
-
-    const totalInvoices = invoices.reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalCreditMemos = creditMemos.reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBills = bills.reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBillCredits = billCredits.reduce((sum, item) => sum + item.RemainingAmount, 0);
-
-    const totalInvoicesPending = invoices.filter(item => item.Status === 'Pending Approval').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBillsPending = bills.filter(item => item.Status === 'Pending Approval').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    
-    const totalInvoicesOpen = invoices.filter(item => item.Status === 'Open').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBillsOpen = bills.filter(item => item.Status === 'Open').reduce((sum, item) => sum + item.RemainingAmount, 0);
-
-    const totalReceivables = totalInvoices - totalCreditMemos;
-    const totalPayables = totalBills - totalBillCredits;
-
-    const netCashFlow = totalReceivables - totalPayables;
-    const forecastBalance = startingBalance + netCashFlow;
-
-    return { totalReceivables, totalPayables, netCashFlow, forecastBalance, totalInvoices, totalCreditMemos, totalBills, totalBillCredits, totalInvoicesPending, totalBillsPending, totalInvoicesOpen, totalBillsOpen };
-}, [forecastData, startingBalance]);
-
   const weeklyDetails = useMemo(() => {
     if (!selectedWeek?.details) return { inflow: {}, outflow: {} };
 

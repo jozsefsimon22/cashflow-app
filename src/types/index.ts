@@ -79,3 +79,48 @@ export interface CustomerScore {
   totalValue: number;
   invoices: CashFlowItem[];
 }
+
+export type ForecastItem = CashFlowItem | (ManualTransaction & { dueDate: Date });
+
+export interface WeeklyBreakdown {
+  weekLabel: string;
+  accountsReceivable: number;
+  intercompanyReceivable: number;
+  accountsPayable: number;
+  intercompanyPayable: number;
+  manualInflows: (ManualTransaction & { dueDate: Date })[];
+  manualOutflows: (ManualTransaction & { dueDate: Date })[];
+  arItems: ForecastItem[];
+  apItems: ForecastItem[];
+  intercompanyArItems: ForecastItem[];
+  intercompanyApItems: ForecastItem[];
+  totalInflow: number;
+  totalOutflow: number;
+  netFlow: number;
+  runningBalance: number;
+  isMonthEnd: boolean;
+  isCurrentWeek: boolean;
+}
+
+export interface SummaryMetrics {
+    totalReceivables: number;
+    totalPayables: number;
+    netCashFlow: number;
+    forecastBalance: number;
+    totalInvoices: number;
+    totalCreditMemos: number;
+    totalBills: number;
+    totalBillCredits: number;
+    totalInvoicesPending: number;
+    totalBillsPending: number;
+
+    totalInvoicesOpen: number;
+    totalBillsOpen: number;
+}
+
+export type GroupedItems = {
+  [name: string]: {
+    total: number;
+    items: ForecastItem[];
+  };
+};

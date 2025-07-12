@@ -2,7 +2,6 @@
 "use client";
 
 import { useContext, useState, useMemo } from "react";
-import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,163 +9,56 @@ import { Button } from "@/components/ui/button";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/app-sidebar';
 import { Download } from 'lucide-react';
-import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence } from '@/types';
-import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { format } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-
-const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
-const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
-const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
-
-const generateForecastItems = (manualTransactions: ManualTransaction[], forecastEndDate: Date, paidOccurrences: ManualTransactionOccurrence[]): (ManualTransaction & { dueDate: Date })[] => {
-  const items: (ManualTransaction & { dueDate: Date })[] = [];
-  const today = startOfToday();
-  const paidSet = new Set(paidOccurrences.map(p => `${p.transactionId}-${p.dueDate.toISOString()}`));
-  
-  manualTransactions.forEach(t => {
-    let occurrenceCount = 0;
-    if (t.frequency === 'once') {
-        if (t.startDate <= forecastEndDate) {
-            items.push({ ...t, dueDate: t.startDate });
-        }
-        return;
-    }
-
-    let currentDate = t.startDate;
-    let i = 0;
-    while (currentDate <= forecastEndDate && i < 1000) {
-      if (t.endCondition === 'date' && t.endDate && currentDate > t.endDate) {
-        break;
-      }
-      if (t.endCondition === 'occurrences' && t.occurrences && occurrenceCount >= t.occurrences) {
-        break;
-      }
-      
-      const isPast = isBefore(currentDate, today);
-      const isPaid = paidSet.has(`${t.id}-${currentDate.toISOString()}`);
-      
-      if(!isPaid) {
-          if (isPast) {
-             if (t.pastDueHandling === 'manual') {
-                items.push({ ...t, dueDate: currentDate });
-             }
-          } else {
-             items.push({ ...t, dueDate: currentDate });
-          }
-      }
-
-      occurrenceCount++;
-      switch (t.frequency) {
-        case 'weekly': currentDate = addWeeks(currentDate, 1); break;
-        case 'fortnightly': currentDate = addWeeks(currentDate, 2); break;
-        case 'monthly': currentDate = addMonths(currentDate, 1); break;
-        case 'quarterly': currentDate = addQuarters(currentDate, 1); break;
-      }
-      i++;
-    }
-  });
-  return items;
-};
+import { calculateWeeklyBreakdown } from "@/lib/forecast-engine";
 
 export default function ExportPage() {
-  const { data, manualTransactions, excludedNames, startingBalance, columnConfig, paidManualOccurrences, intercompanyNames } = useContext(SettingsContext);
+  const { 
+    data, 
+    manualTransactions, 
+    excludedNames, 
+    startingBalance, 
+    columnConfig, 
+    paidManualOccurrences, 
+    intercompanyNames 
+  } = useContext(SettingsContext);
   const { toast } = useToast();
   const [applyExclusions, setApplyExclusions] = useState(true);
 
+  const weeklyBreakdown = useMemo(() => {
+    return calculateWeeklyBreakdown({
+      data,
+      manualTransactions,
+      paidManualOccurrences,
+      startingBalance,
+      excludedNames,
+      intercompanyNames,
+      applyExclusions,
+    });
+  }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions]);
+
   const handleExcelExport = () => {
     try {
-      // --- 1. Calculate Data (similar to Weekly View) ---
-      const excludedNamesSet = new Set(excludedNames);
-      const today = startOfToday();
-      const forecastEndDate = addWeeks(today, 13);
-      
-      const fileData = data ? data.filter(item => 
-        item.Status && 
-        INCLUDED_STATUSES.includes(item.Status) &&
-        (!applyExclusions || !excludedNamesSet.has(item.Name))
-      ) : [];
-
-      const allManualData = generateForecastItems(manualTransactions, forecastEndDate, paidManualOccurrences)
-          .filter(item => (!applyExclusions || !excludedNamesSet.has(item.name)));
-
-      const breakdownRows = [];
-      let currentBalance = startingBalance;
-      
-      const getAmount = (item: CashFlowItem | (ManualTransaction & {dueDate: Date})) => {
-          if ('frequency' in item) { // Manual Transaction
-              return item.amount;
-          }
-          // Bill Credits and Credit Memos are negative amounts for inflow/outflow calculations
-          if (item.Type === 'Bill Credit' || item.Type === 'Credit Memo') {
-              return -item.RemainingAmount;
-          }
-          return item.RemainingAmount;
+      if (weeklyBreakdown.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "No Data to Export",
+          description: "There is no forecast data to export.",
+        });
+        return;
       }
-
-      // --- Overdue Items ---
-      const overdueFileData = fileData.filter(item => item['Due Date'] && isBefore(item['Due Date'], today));
-      const overdueManualData = allManualData.filter(item => isBefore(item.dueDate, today));
       
-      const overdueAllInflowItems = [
-          ...overdueFileData.filter(item => INFLOW_TYPES.includes(item.Type)),
-          ...overdueManualData.filter(t => t.type === 'inflow')
-      ];
-      const overdueAllOutflowItems = [
-          ...overdueFileData.filter(item => OUTFLOW_TYPES.includes(item.Type)),
-          ...overdueManualData.filter(t => t.type === 'outflow')
-      ];
+      const breakdownRows = weeklyBreakdown.map(week => ({
+        Interval: week.weekLabel,
+        AR: week.accountsReceivable + week.intercompanyReceivable,
+        AP: week.accountsPayable + week.intercompanyPayable,
+        Difference: week.netFlow,
+        'Accumulated liquidity': week.runningBalance
+      }));
 
-      const overdueAR = overdueAllInflowItems.reduce((sum, item) => sum + getAmount(item), 0);
-      const overdueAP = overdueAllOutflowItems.reduce((sum, item) => sum + getAmount(item), 0);
-      const overdueNetFlow = overdueAR - overdueAP;
-      currentBalance += overdueNetFlow;
-
-      breakdownRows.push({
-        Interval: 'Overdue',
-        AR: overdueAR,
-        AP: overdueAP,
-        Difference: overdueNetFlow,
-        'Accumulated liquidity': currentBalance
-      });
-      
-      // --- Future Weeks ---
-      const futureFileData = fileData.filter(item => item['Due Date'] && !isBefore(item['Due Date'], today));
-      const futureManualData = allManualData.filter(item => !isBefore(item.dueDate, today));
-
-      for (let i = 0; i < 12; i++) {
-          const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
-          const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
-
-          const weekFileData = futureFileData.filter(item => item['Due Date'] && isWithinInterval(item['Due Date'], { start: weekStart, end: weekEnd }));
-          const weekManualData = futureManualData.filter(item => isWithinInterval(item.dueDate, { start: weekStart, end: weekEnd }));
-          
-          const weekAllInflowItems = [
-              ...weekFileData.filter(item => INFLOW_TYPES.includes(item.Type)),
-              ...weekManualData.filter(t => t.type === 'inflow')
-          ];
-          const weekAllOutflowItems = [
-              ...weekFileData.filter(item => OUTFLOW_TYPES.includes(item.Type)),
-              ...weekManualData.filter(t => t.type === 'outflow')
-          ];
-          
-          const weeklyAR = weekAllInflowItems.reduce((sum, item) => sum + getAmount(item), 0);
-          const weeklyAP = weekAllOutflowItems.reduce((sum, item) => sum + getAmount(item), 0);
-
-          const netFlow = weeklyAR - weeklyAP;
-          currentBalance += netFlow;
-
-          breakdownRows.push({
-              Interval: `${format(weekStart, 'ddMMyy')} - ${format(weekEnd, 'ddMMyy')}`,
-              AR: weeklyAR,
-              AP: weeklyAP,
-              Difference: netFlow,
-              'Accumulated liquidity': currentBalance,
-          });
-      }
-
-      // --- 2. Format for Excel ---
       const header = ["Interval", "AR", "AP", "Difference", "Accumulated liquidity"];
       const startingBalanceRow = {
           Interval: 'Starting Balance',
@@ -174,17 +66,16 @@ export default function ExportPage() {
       };
 
       const exportData = [
-        header.reduce((obj, key) => ({ ...obj, [key]: key }), {}), // Use header for first row of data
+        header.reduce((obj, key) => ({ ...obj, [key]: key }), {}),
         startingBalanceRow,
         ...breakdownRows
       ];
       
       const worksheet = XLSX.utils.json_to_sheet(exportData, {
         header: header,
-        skipHeader: true, // We are creating our own header row
+        skipHeader: true,
       });
 
-      // --- 3. Create and Download File ---
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Cashflow Forecast");
 
@@ -319,5 +210,3 @@ export default function ExportPage() {
     </>
   );
 }
-
-    
