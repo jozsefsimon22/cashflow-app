@@ -2,7 +2,7 @@
 "use client";
 
 import { useContext, useMemo, useState } from "react";
-import { differenceInCalendarDays, format } from 'date-fns';
+import { differenceInCalendarDays, format, subDays, startOfToday } from 'date-fns';
 import { SettingsContext } from "@/context/settings-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 type SortKey = keyof Omit<CustomerScore, 'invoices'>;
 type SortDirection = 'asc' | 'desc';
@@ -27,15 +29,22 @@ export default function CustomerScorecardPage() {
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'paymentScore', direction: 'desc' });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerScore | null>(null);
+  const [filterLastYear, setFilterLastYear] = useState(false);
 
   const customerScores = useMemo((): CustomerScore[] => {
     if (!data) return [];
+
+    const oneYearAgo = subDays(startOfToday(), 365);
     
-    const paidInvoices = data.filter(item => 
+    let paidInvoices = data.filter(item => 
       item.Type === 'Invoice' &&
       item['Due Date'] &&
       item['Date Closed']
     );
+
+    if (filterLastYear) {
+      paidInvoices = paidInvoices.filter(item => item['Date Closed']! >= oneYearAgo);
+    }
 
     const customerData: { [name: string]: { totalPaid: number; onTime: number; late: number; totalDaysLate: number; totalValue: number; invoices: CashFlowItem[] } } = {};
 
@@ -63,9 +72,6 @@ export default function CustomerScorecardPage() {
       const avgDaysLate = stats.late > 0 ? Math.round(stats.totalDaysLate / stats.late) : 0;
       const onTimePercentage = (stats.onTime / stats.totalPaid) * 100;
       
-      // Scoring Logic:
-      // - Start with on-time percentage.
-      // - Penalize based on average lateness. Max penalty is 40 points for >90 days late.
       const latenessPenalty = Math.min(40, (avgDaysLate / 90) * 40);
       const paymentScore = Math.max(0, Math.round(onTimePercentage - latenessPenalty));
 
@@ -76,7 +82,7 @@ export default function CustomerScorecardPage() {
         paymentScore,
       };
     });
-  }, [data]);
+  }, [data, filterLastYear]);
   
   const sortedScores = useMemo(() => {
     const filteredScores = customerScores.filter(customer =>
@@ -174,7 +180,7 @@ export default function CustomerScorecardPage() {
                 <CardContent>
                     {customerScores.length > 0 ? (
                         <>
-                         <div className="mb-4">
+                         <div className="mb-4 flex items-center justify-between">
                             <div className="relative max-w-sm">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input 
@@ -183,6 +189,14 @@ export default function CustomerScorecardPage() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="pl-10"
                                 />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Switch
+                                    id="last-year-toggle"
+                                    checked={filterLastYear}
+                                    onCheckedChange={setFilterLastYear}
+                                />
+                                <Label htmlFor="last-year-toggle">Only show activity in last 12 months</Label>
                             </div>
                         </div>
                         <div className="max-h-[70vh] overflow-y-auto">
@@ -295,3 +309,5 @@ export default function CustomerScorecardPage() {
     </>
   );
 }
+
+    
