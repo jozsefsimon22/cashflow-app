@@ -1,5 +1,5 @@
 
-import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence, WeeklyBreakdown, SummaryMetrics } from '@/types';
+import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence, WeeklyBreakdown, SummaryMetrics, ForecastItem } from '@/types';
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
@@ -98,7 +98,7 @@ export const calculateWeeklyBreakdown = ({
         return (item.Type === 'Bill Credit' || item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount;
     };
     
-    const allItems = [
+    const allItems: ForecastItem[] = [
         ...fileData.map(item => ({...item, dueDate: item['Due Date']!})), 
         ...allManualData
     ];
@@ -233,10 +233,17 @@ export const calculateForecastMetrics = ({
 
     const forecastData = [...fileData, ...filteredManualData];
     
-    const invoices = forecastData.filter(item => item.Type === 'Invoice');
-    const creditMemos = forecastData.filter(item => item.Type === 'Credit Memo');
-    const bills = forecastData.filter(item => item.Type === 'Bill');
-    const billCredits = forecastData.filter(item => item.Type === 'Bill Credit');
+    // For summary cards, we only use the initial imported data, not the generated manual transactions for future dates.
+    const summarySourceData = (data || []).filter(item => 
+      item.Status && 
+      INCLUDED_STATUSES.includes(item.Status) &&
+      (!applyExclusions || !excludedNamesSet.has(item.Name))
+    );
+    
+    const invoices = summarySourceData.filter(item => item.Type === 'Invoice');
+    const creditMemos = summarySourceData.filter(item => item.Type === 'Credit Memo');
+    const bills = summarySourceData.filter(item => item.Type === 'Bill');
+    const billCredits = summarySourceData.filter(item => item.Type === 'Bill Credit');
 
     const totalInvoices = invoices.reduce((sum, item) => sum + item.RemainingAmount, 0);
     const totalCreditMemos = creditMemos.reduce((sum, item) => sum + item.RemainingAmount, 0);
