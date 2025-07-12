@@ -2,27 +2,31 @@
 "use client";
 
 import { useContext, useMemo, useState } from "react";
-import { differenceInCalendarDays } from 'date-fns';
+import { differenceInCalendarDays, format } from 'date-fns';
 import { SettingsContext } from "@/context/settings-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Medal, ArrowUpDown, Info, Search } from "lucide-react";
-import type { CustomerScore } from "@/types";
+import { Medal, ArrowUpDown, Info, Search, X } from "lucide-react";
+import type { CustomerScore, CashFlowItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
-type SortKey = keyof CustomerScore;
+type SortKey = keyof Omit<CustomerScore, 'invoices'>;
 type SortDirection = 'asc' | 'desc';
 
 export default function CustomerScorecardPage() {
   const { data } = useContext(SettingsContext);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'paymentScore', direction: 'desc' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerScore | null>(null);
 
   const customerScores = useMemo((): CustomerScore[] => {
     if (!data) return [];
@@ -33,16 +37,17 @@ export default function CustomerScorecardPage() {
       item['Date Closed']
     );
 
-    const customerData: { [name: string]: { totalPaid: number; onTime: number; late: number; totalDaysLate: number; totalValue: number } } = {};
+    const customerData: { [name: string]: { totalPaid: number; onTime: number; late: number; totalDaysLate: number; totalValue: number; invoices: CashFlowItem[] } } = {};
 
     paidInvoices.forEach(item => {
       const name = item.Name;
       if (!customerData[name]) {
-        customerData[name] = { totalPaid: 0, onTime: 0, late: 0, totalDaysLate: 0, totalValue: 0 };
+        customerData[name] = { totalPaid: 0, onTime: 0, late: 0, totalDaysLate: 0, totalValue: 0, invoices: [] };
       }
 
       customerData[name].totalPaid++;
       customerData[name].totalValue += item.Amount;
+      customerData[name].invoices.push(item);
       
       const daysLate = differenceInCalendarDays(item['Date Closed']!, item['Due Date']!);
 
@@ -127,6 +132,11 @@ export default function CustomerScorecardPage() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+  
+  const formatDateTableCell = (date: Date | null | undefined) => {
+    if (!date) return '';
+    return format(date, 'dd/MM/yyyy');
+  }
 
   return (
     <>
@@ -145,7 +155,7 @@ export default function CustomerScorecardPage() {
                                 Payment Behavior Analysis
                             </CardTitle>
                             <CardDescription>
-                                Customers are scored based on their history of paying invoices on time.
+                                Customers are scored based on their history of paying invoices on time. Click a customer's name to see their invoices.
                             </CardDescription>
                         </div>
                          <TooltipProvider>
@@ -191,7 +201,11 @@ export default function CustomerScorecardPage() {
                                 <TableBody>
                                     {sortedScores.length > 0 ? sortedScores.map((customer) => (
                                     <TableRow key={customer.name}>
-                                        <TableCell className="font-medium">{customer.name}</TableCell>
+                                        <TableCell>
+                                            <Button variant="link" className="p-0 h-auto font-medium" onClick={() => setSelectedCustomer(customer)}>
+                                                {customer.name}
+                                            </Button>
+                                        </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-2">
                                                 <span className="font-bold text-lg w-10">{customer.paymentScore}</span>
@@ -230,6 +244,54 @@ export default function CustomerScorecardPage() {
             </Card>
         </main>
       </SidebarInset>
+
+      <Dialog open={!!selectedCustomer} onOpenChange={() => setSelectedCustomer(null)}>
+        <DialogContent className="max-w-4xl">
+            {selectedCustomer && (
+                <>
+                <DialogHeader>
+                    <DialogTitle>Paid Invoice History for {selectedCustomer.name}</DialogTitle>
+                    <DialogDescription>
+                        A complete list of paid invoices used to calculate this customer's payment score.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto">
+                    <Table>
+                        <TableHeader className="sticky top-0 bg-background z-10">
+                            <TableRow>
+                                <TableHead>Document #</TableHead>
+                                <TableHead>Due Date</TableHead>
+                                <TableHead>Date Closed</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="text-center">Days Late</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {selectedCustomer.invoices.map((invoice, index) => {
+                                const daysLate = differenceInCalendarDays(invoice['Date Closed']!, invoice['Due Date']!);
+                                return (
+                                <TableRow key={`${invoice['Document Number']}-${index}`}>
+                                    <TableCell>{invoice['Document Number']}</TableCell>
+                                    <TableCell>{formatDateTableCell(invoice['Due Date'])}</TableCell>
+                                    <TableCell>{formatDateTableCell(invoice['Date Closed'])}</TableCell>
+                                    <TableCell className="text-right font-mono">{formatCurrency(invoice.Amount)}</TableCell>
+                                    <TableCell className="text-center">
+                                        {daysLate > 0 ? (
+                                            <Badge variant="destructive">{daysLate}</Badge>
+                                        ) : (
+                                            <Badge variant="secondary" className="bg-green-100 text-green-800">On Time</Badge>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+                </>
+            )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

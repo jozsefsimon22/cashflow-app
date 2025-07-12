@@ -77,4 +77,5 @@ export interface CustomerScore {
   avgDaysLate: number;
   paymentScore: number;
   totalValue: number;
+  invoices: CashFlowItem[];
 }
