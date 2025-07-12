@@ -68,3 +68,13 @@ export interface WeeklyDetails {
   billsDue: number;
   details: CashFlowItem[];
 }
+
+export interface CustomerScore {
+  name: string;
+  totalPaid: number;
+  onTime: number;
+  late: number;
+  avgDaysLate: number;
+  paymentScore: number;
+  totalValue: number;
+}

@@ -22,12 +22,14 @@ import {
   CalendarDays,
   Download,
   Users,
+  Medal,
 } from 'lucide-react';
 
 interface AppSidebarProps {
   activePage:
     | 'dashboard'
     | 'weekly-view'
+    | 'customer-scorecard'
     | 'data'
     | 'manual-transactions'
     | 'exclusions'
@@ -64,6 +66,14 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                     <Link href="/weekly-view">
                     <CalendarDays />
                     <span>Weekly View</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={activePage === 'customer-scorecard'}>
+                    <Link href="/customer-scorecard">
+                    <Medal />
+                    <span>Customer Scorecard</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
