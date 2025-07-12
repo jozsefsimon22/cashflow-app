@@ -8,13 +8,13 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Medal, ArrowUpDown, Info, CheckCircle, XCircle } from "lucide-react";
+import { Medal, ArrowUpDown, Info, Search } from "lucide-react";
 import type { CustomerScore } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 type SortKey = keyof CustomerScore;
 type SortDirection = 'asc' | 'desc';
@@ -22,6 +22,7 @@ type SortDirection = 'asc' | 'desc';
 export default function CustomerScorecardPage() {
   const { data } = useContext(SettingsContext);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'paymentScore', direction: 'desc' });
+  const [searchTerm, setSearchTerm] = useState('');
 
   const customerScores = useMemo((): CustomerScore[] => {
     if (!data) return [];
@@ -73,7 +74,11 @@ export default function CustomerScorecardPage() {
   }, [data]);
   
   const sortedScores = useMemo(() => {
-    return [...customerScores].sort((a, b) => {
+    const filteredScores = customerScores.filter(customer =>
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return [...filteredScores].sort((a, b) => {
         const valA = a[sortConfig.key];
         const valB = b[sortConfig.key];
         
@@ -85,7 +90,7 @@ export default function CustomerScorecardPage() {
         }
         return 0;
     });
-  }, [customerScores, sortConfig]);
+  }, [customerScores, sortConfig, searchTerm]);
 
   const requestSort = (key: SortKey) => {
     let direction: SortDirection = 'asc';
@@ -158,7 +163,19 @@ export default function CustomerScorecardPage() {
                 </CardHeader>
                 <CardContent>
                     {customerScores.length > 0 ? (
-                        <div className="max-h-[75vh] overflow-y-auto">
+                        <>
+                         <div className="mb-4">
+                            <div className="relative max-w-sm">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input 
+                                    placeholder="Search by customer name..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-10"
+                                />
+                            </div>
+                        </div>
+                        <div className="max-h-[70vh] overflow-y-auto">
                             <Table>
                                 <TableHeader className="sticky top-0 bg-card z-10">
                                     <TableRow>
@@ -172,7 +189,7 @@ export default function CustomerScorecardPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {sortedScores.map((customer) => (
+                                    {sortedScores.length > 0 ? sortedScores.map((customer) => (
                                     <TableRow key={customer.name}>
                                         <TableCell className="font-medium">{customer.name}</TableCell>
                                         <TableCell>
@@ -187,10 +204,17 @@ export default function CustomerScorecardPage() {
                                         <TableCell className="text-center">{customer.avgDaysLate > 0 ? customer.avgDaysLate : '-'}</TableCell>
                                         <TableCell className="text-right font-mono">{formatCurrency(customer.totalValue)}</TableCell>
                                     </TableRow>
-                                    ))}
+                                    )) : (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center h-24">
+                                                No customers found matching "{searchTerm}".
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
+                        </>
                     ) : (
                         <div className="flex flex-col items-center justify-center p-12 text-center border-dashed">
                              <div className="bg-secondary p-4 rounded-full mb-4">
