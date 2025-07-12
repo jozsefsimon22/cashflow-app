@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useContext, useState } from "react";
+import { useContext, useState, useMemo } from "react";
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { SettingsContext } from "@/context/settings-context";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/app-sidebar';
 import { Download } from 'lucide-react';
-import type { CashFlowItem, ManualTransaction } from '@/types';
+import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence } from '@/types';
 import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
@@ -20,8 +20,10 @@ const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 
-const generateForecastItems = (manualTransactions: ManualTransaction[], forecastEndDate: Date): (ManualTransaction & { dueDate: Date })[] => {
+const generateForecastItems = (manualTransactions: ManualTransaction[], forecastEndDate: Date, paidOccurrences: ManualTransactionOccurrence[]): (ManualTransaction & { dueDate: Date })[] => {
   const items: (ManualTransaction & { dueDate: Date })[] = [];
+  const today = startOfToday();
+  const paidSet = new Set(paidOccurrences.map(p => `${p.transactionId}-${p.dueDate.toISOString()}`));
   
   manualTransactions.forEach(t => {
     let occurrenceCount = 0;
@@ -41,9 +43,20 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], forecast
       if (t.endCondition === 'occurrences' && t.occurrences && occurrenceCount >= t.occurrences) {
         break;
       }
-
-      items.push({ ...t, dueDate: currentDate });
       
+      const isPast = isBefore(currentDate, today);
+      const isPaid = paidSet.has(`${t.id}-${currentDate.toISOString()}`);
+      
+      if(!isPaid) {
+          if (isPast) {
+             if (t.pastDueHandling === 'manual') {
+                items.push({ ...t, dueDate: currentDate });
+             }
+          } else {
+             items.push({ ...t, dueDate: currentDate });
+          }
+      }
+
       occurrenceCount++;
       switch (t.frequency) {
         case 'weekly': currentDate = addWeeks(currentDate, 1); break;
@@ -67,26 +80,46 @@ export default function ExportPage() {
       // --- 1. Calculate Data (similar to Weekly View) ---
       const excludedNamesSet = new Set(excludedNames);
       const today = startOfToday();
-
+      const forecastEndDate = addWeeks(today, 13);
+      
       const fileData = data ? data.filter(item => 
         item.Status && 
         INCLUDED_STATUSES.includes(item.Status) &&
         (!applyExclusions || !excludedNamesSet.has(item.Name))
       ) : [];
 
-      const forecastEndDate = addWeeks(today, 13);
-      const allManualData = generateForecastItems(manualTransactions, forecastEndDate)
+      const allManualData = generateForecastItems(manualTransactions, forecastEndDate, paidManualOccurrences)
           .filter(item => (!applyExclusions || !excludedNamesSet.has(item.name)));
 
       const breakdownRows = [];
       let currentBalance = startingBalance;
       
+      const getAmount = (item: CashFlowItem | (ManualTransaction & {dueDate: Date})) => {
+          if ('frequency' in item) { // Manual Transaction
+              return item.amount;
+          }
+          // Bill Credits and Credit Memos are negative amounts for inflow/outflow calculations
+          if (item.Type === 'Bill Credit' || item.Type === 'Credit Memo') {
+              return -item.RemainingAmount;
+          }
+          return item.RemainingAmount;
+      }
+
+      // --- Overdue Items ---
       const overdueFileData = fileData.filter(item => item['Due Date'] && isBefore(item['Due Date'], today));
       const overdueManualData = allManualData.filter(item => isBefore(item.dueDate, today));
       
-      const overdueAR = overdueFileData.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0) + overdueManualData.filter(t => t.type === 'inflow').reduce((sum, item) => sum + item.amount, 0);
-      const overdueAP = overdueFileData.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0) + overdueManualData.filter(t => t.type === 'outflow').reduce((sum, item) => sum + item.amount, 0);
+      const overdueAllInflowItems = [
+          ...overdueFileData.filter(item => INFLOW_TYPES.includes(item.Type)),
+          ...overdueManualData.filter(t => t.type === 'inflow')
+      ];
+      const overdueAllOutflowItems = [
+          ...overdueFileData.filter(item => OUTFLOW_TYPES.includes(item.Type)),
+          ...overdueManualData.filter(t => t.type === 'outflow')
+      ];
 
+      const overdueAR = overdueAllInflowItems.reduce((sum, item) => sum + getAmount(item), 0);
+      const overdueAP = overdueAllOutflowItems.reduce((sum, item) => sum + getAmount(item), 0);
       const overdueNetFlow = overdueAR - overdueAP;
       currentBalance += overdueNetFlow;
 
@@ -98,16 +131,28 @@ export default function ExportPage() {
         'Accumulated liquidity': currentBalance
       });
       
+      // --- Future Weeks ---
       const futureFileData = fileData.filter(item => item['Due Date'] && !isBefore(item['Due Date'], today));
       const futureManualData = allManualData.filter(item => !isBefore(item.dueDate, today));
 
       for (let i = 0; i < 12; i++) {
           const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
           const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
+
           const weekFileData = futureFileData.filter(item => item['Due Date'] && isWithinInterval(item['Due Date'], { start: weekStart, end: weekEnd }));
           const weekManualData = futureManualData.filter(item => isWithinInterval(item.dueDate, { start: weekStart, end: weekEnd }));
-          const weeklyAR = weekFileData.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0) + weekManualData.filter(t => t.type === 'inflow').reduce((sum, item) => sum + item.amount, 0);
-          const weeklyAP = weekFileData.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0) + weekManualData.filter(t => t.type === 'outflow').reduce((sum, item) => sum + item.amount, 0);
+          
+          const weekAllInflowItems = [
+              ...weekFileData.filter(item => INFLOW_TYPES.includes(item.Type)),
+              ...weekManualData.filter(t => t.type === 'inflow')
+          ];
+          const weekAllOutflowItems = [
+              ...weekFileData.filter(item => OUTFLOW_TYPES.includes(item.Type)),
+              ...weekManualData.filter(t => t.type === 'outflow')
+          ];
+          
+          const weeklyAR = weekAllInflowItems.reduce((sum, item) => sum + getAmount(item), 0);
+          const weeklyAP = weekAllOutflowItems.reduce((sum, item) => sum + getAmount(item), 0);
 
           const netFlow = weeklyAR - weeklyAP;
           currentBalance += netFlow;
@@ -274,3 +319,5 @@ export default function ExportPage() {
     </>
   );
 }
+
+    
