@@ -207,7 +207,7 @@ export default function Home() {
                               <TrendingUp className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                              <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables + summaryMetrics.manualInflows + summaryMetrics.pendingReceivables)}</div>
+                              <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables + summaryMetrics.pendingReceivables)}</div>
                               <p className="text-xs text-muted-foreground">From open items in forecast period</p>
                           </CardContent>
                       </Card>
@@ -219,7 +219,7 @@ export default function Home() {
                          <div className="flex justify-between gap-4 pl-4 text-xs"><span className="text-muted-foreground">Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingReceivables)}</span></div>
                          <div className="flex justify-between gap-4"><span>Manual Inflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualInflows)}</span></div>
                         <hr />
-                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalReceivables + summaryMetrics.manualInflows + summaryMetrics.pendingReceivables)}</span></div>
+                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalReceivables + summaryMetrics.pendingReceivables)}</span></div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -231,7 +231,7 @@ export default function Home() {
                               <TrendingDown className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                              <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables + summaryMetrics.manualOutflows + summaryMetrics.pendingPayables)}</div>
+                              <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables + summaryMetrics.pendingPayables)}</div>
                               <p className="text-xs text-muted-foreground">From open items in forecast period</p>
                           </CardContent>
                       </Card>
@@ -243,7 +243,7 @@ export default function Home() {
                          <div className="flex justify-between gap-4 pl-4 text-xs"><span className="text-muted-foreground">Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingPayables)}</span></div>
                          <div className="flex justify-between gap-4"><span>Manual Outflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualOutflows)}</span></div>
                         <hr />
-                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalPayables + summaryMetrics.manualOutflows + summaryMetrics.pendingPayables)}</span></div>
+                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalPayables + summaryMetrics.pendingPayables)}</span></div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
