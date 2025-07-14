@@ -1,7 +1,7 @@
 
 
 import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence, WeeklyBreakdown, SummaryMetrics, ForecastItem } from '@/types';
-import { addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval, format } from 'date-fns';
+import { addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval, format, differenceInCalendarDays, addDays } from 'date-fns';
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
@@ -15,6 +15,7 @@ interface ForecastEngineParams {
     excludedNames: string[];
     intercompanyNames: string[];
     applyExclusions: boolean;
+    applyPrediction: boolean;
 }
 
 const generateForecastItems = (manualTransactions: ManualTransaction[], paidOccurrences: ManualTransactionOccurrence[]): (ManualTransaction & { dueDate: Date })[] => {
@@ -67,6 +68,40 @@ const generateForecastItems = (manualTransactions: ManualTransaction[], paidOccu
   return items;
 };
 
+const calculatePaymentPredictions = (data: CashFlowItem[]): Map<string, number> => {
+    const customerStats: { [name: string]: { lateCount: number; totalDaysLate: number } } = {};
+
+    const paidInvoices = data.filter(item => 
+        item.Type === 'Invoice' &&
+        item['Due Date'] &&
+        item['Date Closed']
+    );
+
+    paidInvoices.forEach(invoice => {
+        const name = invoice.Name;
+        if (!customerStats[name]) {
+            customerStats[name] = { lateCount: 0, totalDaysLate: 0 };
+        }
+        
+        const daysLate = differenceInCalendarDays(invoice['Date Closed']!, invoice['Due Date']!);
+        if (daysLate > 0) {
+            customerStats[name].lateCount++;
+            customerStats[name].totalDaysLate += daysLate;
+        }
+    });
+
+    const predictions = new Map<string, number>();
+    for (const name in customerStats) {
+        const stats = customerStats[name];
+        if (stats.lateCount > 0) {
+            const avgDaysLate = Math.round(stats.totalDaysLate / stats.lateCount);
+            predictions.set(name, avgDaysLate);
+        }
+    }
+    return predictions;
+};
+
+
 export const calculateWeeklyBreakdown = ({
     data,
     manualTransactions,
@@ -75,11 +110,14 @@ export const calculateWeeklyBreakdown = ({
     excludedNames,
     intercompanyNames,
     applyExclusions,
+    applyPrediction,
 }: ForecastEngineParams): WeeklyBreakdown[] => {
     
     const excludedNamesSet = new Set(excludedNames);
     const intercompanyNamesSet = new Set(intercompanyNames);
     const today = startOfToday();
+
+    const paymentPredictions = applyPrediction && data ? calculatePaymentPredictions(data) : new Map();
 
     const fileData = data ? data.filter(item => 
       item.Status && 
@@ -93,7 +131,13 @@ export const calculateWeeklyBreakdown = ({
     const getTransactionName = (item: CashFlowItem | ManualTransaction & {dueDate: Date}) => 'frequency' in item ? item.name : item.Name;
     
     const allItems: ForecastItem[] = [
-        ...fileData.map(item => ({...item, dueDate: item['Due Date']!})), 
+        ...fileData.map(item => {
+            let adjustedDueDate = item['Due Date']!;
+            if (applyPrediction && item['Due Date'] && paymentPredictions.has(item.Name)) {
+                adjustedDueDate = addDays(item['Due Date'], paymentPredictions.get(item.Name)!);
+            }
+            return {...item, dueDate: adjustedDueDate};
+        }), 
         ...allManualData
     ];
 
@@ -220,10 +264,12 @@ export const calculateForecastMetrics = ({
     excludedNames,
     intercompanyNames,
     applyExclusions,
+    applyPrediction,
 }: ForecastEngineParams): { forecastData: ForecastItem[], summaryMetrics: SummaryMetrics } => {
 
     const excludedNamesSet = new Set(excludedNames);
     const intercompanyNamesSet = new Set(intercompanyNames);
+    const paymentPredictions = applyPrediction && data ? calculatePaymentPredictions(data) : new Map();
 
     // --- Source Data Preparation ---
     const summarySourceData = (data || []).filter(item => 
@@ -247,7 +293,16 @@ export const calculateForecastMetrics = ({
             'Document Number': `manual-${t.id}-${i}`
         }));
 
-    const forecastData = [...summarySourceData.map(i => ({...i, dueDate: i['Due Date']!})), ...allManualItems];
+    const forecastData: ForecastItem[] = [
+        ...summarySourceData.map(item => {
+            let adjustedDueDate = item['Due Date']!;
+            if (applyPrediction && item['Due Date'] && paymentPredictions.has(item.Name)) {
+                adjustedDueDate = addDays(item['Due Date'], paymentPredictions.get(item.Name)!);
+            }
+            return {...item, dueDate: adjustedDueDate};
+        }),
+        ...allManualItems
+    ];
     
     // --- Summary Metrics Calculation ---
     const pendingItems = summarySourceData.filter(item => item.Status === 'Pending Approval');

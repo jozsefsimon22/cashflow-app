@@ -102,6 +102,17 @@ export interface WeeklyBreakdown {
   isCurrentWeek: boolean;
 }
 
+export interface ForecastEngineParams {
+    data: CashFlowItem[] | null;
+    manualTransactions: ManualTransaction[];
+    paidManualOccurrences: ManualTransactionOccurrence[];
+    startingBalance: number;
+    excludedNames: string[];
+    intercompanyNames: string[];
+    applyExclusions: boolean;
+    applyPrediction: boolean;
+}
+
 export interface SummaryMetrics {
     totalReceivables: number;
     totalPayables: number;

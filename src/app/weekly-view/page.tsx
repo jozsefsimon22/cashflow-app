@@ -50,6 +50,7 @@ export default function WeeklyViewPage() {
   const [isClient, setIsClient] = useState(false);
   const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
   const [applyExclusions, setApplyExclusions] = useState(false);
+  const [applyPrediction, setApplyPrediction] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
   const [hoveredColumn, setHoveredColumn] = useState<number | null>(null);
 
@@ -68,9 +69,10 @@ export default function WeeklyViewPage() {
       excludedNames,
       intercompanyNames,
       applyExclusions,
+      applyPrediction,
     });
 
-  }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions, isClient]);
+  }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions, applyPrediction, isClient]);
 
   const uniqueManualInflows = useMemo(() => {
     const seen = new Set();
@@ -195,9 +197,15 @@ export default function WeeklyViewPage() {
                 <h1 className="text-3xl font-bold font-headline text-foreground">Weekly View</h1>
               </div>
               {isClient && (data || manualTransactions.length > 0) && (
-                <div className="flex items-center space-x-2">
-                  <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
-                  <Label htmlFor="exclusions-toggle" className="text-sm">Apply Name Exclusions</Label>
+                <div className="flex items-center space-x-4">
+                   <div className="flex items-center space-x-2">
+                    <Switch id="prediction-toggle" checked={applyPrediction} onCheckedChange={setApplyPrediction} />
+                    <Label htmlFor="prediction-toggle" className="text-sm">Predicted Cashflow</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
+                    <Label htmlFor="exclusions-toggle" className="text-sm">Apply Name Exclusions</Label>
+                  </div>
                 </div>
               )}
           </div>
