@@ -149,9 +149,9 @@ export default function Home() {
                     <TooltipContent>
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Receivables Calculation</div>
-                         <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalInvoices - summaryMetrics.totalCreditMemos)}</span></div>
+                         <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip((summaryMetrics.totalInvoices - summaryMetrics.totalCreditMemos) + summaryMetrics.pendingReceivables)}</span></div>
                          {summaryMetrics.pendingReceivables > 0 && (
-                            <div className="flex justify-between gap-4"><span>Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingReceivables)}</span></div>
+                            <div className="flex justify-between gap-4 pl-4 text-xs"><span className="text-muted-foreground">Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingReceivables)}</span></div>
                          )}
                          {summaryMetrics.manualInflows > 0 && (
                             <div className="flex justify-between gap-4"><span>Manual Inflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualInflows)}</span></div>
@@ -177,9 +177,9 @@ export default function Home() {
                      <TooltipContent>
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Payables Calculation</div>
-                        <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalBills - summaryMetrics.totalBillCredits)}</span></div>
+                        <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip((summaryMetrics.totalBills - summaryMetrics.totalBillCredits) + summaryMetrics.pendingPayables)}</span></div>
                          {summaryMetrics.pendingPayables > 0 && (
-                            <div className="flex justify-between gap-4"><span>Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingPayables)}</span></div>
+                            <div className="flex justify-between gap-4 pl-4 text-xs"><span className="text-muted-foreground">Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingPayables)}</span></div>
                          )}
                          {summaryMetrics.manualOutflows > 0 && (
                             <div className="flex justify-between gap-4"><span>Manual Outflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualOutflows)}</span></div>
