@@ -27,7 +27,7 @@ export default function ExportPage() {
     namePairings,
   } = useContext(SettingsContext);
   const { toast } = useToast();
-  const [applyExclusions, setApplyExclusions] = useState(true);
+  const [applyExclusions, setApplyExclusions] = useState(false);
 
   const weeklyBreakdown = useMemo(() => {
     return calculateWeeklyBreakdown({

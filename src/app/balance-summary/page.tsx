@@ -41,7 +41,7 @@ export default function BalanceSummaryPage() {
     namePairings
   } = useContext(SettingsContext);
   
-  const [applyExclusions, setApplyExclusions] = useState(true);
+  const [applyExclusions, setApplyExclusions] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'netBalance', direction: 'desc' });
   const [selectedEntity, setSelectedEntity] = useState<BalanceSummary | null>(null);
@@ -437,4 +437,3 @@ export default function BalanceSummaryPage() {
     </>
   );
 }
-

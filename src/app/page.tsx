@@ -53,7 +53,7 @@ export default function Home() {
   } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
-  const [applyExclusions, setApplyExclusions] = useState(true);
+  const [applyExclusions, setApplyExclusions] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
   const [breakdownDialogData, setBreakdownDialogData] = useState<BreakdownDialogData | null>(null);
 
