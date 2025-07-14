@@ -250,6 +250,10 @@ export const calculateForecastMetrics = ({
 
     const totalReceivables = (totalInvoices - totalCreditMemos) + manualInflows;
     const totalPayables = (totalBills - totalBillCredits) + manualOutflows;
+    
+    const pendingItems = summarySourceData.filter(item => item.Status === 'Pending Approval');
+    const pendingReceivables = pendingItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
+    const pendingPayables = pendingItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
 
     const netCashFlow = totalReceivables - totalPayables;
     const forecastBalance = startingBalance + forecastData.reduce((sum, item) => {
@@ -269,6 +273,8 @@ export const calculateForecastMetrics = ({
         totalBillCredits, 
         manualInflows,
         manualOutflows,
+        pendingReceivables,
+        pendingPayables,
     };
 
     return { forecastData, summaryMetrics };

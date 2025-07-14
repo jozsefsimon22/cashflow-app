@@ -113,6 +113,8 @@ export interface SummaryMetrics {
     totalBillCredits: number;
     manualInflows: number;
     manualOutflows: number;
+    pendingReceivables: number;
+    pendingPayables: number;
 }
 
 export type GroupedItems = {
