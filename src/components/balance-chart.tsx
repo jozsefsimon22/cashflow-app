@@ -1,87 +1,31 @@
 
 "use client";
 
-import { useMemo, useEffect, useState, useContext } from 'react';
-import type { CashFlowItem, WeeklyDetails } from '@/types';
+import { useMemo } from 'react';
+import type { WeeklyDetails, WeeklyBreakdown } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
-import { addWeeks, format, startOfWeek, endOfWeek, startOfToday } from 'date-fns';
+import { format } from 'date-fns';
 import { TrendingUp } from 'lucide-react';
-import { SettingsContext } from '@/context/settings-context';
-
 
 interface BalanceChartProps {
-  data: CashFlowItem[];
+  data: WeeklyBreakdown[];
   onWeekSelect: (weekData: WeeklyDetails) => void;
 }
 
-const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
-const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
-
 export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
-  const [isClient, setIsClient] = useState(false);
-  const { startingBalance } = useContext(SettingsContext);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
+  
   const chartData = useMemo(() => {
-    if (!isClient) return [];
-    const today = startOfToday();
-
-    // Calculate overdue amounts first
-    const overdueItems = data.filter(item => {
-        const dueDate = item['Due Date'];
-        return dueDate && dueDate < today;
-    });
-
-    const overdueInflow = overdueItems
-        .filter(item => INFLOW_TYPES.includes(item.Type))
-        .reduce((sum, item) => sum + item.RemainingAmount, 0);
-
-    const overdueOutflow = overdueItems
-        .filter(item => OUTFLOW_TYPES.includes(item.Type))
-        .reduce((sum, item) => sum + item.RemainingAmount, 0);
-
-    let runningBalance = startingBalance + overdueInflow - overdueOutflow;
-    const futureData = data.filter(item => {
-        const dueDate = item['Due Date'];
-        return dueDate && dueDate >= today;
-    });
-
-    const weeklyData: (WeeklyDetails & { balance: number })[] = [];
-
-    for (let i = 0; i < 12; i++) {
-        const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
-
-        const weekItems = futureData
-            .filter(item => {
-                const dueDate = item['Due Date'];
-                if (!dueDate) return false;
-                const comparisonDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-                return comparisonDate >= weekStart && comparisonDate <= weekEnd;
-            });
-
-        const totalInvoices = weekItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
-        const totalBills = weekItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + item.RemainingAmount, 0);
-        
-        runningBalance += totalInvoices - totalBills;
-
-        weeklyData.push({
-            week: `w/c ${format(weekStart, 'dd/MM')}`,
-            weekLabel: `Week commencing ${format(weekStart, 'do MMMM yyyy')}`,
-            invoicesDue: totalInvoices,
-            billsDue: totalBills,
-            balance: runningBalance,
-            details: weekItems,
-        });
-    }
-
-    return weeklyData;
-  }, [data, isClient, startingBalance]);
+    // The first item is 'Overdue', which doesn't have a week label in the same format.
+    // We filter it out for the chart but its effect is included in the first week's running balance.
+    return data.slice(1).map(week => ({
+        ...week,
+        balance: week.runningBalance,
+        invoicesDue: week.totalInflow,
+        billsDue: week.totalOutflow,
+    }));
+  }, [data]);
 
   const chartConfig = {
     balance: {
@@ -101,7 +45,13 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
   const handlePointClick = (data: any) => {
     if (data && data.activePayload && data.activePayload.length > 0) {
       const weekData = data.activePayload[0].payload;
-      onWeekSelect(weekData);
+       onWeekSelect({
+        week: weekData.weekLabel,
+        weekLabel: weekData.weekLabel.replace('w/c', 'Week commencing'),
+        invoicesDue: weekData.totalInflow,
+        billsDue: weekData.totalOutflow,
+        details: [...weekData.arItems, ...weekData.apItems, ...weekData.intercompanyArItems, ...weekData.intercompanyApItems, ...weekData.manualInflows, ...weekData.manualOutflows],
+      });
     }
   };
 
@@ -126,7 +76,7 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
         return (
             <div className="p-3 bg-card border rounded-md shadow-lg max-w-sm">
                 <p className="font-bold font-headline text-lg">{`${label}`}</p>
-                <p className="text-sm text-muted-foreground mb-2">{weekData.weekLabel}</p>
+                <p className="text-sm text-muted-foreground mb-2">{weekData.weekLabel.replace('w/c', 'Week commencing')}</p>
                  <div className="space-y-1">
                     <p className="flex justify-between font-bold text-lg">
                         <span className="text-foreground">Ending Balance:</span>
@@ -169,7 +119,7 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="week" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
+                <XAxis dataKey="weekLabel" tickLine={false} axisLine={false} tickMargin={8} fontSize={12} />
                 <YAxis
                   tickFormatter={(value) => formatYAxis(Number(value))}
                   tickLine={false}

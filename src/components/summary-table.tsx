@@ -1,133 +1,34 @@
 
 "use client";
 
-import { useMemo, useEffect, useState, useContext } from 'react';
-import type { CashFlowItem, WeeklySummary, WeeklyDetails } from '@/types';
+import type { WeeklyDetails, WeeklyBreakdown } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { addWeeks, startOfWeek, endOfWeek, format, startOfToday } from 'date-fns';
 import { ListTodo } from 'lucide-react';
-import { SettingsContext } from '@/context/settings-context';
 
 interface SummaryTableProps {
-  data: CashFlowItem[];
+  data: WeeklyBreakdown[];
   onWeekSelect: (weekData: WeeklyDetails) => void;
 }
 
-export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
-  const [isClient, setIsClient] = useState(false);
-  const { startingBalance } = useContext(SettingsContext);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  const summaryData = useMemo((): WeeklySummary[] => {
-    if (!isClient) return [];
-    const today = startOfToday();
-    const weeklySummaries: WeeklySummary[] = [];
-
-    // Calculate overdue amounts first
-    const overdueItems = data.filter(item => {
-        const dueDate = item['Due Date'];
-        return dueDate && dueDate < today;
-    });
-
-    const overdueInvoices = overdueItems
-        .filter(item => item.Type === 'Invoice')
-        .reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const overdueCreditMemos = overdueItems
-        .filter(item => item.Type === 'Credit Memo')
-        .reduce((sum, item) => sum + item.RemainingAmount, 0);
-    
-    const overdueBills = overdueItems
-        .filter(item => item.Type === 'Bill')
-        .reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const overdueBillCredits = overdueItems
-        .filter(item => item.Type === 'Bill Credit')
-        .reduce((sum, item) => sum + item.RemainingAmount, 0);
-        
-    const overdueInflow = overdueInvoices - overdueCreditMemos;
-    const overdueOutflow = overdueBills - overdueBillCredits;
-
-    let runningBalance = startingBalance + overdueInflow - overdueOutflow;
-    
-    // Add overdue row
-    weeklySummaries.push({
-        week: 'overdue',
-        weekLabel: 'Overdue',
-        weekStart: null,
-        invoices: overdueInflow,
-        bills: overdueOutflow,
-        balance: runningBalance,
-        details: overdueItems,
-    });
-
-    const futureData = data.filter(item => {
-        const dueDate = item['Due Date'];
-        return dueDate && dueDate >= today;
-    });
-
-    for (let i = 0; i < 12; i++) {
-        const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(addWeeks(today, i), { weekStartsOn: 1 });
-
-        const weekItems = futureData.filter(item => {
-            const dueDate = item['Due Date'];
-            if (!dueDate) return false;
-            const comparisonDate = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-            return comparisonDate >= weekStart && comparisonDate <= weekEnd;
-        });
-
-        const weeklyInvoices = weekItems
-            .filter(item => item.Type === 'Invoice')
-            .reduce((sum, item) => sum + item.RemainingAmount, 0);
-        const weeklyCreditMemos = weekItems
-            .filter(item => item.Type === 'Credit Memo')
-            .reduce((sum, item) => sum + item.RemainingAmount, 0);
-
-        const weeklyBills = weekItems
-            .filter(item => item.Type === 'Bill')
-            .reduce((sum, item) => sum + item.RemainingAmount, 0);
-        const weeklyBillCredits = weekItems
-            .filter(item => item.Type === 'Bill Credit')
-            .reduce((sum, item) => sum + item.RemainingAmount, 0);
-        
-        const invoices = weeklyInvoices - weeklyCreditMemos;
-        const bills = weeklyBills - weeklyBillCredits;
-        
-        runningBalance += invoices - bills;
-
-        weeklySummaries.push({
-            week: `w/c ${format(weekStart, 'dd/MM')}`,
-            weekLabel: `w/c ${format(weekStart, 'dd/MM')}`,
-            weekStart,
-            invoices,
-            bills,
-            balance: runningBalance,
-            details: weekItems,
-        });
-    }
-
-    return weeklySummaries;
-  }, [data, isClient, startingBalance]);
-
-  const handleRowClick = (week: WeeklySummary) => {
+export function SummaryTable({ data: summaryData, onWeekSelect }: SummaryTableProps) {
+  
+  const handleRowClick = (week: WeeklyBreakdown) => {
     let weekLabel;
-    if (week.week === 'overdue') {
+    if (week.weekLabel === 'Overdue') {
         weekLabel = 'Overdue Transactions';
-    } else if (week.weekStart) {
-        weekLabel = `Week commencing ${format(week.weekStart, 'do MMMM yyyy')}`;
     } else {
-        weekLabel = 'Details';
+        weekLabel = week.weekLabel.replace('w/c', 'Week commencing');
     }
+
+    const allItems = [...week.arItems, ...week.apItems, ...week.intercompanyArItems, ...week.intercompanyApItems, ...week.manualInflows, ...week.manualOutflows];
 
     const weekDetails: WeeklyDetails = {
-        week: week.week,
+        week: week.weekLabel,
         weekLabel: weekLabel,
-        invoicesDue: week.invoices,
-        billsDue: week.bills,
-        details: week.details,
+        invoicesDue: week.totalInflow,
+        billsDue: week.totalOutflow,
+        details: allItems,
     };
     onWeekSelect(weekDetails);
   };
@@ -170,11 +71,11 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
                 </TableRow>
               )}
               {summaryData.map((week) => (
-                <TableRow key={week.week} onClick={() => handleRowClick(week)} className="cursor-pointer">
+                <TableRow key={week.weekLabel} onClick={() => handleRowClick(week)} className="cursor-pointer">
                   <TableCell className="font-medium">{week.weekLabel}</TableCell>
-                  <TableCell className="text-right font-semibold text-primary">{formatCurrency(week.invoices)}</TableCell>
-                  <TableCell className="text-right font-semibold text-destructive">{formatCurrency(week.bills)}</TableCell>
-                  <TableCell className="text-right font-semibold">{formatCurrency(week.balance)}</TableCell>
+                  <TableCell className="text-right font-semibold text-primary">{formatCurrency(week.totalInflow)}</TableCell>
+                  <TableCell className="text-right font-semibold text-destructive">{formatCurrency(week.totalOutflow)}</TableCell>
+                  <TableCell className="text-right font-semibold">{formatCurrency(week.runningBalance)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

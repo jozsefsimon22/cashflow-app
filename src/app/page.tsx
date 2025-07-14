@@ -3,7 +3,7 @@
 "use client";
 
 import { useContext, useEffect, useState, useMemo } from 'react';
-import type { CashFlowItem, WeeklyDetails, GroupedItems, SummaryMetrics, ForecastItem } from '@/types';
+import type { CashFlowItem, WeeklyDetails, GroupedItems, SummaryMetrics, ForecastItem, WeeklyBreakdown } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +26,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { calculateForecastMetrics } from '@/lib/forecast-engine';
+import { calculateForecastMetrics, calculateWeeklyBreakdown } from '@/lib/forecast-engine';
 import { BreakdownChart } from '@/components/breakdown-chart';
 
 
@@ -76,6 +76,20 @@ export default function Home() {
     });
   }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions, applyPrediction]);
   
+  const weeklyBreakdown = useMemo(() => {
+    if (!isClient) return [];
+    return calculateWeeklyBreakdown({
+      data,
+      manualTransactions,
+      paidManualOccurrences,
+      startingBalance,
+      excludedNames,
+      intercompanyNames,
+      applyExclusions,
+      applyPrediction,
+    });
+  }, [isClient, data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions, applyPrediction]);
+
   const handleWeekSelect = (weekData: WeeklyDetails) => {
     setSelectedWeek(weekData);
   };
@@ -268,10 +282,10 @@ export default function Home() {
               </div>
               <div className="grid gap-8 lg:grid-cols-3">
                 <div className="lg:col-span-2">
-                  <BalanceChart data={forecastData} onWeekSelect={handleWeekSelect} />
+                  <BalanceChart data={weeklyBreakdown} onWeekSelect={handleWeekSelect} />
                 </div>
                 <div className="lg:col-span-1">
-                  <SummaryTable data={forecastData} onWeekSelect={handleWeekSelect} />
+                  <SummaryTable data={weeklyBreakdown} onWeekSelect={handleWeekSelect} />
                 </div>
               </div>
               <div className="grid gap-8 lg:grid-cols-2">
