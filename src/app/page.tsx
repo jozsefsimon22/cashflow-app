@@ -7,7 +7,7 @@ import type { CashFlowItem, WeeklyDetails, GroupedItems, SummaryMetrics, Forecas
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Database, ArrowUpCircle, ArrowDownCircle, GanttChartSquare, Wallet, TrendingUp, TrendingDown, Info, ArrowUpDown } from 'lucide-react';
+import { Database, ArrowUpCircle, ArrowDownCircle, GanttChartSquare, Wallet, TrendingUp, TrendingDown, Info, ArrowUpDown, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { calculateForecastMetrics, calculateWeeklyBreakdown } from '@/lib/forecast-engine';
 import { BreakdownChart } from '@/components/breakdown-chart';
+import { Badge } from '@/components/ui/badge';
 
 
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
@@ -368,6 +369,7 @@ export default function Home() {
                             <TableRow>
                               <TableHead>Document #</TableHead>
                               <TableHead>Type</TableHead>
+                              {applyPrediction && <TableHead className="text-center">Prediction (Days)</TableHead>}
                               <TableHead className="text-right">Amount</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -376,6 +378,18 @@ export default function Home() {
                               <TableRow key={`in-detail-${index}`}>
                                 <TableCell>{'Document Number' in item ? item['Document Number'] : 'Recurring'}</TableCell>
                                 <TableCell>{'Type' in item ? item.Type : 'Manual'}</TableCell>
+                                {applyPrediction && (
+                                    <TableCell className="text-center">
+                                        {item.predictionAdjustment && item.predictionAdjustment > 0 ? (
+                                            <Badge variant="outline" className="text-amber-600 border-amber-500">
+                                              <Sparkles className="w-3 h-3 mr-1.5" />
+                                              +{item.predictionAdjustment}
+                                            </Badge>
+                                        ) : item.predictionAdjustment !== undefined ? (
+                                           '-'
+                                        ) : null}
+                                    </TableCell>
+                                )}
                                 <TableCell className="text-right font-mono">{formatCurrency('RemainingAmount' in item ? item.RemainingAmount : item.amount)}</TableCell>
                               </TableRow>
                             ))}
@@ -413,6 +427,7 @@ export default function Home() {
                             <TableRow>
                               <TableHead>Document #</TableHead>
                               <TableHead>Type</TableHead>
+                              {applyPrediction && <TableHead className="text-center">Prediction (Days)</TableHead>}
                               <TableHead className="text-right">Amount</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -421,6 +436,12 @@ export default function Home() {
                               <TableRow key={`out-detail-${index}`}>
                                 <TableCell>{'Document Number' in item ? item['Document Number'] : 'Recurring'}</TableCell>
                                 <TableCell>{'Type' in item ? item.Type : 'Manual'}</TableCell>
+                                {applyPrediction && (
+                                    <TableCell className="text-center">
+                                        {/* Predictions only apply to receivables, so this will be empty */}
+                                        -
+                                    </TableCell>
+                                )}
                                 <TableCell className="text-right font-mono">{formatCurrency('RemainingAmount' in item ? item.RemainingAmount : item.amount)}</TableCell>
                               </TableRow>
                             ))}
@@ -476,6 +497,7 @@ export default function Home() {
                             <TableHead>Document #</TableHead>
                             <TableHead>Due Date</TableHead>
                             <TableHead>Type</TableHead>
+                            {applyPrediction && <TableHead className="text-center">Prediction (Days)</TableHead>}
                             <TableHead className="text-right">Amount</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -494,6 +516,18 @@ export default function Home() {
                               <TableCell>{'Document Number' in item ? item['Document Number'] : 'Recurring'}</TableCell>
                               <TableCell>{format('dueDate' in item ? item.dueDate : item['Due Date']!, 'dd/MM/yyyy')}</TableCell>
                               <TableCell>{'Type' in item ? item.Type : 'Manual'}</TableCell>
+                               {applyPrediction && (
+                                    <TableCell className="text-center">
+                                        {item.predictionAdjustment && item.predictionAdjustment > 0 ? (
+                                            <Badge variant="outline" className="text-amber-600 border-amber-500">
+                                              <Sparkles className="w-3 h-3 mr-1.5" />
+                                              +{item.predictionAdjustment}
+                                            </Badge>
+                                        ) : item.predictionAdjustment !== undefined ? (
+                                           '-'
+                                        ) : null}
+                                    </TableCell>
+                                )}
                               <TableCell className="text-right font-mono">{formatCurrency(amount)}</TableCell>
                             </TableRow>
                           )})}
@@ -512,3 +546,4 @@ export default function Home() {
     </>
   );
 }
+
