@@ -102,16 +102,6 @@ export const calculateWeeklyBreakdown = ({
     
     // --- Overdue Calculation ---
     const overdueItems = allItems.filter(item => isBefore(item.dueDate, today));
-
-    const getAmount = (sum: number, item: ForecastItem) => {
-        if ('frequency' in item) { // Manual transaction - always positive, direction is handled by type
-            return sum + item.amount;
-        }
-        // Imported data item - Credit Memos reduce AR, Bill Credits reduce AP
-        if (item.Type === 'Credit Memo') return sum - item.RemainingAmount;
-        if (item.Type === 'Bill Credit') return sum - item.RemainingAmount;
-        return sum + item.RemainingAmount;
-    };
     
     const overdueARItems = overdueItems.filter(i => ('Type' in i && i.Type === 'Invoice') && !intercompanyNamesSet.has(getTransactionName(i)));
     const overdueCreditMemoItems = overdueItems.filter(i => ('Type' in i && i.Type === 'Credit Memo') && !intercompanyNamesSet.has(getTransactionName(i)));
@@ -125,6 +115,8 @@ export const calculateWeeklyBreakdown = ({
     const overdueIntercompanyBillCreditItems = overdueItems.filter(i => ('Type' in i && i.Type === 'Bill Credit') && intercompanyNamesSet.has(getTransactionName(i)));
     const overdueManualOutflowItems = overdueItems.filter(i => ('type' in i && i.type === 'outflow'));
 
+    const getAmount = (sum: number, item: ForecastItem) => sum + ('frequency' in item ? item.amount : item.RemainingAmount);
+    
     const overdueAR = overdueARItems.reduce(getAmount, 0) - overdueCreditMemoItems.reduce(getAmount, 0);
     const overdueIntercompanyAR = overdueIntercompanyARItems.reduce(getAmount, 0) - overdueIntercompanyCreditMemoItems.reduce(getAmount, 0);
     const overdueManualInflows = overdueManualInflowItems.reduce(getAmount, 0);
