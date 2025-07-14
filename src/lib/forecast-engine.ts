@@ -234,26 +234,32 @@ export const calculateForecastMetrics = ({
     const forecastData = [...fileData, ...filteredManualData];
     
     // For summary cards, use the raw data to calculate base figures.
-    const summarySourceData = (data || []).filter(item => 
+    const allIncludedSourceData = (data || []).filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
       (!applyExclusions || !excludedNamesSet.has(item.Name))
     );
+
+    const pendingItems = allIncludedSourceData.filter(item => item.Status === 'Pending Approval');
+    const nonPendingItems = allIncludedSourceData.filter(item => item.Status !== 'Pending Approval');
     
-    const totalInvoices = summarySourceData.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalCreditMemos = summarySourceData.filter(item => item.Type === 'Credit Memo').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBills = summarySourceData.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBillCredits = summarySourceData.filter(item => item.Type === 'Bill Credit').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    // Calculate totals from non-pending data
+    const totalInvoices = nonPendingItems.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalCreditMemos = nonPendingItems.filter(item => item.Type === 'Credit Memo').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalBills = nonPendingItems.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalBillCredits = nonPendingItems.filter(item => item.Type === 'Bill Credit').reduce((sum, item) => sum + item.RemainingAmount, 0);
     
+    // Calculate totals from manual transactions
     const manualInflows = filteredManualData.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
     const manualOutflows = filteredManualData.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.RemainingAmount, 0);
-
-    const totalReceivables = (totalInvoices - totalCreditMemos) + manualInflows;
-    const totalPayables = (totalBills - totalBillCredits) + manualOutflows;
     
-    const pendingItems = summarySourceData.filter(item => item.Status === 'Pending Approval');
+    // Calculate totals from pending transactions
     const pendingReceivables = pendingItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
     const pendingPayables = pendingItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
+
+    // Combine all totals for the main card display
+    const totalReceivables = (totalInvoices - totalCreditMemos) + manualInflows + pendingReceivables;
+    const totalPayables = (totalBills - totalBillCredits) + manualOutflows + pendingPayables;
 
     const netCashFlow = totalReceivables - totalPayables;
     const forecastBalance = startingBalance + forecastData.reduce((sum, item) => {
