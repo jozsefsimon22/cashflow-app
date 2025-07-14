@@ -15,15 +15,19 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { calculateForecastMetrics } from "@/lib/forecast-engine";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 interface BalanceSummary {
   name: string;
   receivables: number;
   payables: number;
   netBalance: number;
+  items: ForecastItem[];
 }
 
-type SortKey = keyof BalanceSummary;
+type SortKey = keyof Omit<BalanceSummary, 'items'>;
 type SortDirection = 'asc' | 'desc';
 
 export default function BalanceSummaryPage() {
@@ -39,6 +43,7 @@ export default function BalanceSummaryPage() {
   const [applyExclusions, setApplyExclusions] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'netBalance', direction: 'desc' });
+  const [selectedEntity, setSelectedEntity] = useState<BalanceSummary | null>(null);
 
   const { forecastData } = useMemo(() => {
     return calculateForecastMetrics({
@@ -53,15 +58,16 @@ export default function BalanceSummaryPage() {
   }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions]);
 
   const balanceSummary = useMemo((): BalanceSummary[] => {
-    const balances: { [name: string]: { receivables: number; payables: number } } = {};
+    const balances: { [name: string]: { receivables: number; payables: number; items: ForecastItem[] } } = {};
 
     forecastData.forEach(item => {
       const name = 'Name' in item ? item.Name : item.name;
       if (!name) return;
 
       if (!balances[name]) {
-        balances[name] = { receivables: 0, payables: 0 };
+        balances[name] = { receivables: 0, payables: 0, items: [] };
       }
+      balances[name].items.push(item);
       
       let amount;
       if ('frequency' in item) { // ManualTransaction
@@ -90,11 +96,12 @@ export default function BalanceSummaryPage() {
       }
     });
 
-    return Object.entries(balances).map(([name, { receivables, payables }]) => ({
+    return Object.entries(balances).map(([name, { receivables, payables, items }]) => ({
       name,
       receivables,
       payables,
       netBalance: receivables - payables,
+      items,
     }));
   }, [forecastData]);
   
@@ -145,6 +152,18 @@ export default function BalanceSummaryPage() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  const formatCurrencyDialog = (amount: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+    }).format(amount);
+  }
+
+  const formatDateDialog = (date: Date | null | undefined) => {
+    if (!date) return '';
+    return format(date, 'dd/MM/yyyy');
+  }
   
   const totals = useMemo(() => {
     return balanceSummary.reduce((acc, item) => {
@@ -173,7 +192,7 @@ export default function BalanceSummaryPage() {
                                 Customer & Vendor Balances
                             </CardTitle>
                             <CardDescription>
-                                A summary of total receivables and payables for each entity based on open transactions.
+                                A summary of total receivables and payables for each entity. Click a name to see the transaction breakdown.
                             </CardDescription>
                         </div>
                     </div>
@@ -243,7 +262,11 @@ export default function BalanceSummaryPage() {
                           <TableBody>
                               {sortedSummary.length > 0 ? sortedSummary.map((item) => (
                               <TableRow key={item.name}>
-                                  <TableCell className="font-medium">{item.name}</TableCell>
+                                  <TableCell className="font-medium">
+                                      <Button variant="link" className="p-0 h-auto" onClick={() => setSelectedEntity(item)}>
+                                        {item.name}
+                                      </Button>
+                                  </TableCell>
                                   <TableCell className="text-right font-mono text-primary">
                                     {item.receivables !== 0 ? formatCurrency(item.receivables) : '-'}
                                   </TableCell>
@@ -268,6 +291,60 @@ export default function BalanceSummaryPage() {
             </Card>
         </main>
       </SidebarInset>
+      <Dialog open={!!selectedEntity} onOpenChange={() => setSelectedEntity(null)}>
+        <DialogContent className="max-w-4xl">
+            {selectedEntity && (
+                <>
+                <DialogHeader>
+                    <DialogTitle>Balance Breakdown for {selectedEntity.name}</DialogTitle>
+                    <DialogDescription>
+                        A complete list of open transactions that make up this entity's balance.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="max-h-[60vh] overflow-y-auto">
+                    <Table>
+                        <TableHeader className="sticky top-0 bg-background z-10">
+                            <TableRow>
+                                <TableHead>Document #</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Due Date</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {selectedEntity.items.map((item, index) => {
+                                const isManual = 'frequency' in item;
+                                const docNum = isManual ? 'Manual' : item['Document Number'];
+                                const type = isManual ? (item.type === 'inflow' ? 'Manual Inflow' : 'Manual Outflow') : item.Type;
+                                const dueDate = isManual ? item.dueDate : item['Due Date'];
+                                const amount = isManual ? item.amount : item.RemainingAmount;
+
+                                const isReceivable = isManual ? item.type === 'inflow' : ['Invoice', 'Credit Memo'].includes(item.Type);
+                                let displayAmount = amount;
+                                if (!isManual && (item.Type === 'Credit Memo' || item.Type === 'Bill Credit')) {
+                                  displayAmount = -amount;
+                                }
+
+                                return (
+                                <TableRow key={`${docNum}-${index}`}>
+                                    <TableCell>{docNum}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={isReceivable ? "outline" : "secondary"} className={cn(isReceivable ? "border-primary text-primary" : "border-destructive text-destructive")}>{type}</Badge>
+                                    </TableCell>
+                                    <TableCell>{formatDateDialog(dueDate)}</TableCell>
+                                    <TableCell className={cn("text-right font-mono", isReceivable ? "text-primary" : "text-destructive")}>
+                                      {formatCurrencyDialog(displayAmount)}
+                                    </TableCell>
+                                </TableRow>
+                                )
+                            })}
+                        </TableBody>
+                    </Table>
+                </div>
+                </>
+            )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
