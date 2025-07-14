@@ -26,9 +26,6 @@ interface BalanceSummary {
 type SortKey = keyof BalanceSummary;
 type SortDirection = 'asc' | 'desc';
 
-const INFLOW_TYPES: (CashFlowItem['Type'])[] = ['Invoice', 'Bill Credit'];
-const OUTFLOW_TYPES: (CashFlowItem['Type'])[] = ['Bill', 'Credit Memo'];
-
 export default function BalanceSummaryPage() {
   const { 
     data, 
@@ -65,14 +62,31 @@ export default function BalanceSummaryPage() {
       if (!balances[name]) {
         balances[name] = { receivables: 0, payables: 0 };
       }
-
-      const amount = 'RemainingAmount' in item ? item.RemainingAmount : item.amount;
-      const type = 'Type' in item ? item.Type : (item.type === 'inflow' ? 'Invoice' : 'Bill');
-
-      if (INFLOW_TYPES.includes(type)) {
-        balances[name].receivables += amount;
-      } else if (OUTFLOW_TYPES.includes(type)) {
-        balances[name].payables += amount;
+      
+      let amount;
+      if ('frequency' in item) { // ManualTransaction
+        amount = item.amount;
+        if (item.type === 'inflow') {
+          balances[name].receivables += amount;
+        } else {
+          balances[name].payables += amount;
+        }
+      } else { // CashFlowItem
+        amount = item.RemainingAmount;
+        switch (item.Type) {
+          case 'Invoice':
+            balances[name].receivables += amount;
+            break;
+          case 'Credit Memo': // Reduces what you are owed
+            balances[name].receivables -= amount;
+            break;
+          case 'Bill':
+            balances[name].payables += amount;
+            break;
+          case 'Bill Credit': // Reduces what you owe
+            balances[name].payables -= amount;
+            break;
+        }
       }
     });
 
