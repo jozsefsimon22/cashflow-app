@@ -188,8 +188,8 @@ export default function WeeklyViewPage() {
     <>
     <AppSidebar activePage="weekly-view" />
     <SidebarInset>
-      <main className="p-4 sm:p-6 md:p-8">
-        <div className="flex justify-between items-center mb-4">
+      <main className="p-4 sm:p-6 md:p-8 flex flex-col gap-6">
+        <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <h1 className="text-3xl font-bold font-headline text-foreground">Weekly View</h1>
             </div>
@@ -214,7 +214,7 @@ export default function WeeklyViewPage() {
             <CardContent>
                 {isClient && (data || manualTransactions.length > 0) ? (
                     <div className="overflow-x-auto">
-                        <Table className="min-w-max">
+                        <Table className="min-w-max table-fixed">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[300px] font-bold text-foreground sticky left-0 bg-card z-10">Category</TableHead>
@@ -575,5 +575,3 @@ export default function WeeklyViewPage() {
     </>
   );
 }
-
-    
