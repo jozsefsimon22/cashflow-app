@@ -5,7 +5,7 @@ import { SettingsProvider } from '@/context/settings-context';
 import { SidebarProvider } from '@/components/ui/sidebar';
 
 export const metadata: Metadata = {
-  title: 'TerraRoc Cashflow',
+  title: 'Cashflow JS',
   description: 'Visualize your cash flow with ease.',
 };
 

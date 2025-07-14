@@ -79,7 +79,7 @@ export default function ExportPage() {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Cashflow Forecast");
 
-      XLSX.writeFile(workbook, "VizFlow_Cashflow_Forecast.xlsx");
+      XLSX.writeFile(workbook, "CashflowJS_Forecast.xlsx");
 
       toast({
         title: "Export Successful",
@@ -114,7 +114,7 @@ export default function ExportPage() {
       const link = document.createElement('a');
       link.href = url;
       const date = format(new Date(), 'yyyy-MM-dd');
-      link.download = `vizflow_session_${date}.json`;
+      link.download = `cashflowjs_session_${date}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

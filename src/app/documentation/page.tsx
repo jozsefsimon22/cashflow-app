@@ -30,7 +30,7 @@ export default function DocumentationPage() {
               </CardHeader>
               <CardContent className="space-y-4 text-muted-foreground">
                 <p>
-                  Welcome to <strong>VizFlow</strong>. This application is designed to provide a clear, visual representation of your cash flow based on data from an Excel or CSV file.
+                  Welcome to <strong>Cashflow JS</strong>. This application is designed to provide a clear, visual representation of your cash flow based on data from an Excel or CSV file.
                 </p>
                 <p>
                   By uploading your financial data from the <Link href="/data" className="text-primary underline">Imported Data</Link> page, you can see a 12-week forecast of your balance, a weekly summary of incoming and outgoing funds, and drill down into specific transactions.

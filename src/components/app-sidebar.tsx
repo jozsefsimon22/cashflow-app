@@ -47,7 +47,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 <div className="bg-primary p-2 rounded-lg">
                     <GanttChartSquare className="w-6 h-6 text-primary-foreground" />
                 </div>
-                <h1 className="text-xl font-semibold font-headline text-foreground">VizFlow</h1>
+                <h1 className="text-xl font-semibold font-headline text-foreground">Cashflow JS</h1>
             </div>
             </SidebarHeader>
             <SidebarContent>
