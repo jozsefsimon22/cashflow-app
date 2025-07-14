@@ -1,4 +1,5 @@
 
+
 import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence, WeeklyBreakdown, SummaryMetrics, ForecastItem } from '@/types';
 import { addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval, format } from 'date-fns';
 
@@ -207,6 +208,7 @@ export const calculateForecastMetrics = ({
 }: ForecastEngineParams): { forecastData: CashFlowItem[], summaryMetrics: SummaryMetrics } => {
 
     const excludedNamesSet = new Set(excludedNames);
+    const intercompanyNamesSet = new Set(intercompanyNames);
 
     const allIncludedSourceData = (data || []).filter(item => 
       item.Status && 
@@ -233,8 +235,9 @@ export const calculateForecastMetrics = ({
 
     const forecastData = [...allIncludedSourceData, ...filteredManualData];
     
-    // For summary cards, use the raw data to calculate base figures.
+    // --- Summary Metrics Calculation ---
     
+    // Split source data into pending and not-pending
     const pendingItems = allIncludedSourceData.filter(item => item.Status === 'Pending Approval');
     const nonPendingItems = allIncludedSourceData.filter(item => item.Status !== 'Pending Approval');
     
@@ -262,6 +265,24 @@ export const calculateForecastMetrics = ({
         return sum + amount;
     }, 0);
 
+    // --- Breakdown chart calculations ---
+    const allPayables = forecastData.filter(item => OUTFLOW_TYPES.includes(item.Type));
+    const allReceivables = forecastData.filter(item => INFLOW_TYPES.includes(item.Type));
+    
+    const getTransactionAmount = (item: CashFlowItem) => {
+        return (item.Type === 'Bill Credit' || item.Type === 'Credit Memo') 
+            ? -item.RemainingAmount 
+            : item.RemainingAmount;
+    };
+
+    const intercompanyPayables = allPayables.filter(item => intercompanyNamesSet.has(item.Name)).reduce((sum, item) => sum + getTransactionAmount(item), 0);
+    const manualPayables = allPayables.filter(item => item['Document Number'].toString().startsWith('manual-')).reduce((sum, item) => sum + getTransactionAmount(item), 0);
+    const standardPayables = totalPayables - intercompanyPayables - manualPayables;
+
+    const intercompanyReceivables = allReceivables.filter(item => intercompanyNamesSet.has(item.Name)).reduce((sum, item) => sum + getTransactionAmount(item), 0);
+    const manualReceivables = allReceivables.filter(item => item['Document Number'].toString().startsWith('manual-')).reduce((sum, item) => sum + getTransactionAmount(item), 0);
+    const standardReceivables = totalReceivables - intercompanyReceivables - manualReceivables;
+
 
     const summaryMetrics: SummaryMetrics = { 
         totalReceivables, 
@@ -276,6 +297,12 @@ export const calculateForecastMetrics = ({
         manualOutflows,
         pendingReceivables,
         pendingPayables,
+        intercompanyPayables,
+        manualPayables,
+        standardPayables,
+        intercompanyReceivables,
+        manualReceivables,
+        standardReceivables,
     };
 
     return { forecastData, summaryMetrics };

@@ -115,6 +115,13 @@ export interface SummaryMetrics {
     manualOutflows: number;
     pendingReceivables: number;
     pendingPayables: number;
+    // New fields for breakdown charts
+    intercompanyPayables: number;
+    manualPayables: number;
+    standardPayables: number;
+    intercompanyReceivables: number;
+    manualReceivables: number;
+    standardReceivables: number;
 }
 
 export type GroupedItems = {

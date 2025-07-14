@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useContext, useEffect, useState, useMemo } from 'react';
@@ -26,6 +27,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { calculateForecastMetrics } from '@/lib/forecast-engine';
+import { BreakdownChart } from '@/components/breakdown-chart';
 
 
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
@@ -147,7 +149,7 @@ export default function Home() {
               </div>
             )}
         </div>
-        <div className="space-y-4">
+        <div className="space-y-8">
           {isClient && forecastData ? (
             <TooltipProvider>
                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -235,6 +237,26 @@ export default function Home() {
                 <div className="lg:col-span-1">
                   <SummaryTable data={forecastData} onWeekSelect={handleWeekSelect} />
                 </div>
+              </div>
+              <div className="grid gap-8 lg:grid-cols-2">
+                <BreakdownChart
+                  title="Payables Breakdown"
+                  type="payables"
+                  data={{
+                    Standard: summaryMetrics.standardPayables,
+                    Intercompany: summaryMetrics.intercompanyPayables,
+                    Manual: summaryMetrics.manualPayables,
+                  }}
+                />
+                <BreakdownChart
+                  title="Receivables Breakdown"
+                  type="receivables"
+                  data={{
+                    Standard: summaryMetrics.standardReceivables,
+                    Intercompany: summaryMetrics.intercompanyReceivables,
+                    Manual: summaryMetrics.manualReceivables,
+                  }}
+                />
               </div>
             </TooltipProvider>
           ) : (
