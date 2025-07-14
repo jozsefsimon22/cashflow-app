@@ -57,7 +57,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 <SidebarGroupLabel>Analysis</SidebarGroupLabel>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'dashboard'}>
-                    <Link href="/cashflow">
+                    <Link href="/">
                     <LayoutDashboard />
                     <span>Dashboard</span>
                     </Link>
@@ -65,7 +65,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'weekly-view'}>
-                    <Link href="/cashflow/weekly-view">
+                    <Link href="/weekly-view">
                     <CalendarDays />
                     <span>Weekly View</span>
                     </Link>
@@ -73,7 +73,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 </SidebarMenuItem>
                  <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'customer-scorecard'}>
-                    <Link href="/cashflow/customer-scorecard">
+                    <Link href="/customer-scorecard">
                     <Medal />
                     <span>Customer Scorecard</span>
                     </Link>
@@ -81,7 +81,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'balance-summary'}>
-                    <Link href="/cashflow/balance-summary">
+                    <Link href="/balance-summary">
                     <BookUser />
                     <span>Balance Summary</span>
                     </Link>
@@ -91,7 +91,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 <SidebarGroupLabel>Data Management</SidebarGroupLabel>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'data'}>
-                    <Link href="/cashflow/data">
+                    <Link href="/data">
                     <Database />
                     <span>Imported Data</span>
                     </Link>
@@ -99,7 +99,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'manual-transactions'}>
-                    <Link href="/cashflow/manual-transactions">
+                    <Link href="/manual-transactions">
                     <Repeat />
                     <span>Manual Transactions</span>
                     </Link>
@@ -107,7 +107,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'exclusions'}>
-                    <Link href="/cashflow/exclusions">
+                    <Link href="/exclusions">
                     <XCircle />
                     <span>Exclusions</span>
                     </Link>
@@ -115,7 +115,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 </SidebarMenuItem>
                  <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'intercompany'}>
-                    <Link href="/cashflow/intercompany">
+                    <Link href="/intercompany">
                     <Users />
                     <span>Intercompany</span>
                     </Link>
@@ -125,7 +125,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 <SidebarGroupLabel>Configuration</SidebarGroupLabel>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'settings'}>
-                    <Link href="/cashflow/settings">
+                    <Link href="/settings">
                     <Settings />
                     <span>Settings</span>
                     </Link>
@@ -133,7 +133,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'export'}>
-                    <Link href="/cashflow/export">
+                    <Link href="/export">
                     <Download />
                     <span>Export</span>
                     </Link>
@@ -143,7 +143,7 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                 <SidebarGroupLabel>Support</SidebarGroupLabel>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={activePage === 'documentation'}>
-                    <Link href="/cashflow/documentation">
+                    <Link href="/documentation">
                     <BookOpen />
                     <span>Documentation</span>
                     </Link>
@@ -154,3 +154,5 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
         </Sidebar>
     );
 }
+
+    
