@@ -225,16 +225,16 @@ export const calculateForecastMetrics = ({
     const intercompanyNamesSet = new Set(intercompanyNames);
 
     // --- Source Data Preparation ---
-    const allImportedData = (data || []).filter(item => 
+    const summarySourceData = (data || []).filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
       (!applyExclusions || !excludedNamesSet.has(item.Name))
     );
     
-    const manualDataRaw = generateForecastItems(manualTransactions, paidManualOccurrences);
+    const manualData = generateForecastItems(manualTransactions, paidManualOccurrences)
+      .filter(item => !applyExclusions || !excludedNamesSet.has(item.name));
 
-    const allManualItems: ForecastItem[] = manualDataRaw
-        .filter(item => !applyExclusions || !excludedNamesSet.has(item.name))
+    const allManualItems: ForecastItem[] = manualData
         .map((t, i) => ({
             ...t,
             'Name': t.name,
@@ -246,11 +246,11 @@ export const calculateForecastMetrics = ({
             'Document Number': `manual-${t.id}-${i}`
         }));
 
-    const forecastData = [...allImportedData.map(i => ({...i, dueDate: i['Due Date']!})), ...allManualItems];
+    const forecastData = [...summarySourceData.map(i => ({...i, dueDate: i['Due Date']!})), ...allManualItems];
     
     // --- Summary Metrics Calculation ---
-    const pendingItems = allImportedData.filter(item => item.Status === 'Pending Approval');
-    const nonPendingItems = allImportedData.filter(item => item.Status !== 'Pending Approval');
+    const pendingItems = summarySourceData.filter(item => item.Status === 'Pending Approval');
+    const nonPendingItems = summarySourceData.filter(item => item.Status !== 'Pending Approval');
     
     const getImportedAmount = (sum: number, item: CashFlowItem) => {
       const amount = (item.Type === 'Credit Memo' || item.Type === 'Bill Credit') 
@@ -260,11 +260,11 @@ export const calculateForecastMetrics = ({
     }
 
     // Calculate totals from non-pending data
-    const totalInvoices = nonPendingItems.filter(item => item.Type === 'Invoice' || item.Type === 'Credit Memo').reduce(getImportedAmount, 0);
-    const totalBills = nonPendingItems.filter(item => item.Type === 'Bill' || item.Type === 'Bill Credit').reduce(getImportedAmount, 0);
+    const totalInvoices = nonPendingItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce(getImportedAmount, 0);
+    const totalBills = nonPendingItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce(getImportedAmount, 0);
     
-    const manualInflows = allManualItems.reduce((sum, item) => item.type === 'inflow' ? sum + item.amount : sum, 0);
-    const manualOutflows = allManualItems.reduce((sum, item) => item.type === 'outflow' ? sum + item.amount : sum, 0);
+    const manualInflows = manualData.reduce((sum, item) => item.type === 'inflow' ? sum + item.amount : sum, 0);
+    const manualOutflows = manualData.reduce((sum, item) => item.type === 'outflow' ? sum + item.amount : sum, 0);
 
     const pendingReceivables = pendingItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce(getImportedAmount, 0);
     const pendingPayables = pendingItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce(getImportedAmount, 0);
@@ -313,6 +313,8 @@ export const calculateForecastMetrics = ({
         manualOutflows,
         pendingReceivables,
         pendingPayables,
+        totalInvoices,
+        totalBills,
         intercompanyPayables,
         manualPayables,
         standardPayables,

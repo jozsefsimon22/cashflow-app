@@ -111,6 +111,8 @@ export interface SummaryMetrics {
     manualOutflows: number;
     pendingReceivables: number;
     pendingPayables: number;
+    totalInvoices: number;
+    totalBills: number;
     // New fields for breakdown charts
     intercompanyPayables: number;
     manualPayables: number;

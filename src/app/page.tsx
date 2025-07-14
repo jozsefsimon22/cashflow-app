@@ -165,7 +165,7 @@ export default function Home() {
     setBreakdownDialogData({
       title: `${categoryTitle} ${type.charAt(0).toUpperCase() + type.slice(1)} Breakdown`,
       items: items,
-      type: type,
+      type: type === 'payables' ? 'outflow' : 'inflow',
     });
   };
 
@@ -207,7 +207,7 @@ export default function Home() {
                               <TrendingUp className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                              <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables + summaryMetrics.manualInflows)}</div>
+                              <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables + summaryMetrics.manualInflows + summaryMetrics.pendingReceivables)}</div>
                               <p className="text-xs text-muted-foreground">From open items in forecast period</p>
                           </CardContent>
                       </Card>
@@ -215,11 +215,11 @@ export default function Home() {
                     <TooltipContent>
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Receivables Calculation</div>
-                         <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip((summaryMetrics.totalInvoices - summaryMetrics.totalCreditMemos))}</span></div>
+                         <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalInvoices)}</span></div>
                          <div className="flex justify-between gap-4 pl-4 text-xs"><span className="text-muted-foreground">Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingReceivables)}</span></div>
                          <div className="flex justify-between gap-4"><span>Manual Inflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualInflows)}</span></div>
                         <hr />
-                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalReceivables + summaryMetrics.manualInflows)}</span></div>
+                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalReceivables + summaryMetrics.manualInflows + summaryMetrics.pendingReceivables)}</span></div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -231,7 +231,7 @@ export default function Home() {
                               <TrendingDown className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                              <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables + summaryMetrics.manualOutflows)}</div>
+                              <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables + summaryMetrics.manualOutflows + summaryMetrics.pendingPayables)}</div>
                               <p className="text-xs text-muted-foreground">From open items in forecast period</p>
                           </CardContent>
                       </Card>
@@ -239,11 +239,11 @@ export default function Home() {
                      <TooltipContent>
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Payables Calculation</div>
-                        <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip((summaryMetrics.totalBills - summaryMetrics.totalBillCredits))}</span></div>
+                        <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalBills)}</span></div>
                          <div className="flex justify-between gap-4 pl-4 text-xs"><span className="text-muted-foreground">Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingPayables)}</span></div>
                          <div className="flex justify-between gap-4"><span>Manual Outflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualOutflows)}</span></div>
                         <hr />
-                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalPayables + summaryMetrics.manualOutflows)}</span></div>
+                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalPayables + summaryMetrics.manualOutflows + summaryMetrics.pendingPayables)}</span></div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -442,7 +442,7 @@ export default function Home() {
                     <AccordionTrigger>
                       <div className="flex justify-between w-full pr-4">
                         <span>{name}</span>
-                        <span className={`font-mono ${breakdownDialogData?.type === 'receivables' ? 'text-primary' : 'text-destructive'}`}>
+                        <span className={`font-mono ${breakdownDialogData?.type === 'inflow' ? 'text-primary' : 'text-destructive'}`}>
                           {formatCurrency(group.total)}
                         </span>
                       </div>
