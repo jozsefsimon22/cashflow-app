@@ -14,9 +14,6 @@ interface SummaryTableProps {
   onWeekSelect: (weekData: WeeklyDetails) => void;
 }
 
-const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
-const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
-
 export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
   const [isClient, setIsClient] = useState(false);
   const { startingBalance } = useContext(SettingsContext);
@@ -36,13 +33,22 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
         return dueDate && dueDate < today;
     });
 
-    const overdueInflow = overdueItems
-        .filter(item => INFLOW_TYPES.includes(item.Type))
+    const overdueInvoices = overdueItems
+        .filter(item => item.Type === 'Invoice')
         .reduce((sum, item) => sum + item.RemainingAmount, 0);
-
-    const overdueOutflow = overdueItems
-        .filter(item => OUTFLOW_TYPES.includes(item.Type))
+    const overdueCreditMemos = overdueItems
+        .filter(item => item.Type === 'Credit Memo')
         .reduce((sum, item) => sum + item.RemainingAmount, 0);
+    
+    const overdueBills = overdueItems
+        .filter(item => item.Type === 'Bill')
+        .reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const overdueBillCredits = overdueItems
+        .filter(item => item.Type === 'Bill Credit')
+        .reduce((sum, item) => sum + item.RemainingAmount, 0);
+        
+    const overdueInflow = overdueInvoices - overdueCreditMemos;
+    const overdueOutflow = overdueBills - overdueBillCredits;
 
     let runningBalance = startingBalance + overdueInflow - overdueOutflow;
     
@@ -73,13 +79,22 @@ export function SummaryTable({ data, onWeekSelect }: SummaryTableProps) {
             return comparisonDate >= weekStart && comparisonDate <= weekEnd;
         });
 
-        const invoices = weekItems
-            .filter(item => INFLOW_TYPES.includes(item.Type))
+        const weeklyInvoices = weekItems
+            .filter(item => item.Type === 'Invoice')
+            .reduce((sum, item) => sum + item.RemainingAmount, 0);
+        const weeklyCreditMemos = weekItems
+            .filter(item => item.Type === 'Credit Memo')
+            .reduce((sum, item) => sum + item.RemainingAmount, 0);
+
+        const weeklyBills = weekItems
+            .filter(item => item.Type === 'Bill')
+            .reduce((sum, item) => sum + item.RemainingAmount, 0);
+        const weeklyBillCredits = weekItems
+            .filter(item => item.Type === 'Bill Credit')
             .reduce((sum, item) => sum + item.RemainingAmount, 0);
         
-        const bills = weekItems
-            .filter(item => OUTFLOW_TYPES.includes(item.Type))
-            .reduce((sum, item) => sum + item.RemainingAmount, 0);
+        const invoices = weeklyInvoices - weeklyCreditMemos;
+        const bills = weeklyBills - weeklyBillCredits;
         
         runningBalance += invoices - bills;
 
