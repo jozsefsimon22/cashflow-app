@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useState, useEffect, ReactNode } from 'react';
-import type { CashFlowItem, ColumnConfig, ManualTransaction, ManualTransactionOccurrence } from '@/types';
+import type { CashFlowItem, ColumnConfig, ManualTransaction, ManualTransactionOccurrence, NamePair } from '@/types';
 
 interface SettingsContextType {
   columnConfig: ColumnConfig;
@@ -19,6 +19,8 @@ interface SettingsContextType {
   setExcludedNames: (names: string[]) => void;
   intercompanyNames: string[];
   setIntercompanyNames: (names: string[]) => void;
+  namePairings: NamePair[];
+  setNamePairings: (pairings: NamePair[]) => void;
 }
 
 const defaultConfig: ColumnConfig = {
@@ -53,6 +55,8 @@ export const SettingsContext = createContext<SettingsContextType>({
   setExcludedNames: () => {},
   intercompanyNames: [],
   setIntercompanyNames: () => {},
+  namePairings: [],
+  setNamePairings: () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -63,6 +67,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [paidManualOccurrences, setPaidManualOccurrencesState] = useState<ManualTransactionOccurrence[]>([]);
   const [excludedNames, setExcludedNamesState] = useState<string[]>([]);
   const [intercompanyNames, setIntercompanyNamesState] = useState<string[]>([]);
+  const [namePairings, setNamePairingsState] = useState<NamePair[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -101,6 +106,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const savedIntercompanyNames = localStorage.getItem('intercompanyNames');
       if (savedIntercompanyNames) {
         setIntercompanyNamesState(JSON.parse(savedIntercompanyNames));
+      }
+      const savedNamePairings = localStorage.getItem('namePairings');
+      if (savedNamePairings) {
+        setNamePairingsState(JSON.parse(savedNamePairings));
       }
     } catch (error) {
       console.error("Failed to parse settings from localStorage", error);
@@ -206,6 +215,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
+  const setNamePairings = (pairings: NamePair[]) => {
+    setNamePairingsState(pairings);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('namePairings', JSON.stringify(pairings));
+      } catch (error) {
+        console.error("Failed to save name pairings to localStorage", error);
+      }
+    }
+  };
+
   const providerValue = {
     columnConfig,
     setColumnConfig,
@@ -221,6 +241,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setExcludedNames,
     intercompanyNames,
     setIntercompanyNames,
+    namePairings,
+    setNamePairings,
   };
 
   return (

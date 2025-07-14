@@ -135,3 +135,8 @@ export type GroupedItems = {
     items: ForecastItem[];
   };
 };
+
+export interface NamePair {
+  receivableName: string;
+  payableName: string;
+}

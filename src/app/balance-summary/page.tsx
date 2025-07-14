@@ -37,7 +37,8 @@ export default function BalanceSummaryPage() {
     excludedNames, 
     paidManualOccurrences,
     intercompanyNames,
-    startingBalance
+    startingBalance,
+    namePairings
   } = useContext(SettingsContext);
   
   const [applyExclusions, setApplyExclusions] = useState(true);
@@ -61,11 +62,19 @@ export default function BalanceSummaryPage() {
 
   const balanceSummary = useMemo((): BalanceSummary[] => {
     const balances: { [name: string]: { receivables: number; payables: number; items: ForecastItem[] } } = {};
+    const receivableToPayableMap = new Map(namePairings.map(p => [p.receivableName, p.payableName]));
 
     forecastData.forEach(item => {
-      const name = 'Name' in item ? item.Name : item.name;
+      let name = 'Name' in item ? item.Name : item.name;
       if (!name) return;
 
+      const isReceivableItem = 'type' in item ? item.type === 'inflow' : ['Invoice', 'Credit Memo'].includes(item.Type);
+      
+      // If it's a receivable name that is paired, use the corresponding payable name for grouping.
+      if (isReceivableItem && receivableToPayableMap.has(name)) {
+        name = receivableToPayableMap.get(name)!;
+      }
+      
       if (!balances[name]) {
         balances[name] = { receivables: 0, payables: 0, items: [] };
       }
@@ -105,7 +114,7 @@ export default function BalanceSummaryPage() {
       netBalance: receivables - payables,
       items,
     }));
-  }, [forecastData]);
+  }, [forecastData, namePairings]);
   
   const sortedSummary = useMemo(() => {
     const filteredSummary = balanceSummary

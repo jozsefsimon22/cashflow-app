@@ -23,7 +23,8 @@ export default function ExportPage() {
     startingBalance, 
     columnConfig, 
     paidManualOccurrences, 
-    intercompanyNames 
+    intercompanyNames,
+    namePairings,
   } = useContext(SettingsContext);
   const { toast } = useToast();
   const [applyExclusions, setApplyExclusions] = useState(true);
@@ -106,6 +107,7 @@ export default function ExportPage() {
         startingBalance,
         columnConfig,
         paidManualOccurrences,
+        namePairings,
       };
 
       const jsonString = JSON.stringify(sessionData, null, 2);

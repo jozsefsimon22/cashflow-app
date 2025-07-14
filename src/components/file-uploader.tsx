@@ -39,7 +39,7 @@ export function FileUploader({ onDataUploaded, columnConfig: propColumnConfig }:
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const { setData, setManualTransactions, setExcludedNames, setStartingBalance, setColumnConfig, setIntercompanyNames, setPaidManualOccurrences } = useContext(SettingsContext);
+  const { setData, setManualTransactions, setExcludedNames, setStartingBalance, setColumnConfig, setIntercompanyNames, setPaidManualOccurrences, setNamePairings } = useContext(SettingsContext);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,6 +80,7 @@ export function FileUploader({ onDataUploaded, columnConfig: propColumnConfig }:
         setStartingBalance(sessionData.startingBalance || 0);
         setExcludedNames(sessionData.excludedNames || []);
         setIntercompanyNames(sessionData.intercompanyNames || []);
+        setNamePairings(sessionData.namePairings || []);
         
         await sleep(10);
         setProgress(50);

@@ -24,6 +24,7 @@ import {
   Users,
   Medal,
   BookUser,
+  Link2,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -36,6 +37,7 @@ interface AppSidebarProps {
     | 'manual-transactions'
     | 'exclusions'
     | 'intercompany'
+    | 'name-pairing'
     | 'settings'
     | 'export'
     | 'documentation';
@@ -121,6 +123,15 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={activePage === 'name-pairing'}>
+                    <Link href="/name-pairing">
+                    <Link2 />
+                    <span>Name Pairing</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+
 
                 <SidebarGroupLabel>Configuration</SidebarGroupLabel>
                 <SidebarMenuItem>
