@@ -1,6 +1,6 @@
 
 import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence, WeeklyBreakdown, SummaryMetrics, ForecastItem } from '@/types';
-import { format, addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
+import { addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval, format } from 'date-fns';
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
@@ -233,34 +233,30 @@ export const calculateForecastMetrics = ({
 
     const forecastData = [...fileData, ...filteredManualData];
     
-    // For summary cards, we only use the initial imported data, not the generated manual transactions for future dates.
+    // For summary cards, use the raw data to calculate base figures.
     const summarySourceData = (data || []).filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
       (!applyExclusions || !excludedNamesSet.has(item.Name))
     );
     
-    const invoices = summarySourceData.filter(item => item.Type === 'Invoice');
-    const creditMemos = summarySourceData.filter(item => item.Type === 'Credit Memo');
-    const bills = summarySourceData.filter(item => item.Type === 'Bill');
-    const billCredits = summarySourceData.filter(item => item.Type === 'Bill Credit');
-
-    const totalInvoices = invoices.reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalCreditMemos = creditMemos.reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBills = bills.reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBillCredits = billCredits.reduce((sum, item) => sum + item.RemainingAmount, 0);
-
-    const totalInvoicesPending = invoices.filter(item => item.Status === 'Pending Approval').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBillsPending = bills.filter(item => item.Status === 'Pending Approval').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalInvoices = summarySourceData.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalCreditMemos = summarySourceData.filter(item => item.Type === 'Credit Memo').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalBills = summarySourceData.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalBillCredits = summarySourceData.filter(item => item.Type === 'Bill Credit').reduce((sum, item) => sum + item.RemainingAmount, 0);
     
-    const totalInvoicesOpen = invoices.filter(item => item.Status === 'Open' || item.Status === 'Unpaid').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBillsOpen = bills.filter(item => item.Status === 'Open' || item.Status === 'Unpaid').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const manualInflows = filteredManualData.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const manualOutflows = filteredManualData.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.RemainingAmount, 0);
 
-    const totalReceivables = totalInvoices - totalCreditMemos;
-    const totalPayables = totalBills - totalBillCredits;
+    const totalReceivables = (totalInvoices - totalCreditMemos) + manualInflows;
+    const totalPayables = (totalBills - totalBillCredits) + manualOutflows;
 
     const netCashFlow = totalReceivables - totalPayables;
-    const forecastBalance = startingBalance + netCashFlow;
+    const forecastBalance = startingBalance + forecastData.reduce((sum, item) => {
+        const amount = (item.Type === 'Bill' || item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount;
+        return sum + amount;
+    }, 0);
+
 
     const summaryMetrics: SummaryMetrics = { 
         totalReceivables, 
@@ -271,10 +267,8 @@ export const calculateForecastMetrics = ({
         totalCreditMemos, 
         totalBills, 
         totalBillCredits, 
-        totalInvoicesPending, 
-        totalBillsPending, 
-        totalInvoicesOpen, 
-        totalBillsOpen 
+        manualInflows,
+        manualOutflows,
     };
 
     return { forecastData, summaryMetrics };

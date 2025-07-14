@@ -111,11 +111,8 @@ export interface SummaryMetrics {
     totalCreditMemos: number;
     totalBills: number;
     totalBillCredits: number;
-    totalInvoicesPending: number;
-    totalBillsPending: number;
-
-    totalInvoicesOpen: number;
-    totalBillsOpen: number;
+    manualInflows: number;
+    manualOutflows: number;
 }
 
 export type GroupedItems = {

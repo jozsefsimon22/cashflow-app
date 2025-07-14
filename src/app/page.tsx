@@ -142,21 +142,17 @@ export default function Home() {
                           </CardHeader>
                           <CardContent>
                               <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables)}</div>
-                              <p className="text-xs text-muted-foreground">From 'Open' invoices in forecast</p>
+                              <p className="text-xs text-muted-foreground">From open items in forecast period</p>
                           </CardContent>
                       </Card>
                     </TooltipTrigger>
                     <TooltipContent>
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Receivables Calculation</div>
-                        <div className="flex justify-between gap-4"><span>Total Invoices:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalInvoices)}</span></div>
-                        {summaryMetrics.totalInvoicesOpen > 0 && (
-                          <div className="flex justify-between gap-4 pl-4 text-xs text-muted-foreground"><span>(Open):</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalInvoicesOpen)}</span></div>
-                        )}
-                        {summaryMetrics.totalInvoicesPending > 0 && (
-                          <div className="flex justify-between gap-4 pl-4 text-xs text-muted-foreground"><span>(Pending Approval):</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalInvoicesPending)}</span></div>
-                        )}
-                        <div className="flex justify-between gap-4"><span>Credit Memos:</span> <span className="font-mono">- {formatCurrencyTooltip(summaryMetrics.totalCreditMemos)}</span></div>
+                         <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalInvoices - summaryMetrics.totalCreditMemos)}</span></div>
+                         {summaryMetrics.manualInflows > 0 && (
+                            <div className="flex justify-between gap-4"><span>Manual Inflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualInflows)}</span></div>
+                         )}
                         <hr />
                         <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalReceivables)}</span></div>
                       </div>
@@ -171,21 +167,17 @@ export default function Home() {
                           </CardHeader>
                           <CardContent>
                               <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables)}</div>
-                              <p className="text-xs text-muted-foreground">From 'Open' bills in forecast</p>
+                              <p className="text-xs text-muted-foreground">From open items in forecast period</p>
                           </CardContent>
                       </Card>
                     </TooltipTrigger>
                      <TooltipContent>
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Payables Calculation</div>
-                        <div className="flex justify-between gap-4"><span>Total Bills:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalBills)}</span></div>
-                        {summaryMetrics.totalBillsOpen > 0 && (
-                          <div className="flex justify-between gap-4 pl-4 text-xs text-muted-foreground"><span>(Open):</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalBillsOpen)}</span></div>
-                        )}
-                         {summaryMetrics.totalBillsPending > 0 && (
-                          <div className="flex justify-between gap-4 pl-4 text-xs text-muted-foreground"><span>(Pending Approval):</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalBillsPending)}</span></div>
-                        )}
-                        <div className="flex justify-between gap-4"><span>Bill Credits:</span> <span className="font-mono">- {formatCurrencyTooltip(summaryMetrics.totalBillCredits)}</span></div>
+                        <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalBills - summaryMetrics.totalBillCredits)}</span></div>
+                         {summaryMetrics.manualOutflows > 0 && (
+                            <div className="flex justify-between gap-4"><span>Manual Outflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualOutflows)}</span></div>
+                         )}
                         <hr />
                         <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalPayables)}</span></div>
                       </div>
