@@ -5,7 +5,7 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, ManualTransaction, WeeklyBreakdown, GroupedItems, ForecastItem } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDown, Users } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDown, Users, Sparkles } from 'lucide-react';
 import { SettingsContext } from "@/context/settings-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, isToday } from 'date-fns';
@@ -24,6 +24,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { calculateWeeklyBreakdown } from '@/lib/forecast-engine';
+import { Badge } from '@/components/ui/badge';
 
 
 interface DialogDetails {
@@ -204,7 +205,7 @@ export default function WeeklyViewPage() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Switch id="exclusions-toggle" checked={applyExclusions} onCheckedChange={setApplyExclusions} />
-                    <Label htmlFor="exclusions-toggle" className="text-sm">Apply Name Exclusions</Label>
+                    <Label htmlFor="exclusions-toggle" className="text-sm">Apply Exclusions</Label>
                   </div>
                 </div>
               )}
@@ -492,7 +493,7 @@ export default function WeeklyViewPage() {
     </SidebarInset>
 
     <Dialog open={!!dialogDetails} onOpenChange={() => setDialogDetails(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>{dialogDetails?.title}</DialogTitle>
             <DialogDescription>
@@ -541,6 +542,7 @@ export default function WeeklyViewPage() {
                             <TableRow>
                               <TableHead>Details</TableHead>
                               <TableHead>Type</TableHead>
+                              {applyPrediction && <TableHead className="text-center">Prediction (Days)</TableHead>}
                               <TableHead className="text-right">Amount</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -568,6 +570,18 @@ export default function WeeklyViewPage() {
                                           {dueDate && <div className="text-xs text-muted-foreground">{formatDate(dueDate)}</div>}
                                         </TableCell>
                                         <TableCell>{type}</TableCell>
+                                        {applyPrediction && (
+                                            <TableCell className="text-center">
+                                                {item.predictionAdjustment && item.predictionAdjustment > 0 ? (
+                                                    <Badge variant="outline" className="text-amber-600 border-amber-500">
+                                                      <Sparkles className="w-3 h-3 mr-1.5" />
+                                                      +{item.predictionAdjustment}
+                                                    </Badge>
+                                                ) : item.predictionAdjustment !== undefined ? (
+                                                   '-'
+                                                ) : null}
+                                            </TableCell>
+                                        )}
                                         <TableCell className="text-right font-mono">{formatCurrency(amountDisplay)}</TableCell>
                                     </TableRow>
                                 )

@@ -96,6 +96,8 @@ const calculatePaymentPredictions = (data: CashFlowItem[]): Map<string, number> 
         if (stats.lateCount > 0) {
             const avgDaysLate = Math.round(stats.totalDaysLate / stats.lateCount);
             predictions.set(name, avgDaysLate);
+        } else {
+            predictions.set(name, 0);
         }
     }
     return predictions;
@@ -132,11 +134,12 @@ export const calculateWeeklyBreakdown = ({
     
     const allItems: ForecastItem[] = [
         ...fileData.map(item => {
+            const predictionAdjustment = paymentPredictions.get(item.Name);
             let adjustedDueDate = item['Due Date']!;
-            if (applyPrediction && item['Due Date'] && paymentPredictions.has(item.Name)) {
-                adjustedDueDate = addDays(item['Due Date'], paymentPredictions.get(item.Name)!);
+            if (applyPrediction && item['Due Date'] && predictionAdjustment !== undefined) {
+                adjustedDueDate = addDays(item['Due Date'], predictionAdjustment);
             }
-            return {...item, dueDate: adjustedDueDate};
+            return {...item, dueDate: adjustedDueDate, predictionAdjustment: predictionAdjustment || 0};
         }), 
         ...allManualData
     ];
@@ -295,11 +298,12 @@ export const calculateForecastMetrics = ({
 
     const forecastData: ForecastItem[] = [
         ...summarySourceData.map(item => {
+            const predictionAdjustment = paymentPredictions.get(item.Name);
             let adjustedDueDate = item['Due Date']!;
-            if (applyPrediction && item['Due Date'] && paymentPredictions.has(item.Name)) {
-                adjustedDueDate = addDays(item['Due Date'], paymentPredictions.get(item.Name)!);
+            if (applyPrediction && item['Due Date'] && predictionAdjustment !== undefined) {
+                adjustedDueDate = addDays(item['Due Date'], predictionAdjustment);
             }
-            return {...item, dueDate: adjustedDueDate};
+            return {...item, dueDate: adjustedDueDate, predictionAdjustment: predictionAdjustment || 0};
         }),
         ...allManualItems
     ];

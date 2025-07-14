@@ -80,7 +80,7 @@ export interface CustomerScore {
   invoices: CashFlowItem[];
 }
 
-export type ForecastItem = (CashFlowItem & { dueDate: Date }) | (ManualTransaction & { dueDate: Date });
+export type ForecastItem = (CashFlowItem & { dueDate: Date, predictionAdjustment?: number }) | (ManualTransaction & { dueDate: Date, predictionAdjustment?: number });
 
 export interface WeeklyBreakdown {
   weekLabel: string;
