@@ -53,8 +53,8 @@ export default function ExportPage() {
       
       const breakdownRows = weeklyBreakdown.map(week => ({
         Interval: week.weekLabel,
-        AR: week.accountsReceivable + week.intercompanyReceivable,
-        AP: week.accountsPayable + week.intercompanyPayable,
+        AR: week.totalInflow,
+        AP: week.totalOutflow,
         Difference: week.netFlow,
         'Accumulated liquidity': week.runningBalance
       }));
