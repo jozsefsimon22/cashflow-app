@@ -66,7 +66,7 @@ export interface WeeklyDetails {
   weekLabel: string;
   invoicesDue: number;
   billsDue: number;
-  details: CashFlowItem[];
+  details: ForecastItem[];
 }
 
 export interface CustomerScore {
@@ -80,7 +80,7 @@ export interface CustomerScore {
   invoices: CashFlowItem[];
 }
 
-export type ForecastItem = CashFlowItem | (ManualTransaction & { dueDate: Date });
+export type ForecastItem = (CashFlowItem & { dueDate: Date }) | (ManualTransaction & { dueDate: Date });
 
 export interface WeeklyBreakdown {
   weekLabel: string;
@@ -122,6 +122,13 @@ export interface SummaryMetrics {
     intercompanyReceivables: number;
     manualReceivables: number;
     standardReceivables: number;
+    // Items for drilldown
+    intercompanyPayableItems: ForecastItem[];
+    manualPayableItems: ForecastItem[];
+    standardPayableItems: ForecastItem[];
+    intercompanyReceivableItems: ForecastItem[];
+    manualReceivableItems: ForecastItem[];
+    standardReceivableItems: ForecastItem[];
 }
 
 export type GroupedItems = {

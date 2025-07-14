@@ -205,41 +205,39 @@ export const calculateForecastMetrics = ({
     excludedNames,
     intercompanyNames,
     applyExclusions,
-}: ForecastEngineParams): { forecastData: CashFlowItem[], summaryMetrics: SummaryMetrics } => {
+}: ForecastEngineParams): { forecastData: ForecastItem[], summaryMetrics: SummaryMetrics } => {
 
     const excludedNamesSet = new Set(excludedNames);
     const intercompanyNamesSet = new Set(intercompanyNames);
 
-    const allIncludedSourceData = (data || []).filter(item => 
+    // --- Source Data Preparation ---
+    const summarySourceData = (data || []).filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
       (INFLOW_TYPES.includes(item.Type) || OUTFLOW_TYPES.includes(item.Type)) &&
       (!applyExclusions || !excludedNamesSet.has(item.Name))
     );
-
+    
     const manualDataRaw = generateForecastItems(manualTransactions, paidManualOccurrences);
 
-    const manualData: CashFlowItem[] = manualDataRaw.map((t, i) => ({
-      'Name': t.name,
-      'Type': t.type === 'inflow' ? 'Invoice' : 'Bill',
-      'Due Date': t.dueDate,
-      'Amount': t.amount,
-      'RemainingAmount': t.amount,
-      'Status': 'Open',
-      'Document Number': `manual-${t.id}-${i}`
-    }));
+    const manualDataItems: ForecastItem[] = manualDataRaw
+        .filter(item => !applyExclusions || !excludedNamesSet.has(item.name))
+        .map((t, i) => ({
+            ...t,
+            'Name': t.name,
+            'Type': t.type === 'inflow' ? 'Invoice' : 'Bill',
+            'Due Date': t.dueDate,
+            'Amount': t.amount,
+            'RemainingAmount': t.amount,
+            'Status': 'Open',
+            'Document Number': `manual-${t.id}-${i}`
+        }));
 
-    const filteredManualData = manualData.filter(item => 
-      !applyExclusions || !excludedNamesSet.has(item.Name)
-    );
-
-    const forecastData = [...allIncludedSourceData, ...filteredManualData];
+    const forecastData = [...summarySourceData.map(i => ({...i, dueDate: i['Due Date']!})), ...manualDataItems];
     
     // --- Summary Metrics Calculation ---
-    
-    // Split source data into pending and not-pending
-    const pendingItems = allIncludedSourceData.filter(item => item.Status === 'Pending Approval');
-    const nonPendingItems = allIncludedSourceData.filter(item => item.Status !== 'Pending Approval');
+    const pendingItems = summarySourceData.filter(item => item.Status === 'Pending Approval');
+    const nonPendingItems = summarySourceData.filter(item => item.Status !== 'Pending Approval');
     
     // Calculate totals from non-pending data
     const totalInvoices = nonPendingItems.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
@@ -247,41 +245,47 @@ export const calculateForecastMetrics = ({
     const totalBills = nonPendingItems.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.RemainingAmount, 0);
     const totalBillCredits = nonPendingItems.filter(item => item.Type === 'Bill Credit').reduce((sum, item) => sum + item.RemainingAmount, 0);
     
-    // Calculate totals from manual transactions
-    const manualInflows = filteredManualData.reduce((sum, item) => item.Type === 'Invoice' ? sum + item.RemainingAmount : sum, 0);
-    const manualOutflows = filteredManualData.reduce((sum, item) => item.Type === 'Bill' ? sum + item.RemainingAmount : sum, 0);
+    const manualInflows = manualDataItems.reduce((sum, item) => item.type === 'inflow' ? sum + item.amount : sum, 0);
+    const manualOutflows = manualDataItems.reduce((sum, item) => item.type === 'outflow' ? sum + item.amount : sum, 0);
 
-    // Calculate totals from pending transactions
     const pendingReceivables = pendingItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
     const pendingPayables = pendingItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
 
-    // Combine all totals for the main card display
-    const totalReceivables = (totalInvoices - totalCreditMemos) + pendingReceivables + manualInflows;
-    const totalPayables = (totalBills - totalBillCredits) + pendingPayables + manualOutflows;
+    const totalReceivables = (totalInvoices - totalCreditMemos) + manualInflows;
+    const totalPayables = (totalBills - totalBillCredits) + manualOutflows;
+    
+    const netCashFlow = totalReceivables + pendingReceivables - (totalPayables + pendingPayables);
+    const forecastBalance = startingBalance + netCashFlow;
 
-    const netCashFlow = totalReceivables - totalPayables;
-    const forecastBalance = startingBalance + forecastData.reduce((sum, item) => {
-        const amount = (item.Type === 'Bill' || item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount;
-        return sum + amount;
-    }, 0);
 
     // --- Breakdown chart calculations ---
-    const allPayables = forecastData.filter(item => OUTFLOW_TYPES.includes(item.Type));
-    const allReceivables = forecastData.filter(item => INFLOW_TYPES.includes(item.Type));
-    
-    const getTransactionAmount = (item: CashFlowItem) => {
+    const allPayableItems = forecastData.filter(item => ('type' in item ? item.type === 'outflow' : OUTFLOW_TYPES.includes(item.Type)));
+    const allReceivableItems = forecastData.filter(item => ('type' in item ? item.type === 'inflow' : INFLOW_TYPES.includes(item.Type)));
+
+    const getTransactionAmount = (item: ForecastItem) => {
+        if ('frequency' in item) {
+            return item.amount;
+        }
         return (item.Type === 'Bill Credit' || item.Type === 'Credit Memo') 
             ? -item.RemainingAmount 
             : item.RemainingAmount;
     };
+    
+    const intercompanyPayableItems = allPayableItems.filter(item => intercompanyNamesSet.has('Name' in item ? item.Name : item.name));
+    const manualPayableItems = allPayableItems.filter(item => 'frequency' in item && !intercompanyNamesSet.has(item.name));
+    const standardPayableItems = allPayableItems.filter(item => !('frequency' in item) && !intercompanyNamesSet.has(item.Name));
 
-    const intercompanyPayables = allPayables.filter(item => intercompanyNamesSet.has(item.Name)).reduce((sum, item) => sum + getTransactionAmount(item), 0);
-    const manualPayables = allPayables.filter(item => item['Document Number'].toString().startsWith('manual-')).reduce((sum, item) => sum + getTransactionAmount(item), 0);
-    const standardPayables = totalPayables - intercompanyPayables - manualPayables;
+    const intercompanyPayables = intercompanyPayableItems.reduce((sum, item) => sum + getTransactionAmount(item), 0);
+    const manualPayables = manualPayableItems.reduce((sum, item) => sum + getTransactionAmount(item), 0);
+    const standardPayables = standardPayableItems.reduce((sum, item) => sum + getTransactionAmount(item), 0);
 
-    const intercompanyReceivables = allReceivables.filter(item => intercompanyNamesSet.has(item.Name)).reduce((sum, item) => sum + getTransactionAmount(item), 0);
-    const manualReceivables = allReceivables.filter(item => item['Document Number'].toString().startsWith('manual-')).reduce((sum, item) => sum + getTransactionAmount(item), 0);
-    const standardReceivables = totalReceivables - intercompanyReceivables - manualReceivables;
+    const intercompanyReceivableItems = allReceivableItems.filter(item => intercompanyNamesSet.has('Name' in item ? item.Name : item.name));
+    const manualReceivableItems = allReceivableItems.filter(item => 'frequency' in item && !intercompanyNamesSet.has(item.name));
+    const standardReceivableItems = allReceivableItems.filter(item => !('frequency' in item) && !intercompanyNamesSet.has(item.Name));
+
+    const intercompanyReceivables = intercompanyReceivableItems.reduce((sum, item) => sum + getTransactionAmount(item), 0);
+    const manualReceivables = manualReceivableItems.reduce((sum, item) => sum + getTransactionAmount(item), 0);
+    const standardReceivables = standardReceivableItems.reduce((sum, item) => sum + getTransactionAmount(item), 0);
 
 
     const summaryMetrics: SummaryMetrics = { 
@@ -303,6 +307,12 @@ export const calculateForecastMetrics = ({
         intercompanyReceivables,
         manualReceivables,
         standardReceivables,
+        intercompanyPayableItems,
+        manualPayableItems,
+        standardPayableItems,
+        intercompanyReceivableItems,
+        manualReceivableItems,
+        standardReceivableItems,
     };
 
     return { forecastData, summaryMetrics };

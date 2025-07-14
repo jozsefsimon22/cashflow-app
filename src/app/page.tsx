@@ -3,7 +3,7 @@
 "use client";
 
 import { useContext, useEffect, useState, useMemo } from 'react';
-import type { CashFlowItem, WeeklyDetails, GroupedItems } from '@/types';
+import type { CashFlowItem, WeeklyDetails, GroupedItems, SummaryMetrics, ForecastItem } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -36,6 +36,11 @@ const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 type SortKey = 'name' | 'amount';
 type SortDirection = 'asc' | 'desc';
 
+type BreakdownDialogData = {
+  title: string;
+  items: ForecastItem[];
+  type: 'receivables' | 'payables';
+}
 
 export default function Home() {
   const { 
@@ -50,6 +55,8 @@ export default function Home() {
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
   const [applyExclusions, setApplyExclusions] = useState(true);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
+  const [breakdownDialogData, setBreakdownDialogData] = useState<BreakdownDialogData | null>(null);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -94,11 +101,31 @@ export default function Home() {
     setSortConfig({ key, direction });
   };
   
-  const sortGroupedItems = (groupedItems: GroupedItems) => {
+  const sortGroupedItems = (items: ForecastItem[]) => {
+    const groupedItems = items.reduce((acc: GroupedItems, item) => {
+        const name = 'frequency' in item ? item.name : item.Name || 'Unnamed';
+        if (!acc[name]) {
+          acc[name] = { total: 0, items: [] };
+        }
+        
+        let amount;
+        if ('frequency' in item) { // Manual transaction
+            amount = item.amount;
+        } else { // CashFlowItem
+            amount = (item.Type === 'Credit Memo' || item.Type === 'Bill Credit') 
+                ? -item.RemainingAmount 
+                : item.RemainingAmount;
+        }
+
+        acc[name].total += amount;
+        acc[name].items.push(item);
+        return acc;
+      }, {});
+
     return Object.entries(groupedItems).sort(([, a], [, b]) => {
       if (sortConfig.key === 'name') {
-        const nameA = a.items[0]?.Name || '';
-        const nameB = b.items[0]?.Name || '';
+        const nameA = a.items[0]?.Name || ('name' in a.items[0] && a.items[0].name) || '';
+        const nameB = b.items[0]?.Name || ('name' in b.items[0] && b.items[0].name) || '';
         return nameA.localeCompare(nameB) * (sortConfig.direction === 'asc' ? 1 : -1);
       }
       // sort by amount
@@ -108,30 +135,39 @@ export default function Home() {
   
   const weeklyDetails = useMemo(() => {
     if (!selectedWeek?.details) return { inflow: [], outflow: [] };
-
-    const groupItems = (items: CashFlowItem[]): GroupedItems => {
-      return items.reduce((acc: GroupedItems, item) => {
-        const name = item.Name || 'Unnamed';
-        if (!acc[name]) {
-          acc[name] = { total: 0, items: [] };
-        }
-        acc[name].total += item.RemainingAmount;
-        acc[name].items.push(item);
-        return acc;
-      }, {});
-    };
-
-    const inflowItems = selectedWeek.details.filter(item => INFLOW_TYPES.includes(item.Type));
-    const outflowItems = selectedWeek.details.filter(item => OUTFLOW_TYPES.includes(item.Type));
-    
-    const groupedInflows = groupItems(inflowItems);
-    const groupedOutflows = groupItems(outflowItems);
-
+    const inflowItems = selectedWeek.details.filter(item => 'type' in item ? item.type === 'inflow' : INFLOW_TYPES.includes(item.Type));
+    const outflowItems = selectedWeek.details.filter(item => 'type' in item ? item.type === 'outflow' : OUTFLOW_TYPES.includes(item.Type));
     return {
-      inflow: sortGroupedItems(groupedInflows),
-      outflow: sortGroupedItems(groupedOutflows),
+      inflow: sortGroupedItems(inflowItems),
+      outflow: sortGroupedItems(outflowItems),
     };
   }, [selectedWeek, sortConfig]);
+
+  const breakdownDialogDetails = useMemo(() => {
+    if (!breakdownDialogData) return [];
+    return sortGroupedItems(breakdownDialogData.items);
+  }, [breakdownDialogData, sortConfig]);
+
+  const handleSliceClick = (category: string, type: 'payables' | 'receivables') => {
+    let items: ForecastItem[] = [];
+    const categoryTitle = category.charAt(0).toUpperCase() + category.slice(1);
+    
+    if (type === 'payables') {
+      if (category === 'Standard') items = summaryMetrics.standardPayableItems;
+      if (category === 'Intercompany') items = summaryMetrics.intercompanyPayableItems;
+      if (category === 'Manual') items = summaryMetrics.manualPayableItems;
+    } else {
+      if (category === 'Standard') items = summaryMetrics.standardReceivableItems;
+      if (category === 'Intercompany') items = summaryMetrics.intercompanyReceivableItems;
+      if (category === 'Manual') items = summaryMetrics.manualReceivableItems;
+    }
+
+    setBreakdownDialogData({
+      title: `${categoryTitle} ${type.charAt(0).toUpperCase() + type.slice(1)} Breakdown`,
+      items: items,
+      type: type === 'receivables' ? 'inflow' : 'outflow',
+    });
+  };
 
   return (
     <>
@@ -171,7 +207,7 @@ export default function Home() {
                               <TrendingUp className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                              <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables)}</div>
+                              <div className="text-2xl font-bold text-primary">{formatCurrency(summaryMetrics.totalReceivables + summaryMetrics.pendingReceivables)}</div>
                               <p className="text-xs text-muted-foreground">From open items in forecast period</p>
                           </CardContent>
                       </Card>
@@ -187,7 +223,7 @@ export default function Home() {
                             <div className="flex justify-between gap-4"><span>Manual Inflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualInflows)}</span></div>
                          )}
                         <hr />
-                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalReceivables)}</span></div>
+                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalReceivables + summaryMetrics.pendingReceivables)}</span></div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -199,7 +235,7 @@ export default function Home() {
                               <TrendingDown className="h-4 w-4 text-muted-foreground" />
                           </CardHeader>
                           <CardContent>
-                              <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables)}</div>
+                              <div className="text-2xl font-bold text-destructive">{formatCurrency(summaryMetrics.totalPayables + summaryMetrics.pendingPayables)}</div>
                               <p className="text-xs text-muted-foreground">From open items in forecast period</p>
                           </CardContent>
                       </Card>
@@ -215,7 +251,7 @@ export default function Home() {
                             <div className="flex justify-between gap-4"><span>Manual Outflows:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.manualOutflows)}</span></div>
                          )}
                         <hr />
-                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalPayables)}</span></div>
+                        <div className="flex justify-between gap-4 font-semibold"><span>Net Total:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.totalPayables + summaryMetrics.pendingPayables)}</span></div>
                       </div>
                     </TooltipContent>
                   </Tooltip>
@@ -247,6 +283,7 @@ export default function Home() {
                     Intercompany: summaryMetrics.intercompanyPayables,
                     Manual: summaryMetrics.manualPayables,
                   }}
+                  onSliceClick={(category) => handleSliceClick(category, 'payables')}
                 />
                 <BreakdownChart
                   title="Receivables Breakdown"
@@ -256,6 +293,7 @@ export default function Home() {
                     Intercompany: summaryMetrics.intercompanyReceivables,
                     Manual: summaryMetrics.manualReceivables,
                   }}
+                  onSliceClick={(category) => handleSliceClick(category, 'receivables')}
                 />
               </div>
             </TooltipProvider>
@@ -322,9 +360,9 @@ export default function Home() {
                           <TableBody>
                             {group.items.map((item, index) => (
                               <TableRow key={`in-detail-${index}`}>
-                                <TableCell>{item['Document Number']}</TableCell>
-                                <TableCell>{item.Type}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(item.RemainingAmount)}</TableCell>
+                                <TableCell>{'Document Number' in item ? item['Document Number'] : 'Recurring'}</TableCell>
+                                <TableCell>{'Type' in item ? item.Type : 'Manual'}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency('RemainingAmount' in item ? item.RemainingAmount : item.amount)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -367,9 +405,9 @@ export default function Home() {
                           <TableBody>
                             {group.items.map((item, index) => (
                               <TableRow key={`out-detail-${index}`}>
-                                <TableCell>{item['Document Number']}</TableCell>
-                                <TableCell>{item.Type}</TableCell>
-                                <TableCell className="text-right font-mono">{formatCurrency(item.RemainingAmount)}</TableCell>
+                                <TableCell>{'Document Number' in item ? item['Document Number'] : 'Recurring'}</TableCell>
+                                <TableCell>{'Type' in item ? item.Type : 'Manual'}</TableCell>
+                                <TableCell className="text-right font-mono">{formatCurrency('RemainingAmount' in item ? item.RemainingAmount : item.amount)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -383,6 +421,77 @@ export default function Home() {
               </Accordion>
             </div>
             
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!breakdownDialogData} onOpenChange={() => setBreakdownDialogData(null)}>
+        <DialogContent className="max-w-4xl">
+           <DialogHeader>
+            <DialogTitle>{breakdownDialogData?.title}</DialogTitle>
+            <DialogDescription>
+              A detailed breakdown of all transactions in this category.
+            </DialogDescription>
+          </DialogHeader>
+           <div className="flex items-center justify-end gap-2">
+             <Button variant="ghost" size="sm" onClick={() => requestSort('name')}>
+                Sort by Name
+                <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'name' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+             </Button>
+              <Button variant="ghost" size="sm" onClick={() => requestSort('amount')}>
+                Sort by Amount
+                <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'amount' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+             </Button>
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto mt-4 pr-2">
+            <Accordion type="single" collapsible className="w-full">
+              {breakdownDialogDetails.length > 0 ? (
+                breakdownDialogDetails.map(([name, group]) => (
+                  <AccordionItem value={name} key={`breakdown-${name}`}>
+                    <AccordionTrigger>
+                      <div className="flex justify-between w-full pr-4">
+                        <span>{name}</span>
+                        <span className={`font-mono ${breakdownDialogData?.type === 'inflow' ? 'text-primary' : 'text-destructive'}`}>
+                          {formatCurrency(group.total)}
+                        </span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Document #</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {group.items.map((item, index) => {
+                             let amount;
+                              if ('frequency' in item) { // Manual transaction
+                                  amount = item.amount;
+                              } else { // CashFlowItem
+                                  amount = (item.Type === 'Credit Memo' || item.Type === 'Bill Credit') 
+                                      ? -item.RemainingAmount 
+                                      : item.RemainingAmount;
+                              }
+                            return (
+                            <TableRow key={`bd-detail-${index}`}>
+                              <TableCell>{'Document Number' in item ? item['Document Number'] : 'Recurring'}</TableCell>
+                              <TableCell>{format('dueDate' in item ? item.dueDate : item['Due Date']!, 'dd/MM/yyyy')}</TableCell>
+                              <TableCell>{'Type' in item ? item.Type : 'Manual'}</TableCell>
+                              <TableCell className="text-right font-mono">{formatCurrency(amount)}</TableCell>
+                            </TableRow>
+                          )})}
+                        </TableBody>
+                      </Table>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No transactions in this category.</p>
+              )}
+            </Accordion>
           </div>
         </DialogContent>
       </Dialog>

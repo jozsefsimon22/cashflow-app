@@ -15,6 +15,7 @@ interface BreakdownChartProps {
     Intercompany: number;
     Manual: number;
   };
+  onSliceClick: (category: 'Standard' | 'Intercompany' | 'Manual') => void;
 }
 
 const COLORS = {
@@ -32,7 +33,7 @@ const formatCurrency = (amount: number) => {
     }).format(amount);
 };
 
-export function BreakdownChart({ title, type, data }: BreakdownChartProps) {
+export function BreakdownChart({ title, type, data, onSliceClick }: BreakdownChartProps) {
   const chartData = [
     { name: 'Standard', value: data.Standard },
     { name: 'Intercompany', value: data.Intercompany },
@@ -70,7 +71,7 @@ export function BreakdownChart({ title, type, data }: BreakdownChartProps) {
           {title}
         </CardTitle>
         <CardDescription>
-          A breakdown of all open {type} in the forecast period.
+          A breakdown of all open {type} in the forecast period. Click a slice for details.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -91,6 +92,8 @@ export function BreakdownChart({ title, type, data }: BreakdownChartProps) {
                       innerRadius={60}
                       paddingAngle={5}
                       labelLine={false}
+                      onClick={(data) => onSliceClick(data.name as 'Standard' | 'Intercompany' | 'Manual')}
+                      className="cursor-pointer"
                     >
                       {chartData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[type][index % COLORS[type].length]} />
@@ -103,7 +106,7 @@ export function BreakdownChart({ title, type, data }: BreakdownChartProps) {
             <div className="w-1/2 pl-4 space-y-2 text-sm">
                 <div className="font-bold mb-4">Total: {formatCurrency(totalValue)}</div>
               {chartData.map((entry, index) => (
-                <div key={entry.name} className="flex items-center gap-2">
+                <div key={entry.name} className="flex items-center gap-2 cursor-pointer" onClick={() => onSliceClick(entry.name as 'Standard' | 'Intercompany' | 'Manual')}>
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[type][index] }} />
                   <div className="flex-1 flex justify-between">
                     <span>{entry.name}</span>
