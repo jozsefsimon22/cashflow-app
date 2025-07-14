@@ -39,7 +39,7 @@ export function FileUploader({ onDataUploaded, columnConfig: propColumnConfig }:
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const { setData, setManualTransactions, setExcludedNames, setStartingBalance, setColumnConfig, setIntercompanyNames } = useContext(SettingsContext);
+  const { setData, setManualTransactions, setExcludedNames, setStartingBalance, setColumnConfig, setIntercompanyNames, setPaidManualOccurrences } = useContext(SettingsContext);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,6 +89,18 @@ export function FileUploader({ onDataUploaded, columnConfig: propColumnConfig }:
             startDate: new Date(t.startDate),
         }));
         setManualTransactions(transactionsWithDates);
+        
+        // Also load paid manual occurrences
+        if (sessionData.paidManualOccurrences) {
+            const occurrencesWithDates = sessionData.paidManualOccurrences.map((o: any) => ({
+              ...o,
+              dueDate: new Date(o.dueDate)
+            }));
+            setPaidManualOccurrences(occurrencesWithDates);
+        } else {
+            setPaidManualOccurrences([]);
+        }
+
 
         await sleep(10);
         setProgress(75);
@@ -452,5 +464,3 @@ export function FileUploader({ onDataUploaded, columnConfig: propColumnConfig }:
     </div>
   );
 }
-
-    
