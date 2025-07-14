@@ -22,7 +22,7 @@ import {
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
+const SIDEBAR_WIDTH = "240px"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
@@ -68,14 +68,14 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobileDevice = useIsMobile()
     const [isMounted, setIsMounted] = React.useState(false)
+    const isMobileDevice = useIsMobile()
     const [openMobile, setOpenMobile] = React.useState(false)
 
     React.useEffect(() => {
       setIsMounted(true)
     }, [])
-    
+
     const isMobile = isMounted && isMobileDevice
 
     // This is the internal state of the sidebar.
