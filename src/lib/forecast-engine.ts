@@ -141,8 +141,8 @@ export const calculateWeeklyBreakdown = ({
       intercompanyPayable: overdueIntercompanyAP,
       manualInflows: overdueManualInflowItems as (ManualTransaction & {dueDate: Date})[],
       manualOutflows: overdueManualOutflowItems as (ManualTransaction & {dueDate: Date})[],
-      arItems: [...overdueARItems, ...overdueIntercompanyARItems, ...overdueManualInflowItems],
-      apItems: [...overdueAPItems, ...overdueIntercompanyAPItems, ...overdueManualOutflowItems],
+      arItems: overdueARItems,
+      apItems: overdueAPItems,
       intercompanyArItems: overdueIntercompanyARItems,
       intercompanyApItems: overdueIntercompanyAPItems,
       totalInflow: overdueTotalInflow,
@@ -194,8 +194,8 @@ export const calculateWeeklyBreakdown = ({
             intercompanyPayable,
             manualInflows: manualInflowItems as (ManualTransaction & {dueDate: Date})[],
             manualOutflows: manualOutflowItems as (ManualTransaction & {dueDate: Date})[],
-            arItems: [...arItems, ...intercompanyArItems, ...manualInflowItems],
-            apItems: [...apItems, ...intercompanyApItems, ...manualOutflowItems],
+            arItems,
+            apItems,
             intercompanyArItems,
             intercompanyApItems,
             totalInflow,
@@ -225,7 +225,7 @@ export const calculateForecastMetrics = ({
     const intercompanyNamesSet = new Set(intercompanyNames);
 
     // --- Source Data Preparation ---
-    const summarySourceData = (data || []).filter(item => 
+    const allImportedData = (data || []).filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
       (!applyExclusions || !excludedNamesSet.has(item.Name))
@@ -233,7 +233,7 @@ export const calculateForecastMetrics = ({
     
     const manualDataRaw = generateForecastItems(manualTransactions, paidManualOccurrences);
 
-    const manualDataItems: ForecastItem[] = manualDataRaw
+    const allManualItems: ForecastItem[] = manualDataRaw
         .filter(item => !applyExclusions || !excludedNamesSet.has(item.name))
         .map((t, i) => ({
             ...t,
@@ -246,31 +246,34 @@ export const calculateForecastMetrics = ({
             'Document Number': `manual-${t.id}-${i}`
         }));
 
-    const forecastData = [...summarySourceData.map(i => ({...i, dueDate: i['Due Date']!})), ...manualDataItems];
+    const forecastData = [...allImportedData.map(i => ({...i, dueDate: i['Due Date']!})), ...allManualItems];
     
     // --- Summary Metrics Calculation ---
-    const pendingItems = summarySourceData.filter(item => item.Status === 'Pending Approval');
-    const nonPendingItems = summarySourceData.filter(item => item.Status !== 'Pending Approval');
+    const pendingItems = allImportedData.filter(item => item.Status === 'Pending Approval');
+    const nonPendingItems = allImportedData.filter(item => item.Status !== 'Pending Approval');
     
+    const getImportedAmount = (sum: number, item: CashFlowItem) => {
+      const amount = (item.Type === 'Credit Memo' || item.Type === 'Bill Credit') 
+        ? -item.RemainingAmount 
+        : item.RemainingAmount;
+      return sum + amount;
+    }
+
     // Calculate totals from non-pending data
-    const totalInvoices = nonPendingItems.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalCreditMemos = nonPendingItems.filter(item => item.Type === 'Credit Memo').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBills = nonPendingItems.filter(item => item.Type === 'Bill').reduce((sum, item) => sum + item.RemainingAmount, 0);
-    const totalBillCredits = nonPendingItems.filter(item => item.Type === 'Bill Credit').reduce((sum, item) => sum + item.RemainingAmount, 0);
+    const totalInvoices = nonPendingItems.filter(item => item.Type === 'Invoice' || item.Type === 'Credit Memo').reduce(getImportedAmount, 0);
+    const totalBills = nonPendingItems.filter(item => item.Type === 'Bill' || item.Type === 'Bill Credit').reduce(getImportedAmount, 0);
     
-    const manualInflows = manualDataItems.reduce((sum, item) => item.type === 'inflow' ? sum + item.amount : sum, 0);
-    const manualOutflows = manualDataItems.reduce((sum, item) => item.type === 'outflow' ? sum + item.amount : sum, 0);
+    const manualInflows = allManualItems.reduce((sum, item) => item.type === 'inflow' ? sum + item.amount : sum, 0);
+    const manualOutflows = allManualItems.reduce((sum, item) => item.type === 'outflow' ? sum + item.amount : sum, 0);
 
-    const pendingReceivables = pendingItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
-    const pendingPayables = pendingItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Bill Credit' || item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount), 0);
+    const pendingReceivables = pendingItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce(getImportedAmount, 0);
+    const pendingPayables = pendingItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce(getImportedAmount, 0);
     
-
-    const totalReceivables = (totalInvoices - totalCreditMemos) + pendingReceivables;
-    const totalPayables = (totalBills - totalBillCredits) + pendingPayables;
+    const totalReceivables = totalInvoices;
+    const totalPayables = totalBills;
     
-    const netCashFlow = (totalReceivables + manualInflows) - (totalPayables + manualOutflows);
+    const netCashFlow = (totalReceivables + manualInflows + pendingReceivables) - (totalPayables + manualOutflows + pendingPayables);
     const forecastBalance = startingBalance + netCashFlow;
-
 
     // --- Breakdown chart calculations ---
     const allPayableItems = forecastData.filter(item => ('type' in item ? item.type === 'outflow' : OUTFLOW_TYPES.includes(item.Type)));
@@ -301,16 +304,11 @@ export const calculateForecastMetrics = ({
     const manualReceivables = manualReceivableItems.reduce((sum, item) => sum + getTransactionAmount(item), 0);
     const standardReceivables = standardReceivableItems.reduce((sum, item) => sum + getTransactionAmount(item), 0);
 
-
     const summaryMetrics: SummaryMetrics = { 
         totalReceivables, 
         totalPayables, 
         netCashFlow, 
         forecastBalance, 
-        totalInvoices, 
-        totalCreditMemos, 
-        totalBills, 
-        totalBillCredits, 
         manualInflows,
         manualOutflows,
         pendingReceivables,

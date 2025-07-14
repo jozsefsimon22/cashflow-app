@@ -107,10 +107,6 @@ export interface SummaryMetrics {
     totalPayables: number;
     netCashFlow: number;
     forecastBalance: number;
-    totalInvoices: number;
-    totalCreditMemos: number;
-    totalBills: number;
-    totalBillCredits: number;
     manualInflows: number;
     manualOutflows: number;
     pendingReceivables: number;
