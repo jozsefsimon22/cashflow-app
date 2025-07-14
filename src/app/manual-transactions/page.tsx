@@ -502,5 +502,3 @@ export default function ManualTransactionsPage() {
     </>
   );
 }
-
-    
