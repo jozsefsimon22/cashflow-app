@@ -6,7 +6,7 @@ import type { CashFlowItem, WeeklyDetails, GroupedItems } from '@/types';
 import { BalanceChart } from '@/components/balance-chart';
 import { SummaryTable } from '@/components/summary-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Database, ArrowUpCircle, ArrowDownCircle, GanttChartSquare, Wallet, TrendingUp, TrendingDown, Info } from 'lucide-react';
+import { Database, ArrowUpCircle, ArrowDownCircle, GanttChartSquare, Wallet, TrendingUp, TrendingDown, Info, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SettingsContext } from '@/context/settings-context';
@@ -31,6 +31,10 @@ import { calculateForecastMetrics } from '@/lib/forecast-engine';
 const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
 
+type SortKey = 'name' | 'amount';
+type SortDirection = 'asc' | 'desc';
+
+
 export default function Home() {
   const { 
     data, 
@@ -43,6 +47,7 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
   const [applyExclusions, setApplyExclusions] = useState(true);
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
 
   useEffect(() => {
     setIsClient(true);
@@ -78,9 +83,29 @@ export default function Home() {
       maximumFractionDigits: 2,
     }).format(amount);
   };
+
+  const requestSort = (key: SortKey) => {
+    let direction: SortDirection = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+  
+  const sortGroupedItems = (groupedItems: GroupedItems) => {
+    return Object.entries(groupedItems).sort(([, a], [, b]) => {
+      if (sortConfig.key === 'name') {
+        const nameA = a.items[0]?.Name || '';
+        const nameB = b.items[0]?.Name || '';
+        return nameA.localeCompare(nameB) * (sortConfig.direction === 'asc' ? 1 : -1);
+      }
+      // sort by amount
+      return (a.total - b.total) * (sortConfig.direction === 'asc' ? 1 : -1);
+    });
+  };
   
   const weeklyDetails = useMemo(() => {
-    if (!selectedWeek?.details) return { inflow: {}, outflow: {} };
+    if (!selectedWeek?.details) return { inflow: [], outflow: [] };
 
     const groupItems = (items: CashFlowItem[]): GroupedItems => {
       return items.reduce((acc: GroupedItems, item) => {
@@ -96,12 +121,15 @@ export default function Home() {
 
     const inflowItems = selectedWeek.details.filter(item => INFLOW_TYPES.includes(item.Type));
     const outflowItems = selectedWeek.details.filter(item => OUTFLOW_TYPES.includes(item.Type));
+    
+    const groupedInflows = groupItems(inflowItems);
+    const groupedOutflows = groupItems(outflowItems);
 
     return {
-      inflow: groupItems(inflowItems),
-      outflow: groupItems(outflowItems),
+      inflow: sortGroupedItems(groupedInflows),
+      outflow: sortGroupedItems(groupedOutflows),
     };
-  }, [selectedWeek]);
+  }, [selectedWeek, sortConfig]);
 
   return (
     <>
@@ -149,7 +177,7 @@ export default function Home() {
                     <TooltipContent>
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Receivables Calculation</div>
-                         <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip((summaryMetrics.totalInvoices - summaryMetrics.totalCreditMemos) + summaryMetrics.pendingReceivables)}</span></div>
+                         <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip((summaryMetrics.totalInvoices - summaryMetrics.totalCreditMemos))}</span></div>
                          {summaryMetrics.pendingReceivables > 0 && (
                             <div className="flex justify-between gap-4 pl-4 text-xs"><span className="text-muted-foreground">Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingReceivables)}</span></div>
                          )}
@@ -177,7 +205,7 @@ export default function Home() {
                      <TooltipContent>
                       <div className="p-1 text-sm space-y-2">
                         <div className="font-bold">Payables Calculation</div>
-                        <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip((summaryMetrics.totalBills - summaryMetrics.totalBillCredits) + summaryMetrics.pendingPayables)}</span></div>
+                        <div className="flex justify-between gap-4"><span>From Data:</span> <span className="font-mono">{formatCurrencyTooltip((summaryMetrics.totalBills - summaryMetrics.totalBillCredits))}</span></div>
                          {summaryMetrics.pendingPayables > 0 && (
                             <div className="flex justify-between gap-4 pl-4 text-xs"><span className="text-muted-foreground">Pending Approval:</span> <span className="font-mono">{formatCurrencyTooltip(summaryMetrics.pendingPayables)}</span></div>
                          )}
@@ -226,11 +254,21 @@ export default function Home() {
     <Dialog open={!!selectedWeek} onOpenChange={() => setSelectedWeek(null)}>
         <DialogContent className="max-w-7xl">
           <DialogHeader>
-            <DialogTitle>Details for {selectedWeek?.weekLabel}</DialogTitle>
+            <DialogTitle>{selectedWeek?.weekLabel}</DialogTitle>
             <DialogDescription>
               A breakdown of incoming and outgoing transactions for this week, grouped by name.
             </DialogDescription>
           </DialogHeader>
+          <div className="flex items-center justify-end gap-2">
+             <Button variant="ghost" size="sm" onClick={() => requestSort('name')}>
+                Sort by Name
+                <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'name' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+             </Button>
+              <Button variant="ghost" size="sm" onClick={() => requestSort('amount')}>
+                Sort by Amount
+                <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'amount' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+             </Button>
+          </div>
           <div className="max-h-[60vh] overflow-y-auto mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
             
             {/* Inflow Column */}
@@ -241,8 +279,8 @@ export default function Home() {
               </div>
               <p className="text-2xl font-bold font-mono text-primary">{formatCurrency(selectedWeek?.invoicesDue || 0)}</p>
               <Accordion type="single" collapsible className="w-full">
-                {Object.keys(weeklyDetails.inflow).length > 0 ? (
-                  Object.entries(weeklyDetails.inflow).map(([name, group]) => (
+                {weeklyDetails.inflow.length > 0 ? (
+                  weeklyDetails.inflow.map(([name, group]) => (
                     <AccordionItem value={name} key={`inflow-${name}`}>
                       <AccordionTrigger>
                         <div className="flex justify-between w-full pr-4">
@@ -286,8 +324,8 @@ export default function Home() {
               </div>
               <p className="text-2xl font-bold font-mono text-destructive">{formatCurrency(selectedWeek?.billsDue || 0)}</p>
               <Accordion type="single" collapsible className="w-full">
-                {Object.keys(weeklyDetails.outflow).length > 0 ? (
-                  Object.entries(weeklyDetails.outflow).map(([name, group]) => (
+                {weeklyDetails.outflow.length > 0 ? (
+                  weeklyDetails.outflow.map(([name, group]) => (
                     <AccordionItem value={name} key={`outflow-${name}`}>
                       <AccordionTrigger>
                         <div className="flex justify-between w-full pr-4">
