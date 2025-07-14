@@ -225,10 +225,9 @@ export const calculateForecastMetrics = ({
     const intercompanyNamesSet = new Set(intercompanyNames);
 
     // --- Source Data Preparation ---
-    const includedSourceData = (data || []).filter(item => 
+    const summarySourceData = (data || []).filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
-      (INFLOW_TYPES.includes(item.Type) || OUTFLOW_TYPES.includes(item.Type)) &&
       (!applyExclusions || !excludedNamesSet.has(item.Name))
     );
     
@@ -247,11 +246,11 @@ export const calculateForecastMetrics = ({
             'Document Number': `manual-${t.id}-${i}`
         }));
 
-    const forecastData = [...includedSourceData.map(i => ({...i, dueDate: i['Due Date']!})), ...manualDataItems];
+    const forecastData = [...summarySourceData.map(i => ({...i, dueDate: i['Due Date']!})), ...manualDataItems];
     
     // --- Summary Metrics Calculation ---
-    const pendingItems = includedSourceData.filter(item => item.Status === 'Pending Approval');
-    const nonPendingItems = includedSourceData.filter(item => item.Status !== 'Pending Approval');
+    const pendingItems = summarySourceData.filter(item => item.Status === 'Pending Approval');
+    const nonPendingItems = summarySourceData.filter(item => item.Status !== 'Pending Approval');
     
     // Calculate totals from non-pending data
     const totalInvoices = nonPendingItems.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
@@ -262,14 +261,14 @@ export const calculateForecastMetrics = ({
     const manualInflows = manualDataItems.reduce((sum, item) => item.type === 'inflow' ? sum + item.amount : sum, 0);
     const manualOutflows = manualDataItems.reduce((sum, item) => item.type === 'outflow' ? sum + item.amount : sum, 0);
 
-    const pendingReceivables = pendingItems.filter(item => item.Type === 'Invoice' || item.Type === 'Credit Memo').reduce((sum, item) => sum + ((item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount), 0);
-    const pendingPayables = pendingItems.filter(item => item.Type === 'Bill' || item.Type === 'Bill Credit').reduce((sum, item) => sum + ((item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
+    const pendingReceivables = pendingItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
+    const pendingPayables = pendingItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Bill Credit' || item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount), 0);
     
 
-    const totalReceivables = (totalInvoices - totalCreditMemos);
-    const totalPayables = (totalBills - totalBillCredits);
+    const totalReceivables = (totalInvoices - totalCreditMemos) + pendingReceivables;
+    const totalPayables = (totalBills - totalBillCredits) + pendingPayables;
     
-    const netCashFlow = (totalReceivables + manualInflows + pendingReceivables) - (totalPayables + manualOutflows + pendingPayables);
+    const netCashFlow = (totalReceivables + manualInflows) - (totalPayables + manualOutflows);
     const forecastBalance = startingBalance + netCashFlow;
 
 
