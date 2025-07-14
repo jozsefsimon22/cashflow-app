@@ -44,6 +44,8 @@ export default function BalanceSummaryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'netBalance', direction: 'desc' });
   const [selectedEntity, setSelectedEntity] = useState<BalanceSummary | null>(null);
+  const [balanceFilter, setBalanceFilter] = useState<'all' | 'receivables' | 'payables'>('all');
+
 
   const { forecastData } = useMemo(() => {
     return calculateForecastMetrics({
@@ -106,9 +108,15 @@ export default function BalanceSummaryPage() {
   }, [forecastData]);
   
   const sortedSummary = useMemo(() => {
-    const filteredSummary = balanceSummary.filter(item =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredSummary = balanceSummary
+      .filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .filter(item => {
+        if (balanceFilter === 'receivables') return item.receivables > 0;
+        if (balanceFilter === 'payables') return item.payables > 0;
+        return true;
+      });
 
     return [...filteredSummary].sort((a, b) => {
         const valA = a[sortConfig.key];
@@ -122,7 +130,7 @@ export default function BalanceSummaryPage() {
         }
         return 0;
     });
-  }, [balanceSummary, sortConfig, searchTerm]);
+  }, [balanceSummary, sortConfig, searchTerm, balanceFilter]);
 
   const requestSort = (key: SortKey) => {
     let direction: SortDirection = 'asc';
@@ -130,6 +138,10 @@ export default function BalanceSummaryPage() {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
+  };
+
+  const handleFilterClick = (filter: 'receivables' | 'payables') => {
+    setBalanceFilter(prev => prev === filter ? 'all' : filter);
   };
 
   const SortableHeader = ({ sortKey, children, className }: { sortKey: SortKey, children: React.ReactNode, className?: string }) => {
@@ -192,14 +204,17 @@ export default function BalanceSummaryPage() {
                                 Customer & Vendor Balances
                             </CardTitle>
                             <CardDescription>
-                                A summary of total receivables and payables for each entity. Click a name to see the transaction breakdown.
+                                A summary of total receivables and payables for each entity. Click a card to filter the list below.
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-3 mb-6">
-                      <Card>
+                      <Card
+                        className={cn("cursor-pointer transition-all", balanceFilter === 'receivables' && "ring-2 ring-primary")}
+                        onClick={() => handleFilterClick('receivables')}
+                      >
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <CardTitle className="text-sm font-medium">Total Receivables</CardTitle>
                               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -208,7 +223,10 @@ export default function BalanceSummaryPage() {
                               <div className="text-2xl font-bold text-primary">{formatCurrency(totals.receivables)}</div>
                           </CardContent>
                       </Card>
-                      <Card>
+                      <Card
+                        className={cn("cursor-pointer transition-all", balanceFilter === 'payables' && "ring-2 ring-destructive")}
+                        onClick={() => handleFilterClick('payables')}
+                      >
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <CardTitle className="text-sm font-medium">Total Payables</CardTitle>
                               <TrendingDown className="h-4 w-4 text-muted-foreground" />
@@ -280,7 +298,7 @@ export default function BalanceSummaryPage() {
                               )) : (
                                   <TableRow>
                                       <TableCell colSpan={4} className="text-center h-24">
-                                          No results found matching your search.
+                                          No results found matching your search or filter.
                                       </TableCell>
                                   </TableRow>
                               )}
@@ -324,6 +342,10 @@ export default function BalanceSummaryPage() {
                                 if (!isManual && (item.Type === 'Credit Memo' || item.Type === 'Bill Credit')) {
                                   displayAmount = -amount;
                                 }
+                                if(isManual && item.type === 'outflow') {
+                                    displayAmount = -amount;
+                                }
+
 
                                 return (
                                 <TableRow key={`${docNum}-${index}`}>
