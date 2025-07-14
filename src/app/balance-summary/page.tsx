@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BookUser, ArrowUpDown, Search, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { BookUser, ArrowUpDown, Search, TrendingUp, TrendingDown, Wallet, Users } from "lucide-react";
 import type { CashFlowItem, ManualTransaction, ForecastItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,7 @@ export default function BalanceSummaryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'netBalance', direction: 'desc' });
   const [selectedEntity, setSelectedEntity] = useState<BalanceSummary | null>(null);
-  const [balanceFilter, setBalanceFilter] = useState<'all' | 'receivables' | 'payables'>('all');
+  const [balanceFilter, setBalanceFilter] = useState<'all' | 'receivables' | 'payables' | 'both'>('all');
 
 
   const { forecastData } = useMemo(() => {
@@ -124,6 +124,7 @@ export default function BalanceSummaryPage() {
       .filter(item => {
         if (balanceFilter === 'receivables') return item.receivables > 0;
         if (balanceFilter === 'payables') return item.payables > 0;
+        if (balanceFilter === 'both') return item.receivables > 0 && item.payables > 0;
         return true;
       });
 
@@ -149,8 +150,12 @@ export default function BalanceSummaryPage() {
     setSortConfig({ key, direction });
   };
 
-  const handleFilterClick = (filter: 'receivables' | 'payables') => {
+  const handleCardFilterClick = (filter: 'receivables' | 'payables') => {
     setBalanceFilter(prev => prev === filter ? 'all' : filter);
+  };
+  
+  const handleBothFilterClick = () => {
+    setBalanceFilter(prev => prev === 'both' ? 'all' : 'both');
   };
 
   const SortableHeader = ({ sortKey, children, className }: { sortKey: SortKey, children: React.ReactNode, className?: string }) => {
@@ -222,7 +227,7 @@ export default function BalanceSummaryPage() {
                   <div className="grid gap-4 md:grid-cols-3 mb-6">
                       <Card
                         className={cn("cursor-pointer transition-all", balanceFilter === 'receivables' && "ring-2 ring-primary")}
-                        onClick={() => handleFilterClick('receivables')}
+                        onClick={() => handleCardFilterClick('receivables')}
                       >
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <CardTitle className="text-sm font-medium">Total Receivables</CardTitle>
@@ -234,7 +239,7 @@ export default function BalanceSummaryPage() {
                       </Card>
                       <Card
                         className={cn("cursor-pointer transition-all", balanceFilter === 'payables' && "ring-2 ring-destructive")}
-                        onClick={() => handleFilterClick('payables')}
+                        onClick={() => handleCardFilterClick('payables')}
                       >
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                               <CardTitle className="text-sm font-medium">Total Payables</CardTitle>
@@ -258,14 +263,23 @@ export default function BalanceSummaryPage() {
                   </div>
 
                   <div className="mb-4 flex items-center justify-between">
-                      <div className="relative max-w-sm">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                              placeholder="Search by name..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="pl-10"
-                          />
+                      <div className="flex items-center gap-2">
+                          <div className="relative max-w-sm">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input 
+                                  placeholder="Search by name..."
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
+                                  className="pl-10"
+                              />
+                          </div>
+                          <Button 
+                            variant={balanceFilter === 'both' ? 'secondary' : 'outline'} 
+                            onClick={handleBothFilterClick}
+                            >
+                            <Users className="w-4 h-4 mr-2" />
+                            Show Both
+                          </Button>
                       </div>
                       <div className="flex items-center space-x-2">
                           <Switch
