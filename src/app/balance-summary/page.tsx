@@ -7,7 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BookUser, ArrowUpDown, Search, TrendingUp, TrendingDown, Wallet, Users } from "lucide-react";
+import { BookUser, ArrowUpDown, Search, TrendingUp, TrendingDown, Wallet, Users, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import type { CashFlowItem, ManualTransaction, ForecastItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +70,6 @@ export default function BalanceSummaryPage() {
 
       const isReceivableItem = 'type' in item ? item.type === 'inflow' : ['Invoice', 'Credit Memo'].includes(item.Type);
       
-      // If it's a receivable name that is paired, use the corresponding payable name for grouping.
       if (isReceivableItem && receivableToPayableMap.has(name)) {
         name = receivableToPayableMap.get(name)!;
       }
@@ -81,26 +80,26 @@ export default function BalanceSummaryPage() {
       balances[name].items.push(item);
       
       let amount;
-      if ('frequency' in item) { // ManualTransaction
+      if ('frequency' in item) { 
         amount = item.amount;
         if (item.type === 'inflow') {
           balances[name].receivables += amount;
         } else {
           balances[name].payables += amount;
         }
-      } else { // CashFlowItem
+      } else {
         amount = item.RemainingAmount;
         switch (item.Type) {
           case 'Invoice':
             balances[name].receivables += amount;
             break;
-          case 'Credit Memo': // Reduces what you are owed
+          case 'Credit Memo':
             balances[name].receivables -= amount;
             break;
           case 'Bill':
             balances[name].payables += amount;
             break;
-          case 'Bill Credit': // Reduces what you owe
+          case 'Bill Credit':
             balances[name].payables -= amount;
             break;
         }
@@ -199,6 +198,15 @@ export default function BalanceSummaryPage() {
         return acc;
     }, { receivables: 0, payables: 0, netBalance: 0});
   }, [balanceSummary]);
+  
+  const dialogDetails = useMemo(() => {
+      if (!selectedEntity) return { receivables: [], payables: [] };
+
+      const receivables = selectedEntity.items.filter(item => 'type' in item ? item.type === 'inflow' : ['Invoice', 'Credit Memo'].includes(item.Type));
+      const payables = selectedEntity.items.filter(item => 'type' in item ? item.type === 'outflow' : ['Bill', 'Bill Credit'].includes(item.Type));
+
+      return { receivables, payables };
+  }, [selectedEntity]);
 
 
   return (
@@ -342,49 +350,85 @@ export default function BalanceSummaryPage() {
                         A complete list of open transactions that make up this entity's balance.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="max-h-[60vh] overflow-y-auto">
-                    <Table>
-                        <TableHeader className="sticky top-0 bg-background z-10">
-                            <TableRow>
-                                <TableHead>Document #</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Due Date</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {selectedEntity.items.map((item, index) => {
-                                const isManual = 'frequency' in item;
-                                const docNum = isManual ? 'Manual' : item['Document Number'];
-                                const type = isManual ? (item.type === 'inflow' ? 'Manual Inflow' : 'Manual Outflow') : item.Type;
-                                const dueDate = isManual ? item.dueDate : item['Due Date'];
-                                const amount = isManual ? item.amount : item.RemainingAmount;
-
-                                const isReceivable = isManual ? item.type === 'inflow' : ['Invoice', 'Credit Memo'].includes(item.Type);
-                                let displayAmount = amount;
-                                if (!isManual && (item.Type === 'Credit Memo' || item.Type === 'Bill Credit')) {
-                                  displayAmount = -amount;
-                                }
-                                if(isManual && item.type === 'outflow') {
-                                    displayAmount = -amount;
-                                }
-
-
-                                return (
-                                <TableRow key={`${docNum}-${index}`}>
-                                    <TableCell>{docNum}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={isReceivable ? "outline" : "secondary"} className={cn(isReceivable ? "border-primary text-primary" : "border-destructive text-destructive")}>{type}</Badge>
-                                    </TableCell>
-                                    <TableCell>{formatDateDialog(dueDate)}</TableCell>
-                                    <TableCell className={cn("text-right font-mono", isReceivable ? "text-primary" : "text-destructive")}>
-                                      {formatCurrencyDialog(displayAmount)}
-                                    </TableCell>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[60vh] overflow-y-auto py-4">
+                    
+                    {/* Receivables Column */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <ArrowUpCircle className="w-6 h-6 text-primary" />
+                            <h3 className="text-lg font-bold text-primary">Receivables</h3>
+                        </div>
+                        <p className="font-mono text-xl font-bold text-primary mb-4">{formatCurrency(selectedEntity.receivables)}</p>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Doc #</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead className="text-right">Amount</TableHead>
                                 </TableRow>
-                                )
-                            })}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {dialogDetails.receivables.length > 0 ? dialogDetails.receivables.map((item, index) => {
+                                    const isManual = 'frequency' in item;
+                                    const docNum = isManual ? 'Manual' : item['Document Number'];
+                                    const type = isManual ? 'Manual Inflow' : item.Type;
+                                    const amount = isManual ? item.amount : item.RemainingAmount;
+                                    const displayAmount = !isManual && item.Type === 'Credit Memo' ? -amount : amount;
+
+                                    return (
+                                        <TableRow key={`receivable-${docNum}-${index}`}>
+                                            <TableCell>{docNum}</TableCell>
+                                            <TableCell><Badge variant="outline" className="border-primary text-primary">{type}</Badge></TableCell>
+                                            <TableCell className="text-right font-mono">{formatCurrencyDialog(displayAmount)}</TableCell>
+                                        </TableRow>
+                                    );
+                                }) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center h-24">No receivables.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Payables Column */}
+                     <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <ArrowDownCircle className="w-6 h-6 text-destructive" />
+                            <h3 className="text-lg font-bold text-destructive">Payables</h3>
+                        </div>
+                        <p className="font-mono text-xl font-bold text-destructive mb-4">{formatCurrency(selectedEntity.payables)}</p>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Doc #</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead className="text-right">Amount</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {dialogDetails.payables.length > 0 ? dialogDetails.payables.map((item, index) => {
+                                     const isManual = 'frequency' in item;
+                                     const docNum = isManual ? 'Manual' : item['Document Number'];
+                                     const type = isManual ? 'Manual Outflow' : item.Type;
+                                     const amount = isManual ? item.amount : item.RemainingAmount;
+                                     const displayAmount = !isManual && item.Type === 'Bill Credit' ? -amount : amount;
+
+                                    return (
+                                        <TableRow key={`payable-${docNum}-${index}`}>
+                                            <TableCell>{docNum}</TableCell>
+                                            <TableCell><Badge variant="secondary" className="border-destructive text-destructive">{type}</Badge></TableCell>
+                                            <TableCell className="text-right font-mono">{formatCurrencyDialog(displayAmount)}</TableCell>
+                                        </TableRow>
+                                    );
+                                }) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center h-24">No payables.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
                 </>
             )}
@@ -393,3 +437,4 @@ export default function BalanceSummaryPage() {
     </>
   );
 }
+
