@@ -91,13 +91,6 @@ export const calculateWeeklyBreakdown = ({
         .filter(item => (!applyExclusions || !excludedNamesSet.has(item.name)));
 
     const getTransactionName = (item: CashFlowItem | ManualTransaction & {dueDate: Date}) => 'frequency' in item ? item.name : item.Name;
-    const getAmount = (item: any) => {
-        if ('frequency' in item) { // Manual transaction
-            return item.amount;
-        }
-        // Imported data item
-        return (item.Type === 'Bill Credit' || item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount;
-    };
     
     const allItems: ForecastItem[] = [
         ...fileData.map(item => ({...item, dueDate: item['Due Date']!})), 
@@ -110,18 +103,33 @@ export const calculateWeeklyBreakdown = ({
     // --- Overdue Calculation ---
     const overdueItems = allItems.filter(item => isBefore(item.dueDate, today));
 
-    const overdueARItems = overdueItems.filter(i => INFLOW_TYPES.includes('Type' in i ? i.Type : (i.type === 'inflow' ? 'Invoice' : 'Bill')) && !intercompanyNamesSet.has(getTransactionName(i)));
-    const overdueIntercompanyARItems = overdueItems.filter(i => INFLOW_TYPES.includes('Type' in i ? i.Type : (i.type === 'inflow' ? 'Invoice' : 'Bill')) && intercompanyNamesSet.has(getTransactionName(i)));
-    const overdueAPItems = overdueItems.filter(i => OUTFLOW_TYPES.includes('Type' in i ? i.Type : (i.type === 'inflow' ? 'Invoice' : 'Bill')) && !intercompanyNamesSet.has(getTransactionName(i)));
-    const overdueIntercompanyAPItems = overdueItems.filter(i => OUTFLOW_TYPES.includes('Type' in i ? i.Type : (i.type === 'inflow' ? 'Invoice' : 'Bill')) && intercompanyNamesSet.has(getTransactionName(i)));
+    const getAmount = (sum: number, item: ForecastItem) => {
+        if ('frequency' in item) { // Manual transaction - always positive, direction is handled by type
+            return sum + item.amount;
+        }
+        // Imported data item
+        const amount = (item.Type === 'Bill Credit' || item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount;
+        return sum + amount;
+    };
     
-    const overdueAR = overdueARItems.reduce((sum, item) => sum + getAmount(item), 0);
-    const overdueIntercompanyAR = overdueIntercompanyARItems.reduce((sum, item) => sum + getAmount(item), 0);
-    const overdueAP = overdueAPItems.reduce((sum, item) => sum + getAmount(item), 0);
-    const overdueIntercompanyAP = overdueIntercompanyAPItems.reduce((sum, item) => sum + getAmount(item), 0);
+    const overdueARItems = overdueItems.filter(i => ('Type' in i && (i.Type === 'Invoice' || i.Type === 'Credit Memo')) && !intercompanyNamesSet.has(getTransactionName(i)));
+    const overdueIntercompanyARItems = overdueItems.filter(i => ('Type' in i && (i.Type === 'Invoice' || i.Type === 'Credit Memo')) && intercompanyNamesSet.has(getTransactionName(i)));
+    const overdueManualInflowItems = overdueItems.filter(i => ('type' in i && i.type === 'inflow'));
+    
+    const overdueAPItems = overdueItems.filter(i => ('Type' in i && (i.Type === 'Bill' || i.Type === 'Bill Credit')) && !intercompanyNamesSet.has(getTransactionName(i)));
+    const overdueIntercompanyAPItems = overdueItems.filter(i => ('Type' in i && (i.Type === 'Bill' || i.Type === 'Bill Credit')) && intercompanyNamesSet.has(getTransactionName(i)));
+    const overdueManualOutflowItems = overdueItems.filter(i => ('type' in i && i.type === 'outflow'));
 
-    const overdueTotalInflow = overdueAR + overdueIntercompanyAR;
-    const overdueTotalOutflow = overdueAP + overdueIntercompanyAP;
+    const overdueAR = overdueARItems.reduce(getAmount, 0);
+    const overdueIntercompanyAR = overdueIntercompanyARItems.reduce(getAmount, 0);
+    const overdueManualInflows = overdueManualInflowItems.reduce(getAmount, 0);
+    
+    const overdueAP = overdueAPItems.reduce(getAmount, 0);
+    const overdueIntercompanyAP = overdueIntercompanyAPItems.reduce(getAmount, 0);
+    const overdueManualOutflows = overdueManualOutflowItems.reduce(getAmount, 0);
+
+    const overdueTotalInflow = overdueAR + overdueIntercompanyAR + overdueManualInflows;
+    const overdueTotalOutflow = overdueAP + overdueIntercompanyAP + overdueManualOutflows;
     const overdueNetFlow = overdueTotalInflow - overdueTotalOutflow;
     currentBalance += overdueNetFlow;
 
@@ -131,10 +139,10 @@ export const calculateWeeklyBreakdown = ({
       intercompanyReceivable: overdueIntercompanyAR,
       accountsPayable: overdueAP,
       intercompanyPayable: overdueIntercompanyAP,
-      manualInflows: overdueItems.filter(t => 'frequency' in t && t.type === 'inflow') as (ManualTransaction & {dueDate: Date})[],
-      manualOutflows: overdueItems.filter(t => 'frequency' in t && t.type === 'outflow') as (ManualTransaction & {dueDate: Date})[],
-      arItems: overdueARItems,
-      apItems: overdueAPItems,
+      manualInflows: overdueManualInflowItems as (ManualTransaction & {dueDate: Date})[],
+      manualOutflows: overdueManualOutflowItems as (ManualTransaction & {dueDate: Date})[],
+      arItems: [...overdueARItems, ...overdueIntercompanyARItems, ...overdueManualInflowItems],
+      apItems: [...overdueAPItems, ...overdueIntercompanyAPItems, ...overdueManualOutflowItems],
       intercompanyArItems: overdueIntercompanyARItems,
       intercompanyApItems: overdueIntercompanyAPItems,
       totalInflow: overdueTotalInflow,
@@ -156,18 +164,24 @@ export const calculateWeeklyBreakdown = ({
 
         const weekItems = futureItems.filter(item => isWithinInterval(item.dueDate, { start: weekStart, end: weekEnd }));
         
-        const arItems = weekItems.filter(i => INFLOW_TYPES.includes('Type' in i ? i.Type : (i.type === 'inflow' ? 'Invoice' : 'Bill')) && !intercompanyNamesSet.has(getTransactionName(i)));
-        const intercompanyArItems = weekItems.filter(i => INFLOW_TYPES.includes('Type' in i ? i.Type : (i.type === 'inflow' ? 'Invoice' : 'Bill')) && intercompanyNamesSet.has(getTransactionName(i)));
-        const apItems = weekItems.filter(i => OUTFLOW_TYPES.includes('Type' in i ? i.Type : (i.type === 'inflow' ? 'Invoice' : 'Bill')) && !intercompanyNamesSet.has(getTransactionName(i)));
-        const intercompanyApItems = weekItems.filter(i => OUTFLOW_TYPES.includes('Type' in i ? i.Type : (i.type === 'inflow' ? 'Invoice' : 'Bill')) && intercompanyNamesSet.has(getTransactionName(i)));
+        const arItems = weekItems.filter(item => ('Type' in item && (item.Type === 'Invoice' || item.Type === 'Credit Memo')) && !intercompanyNamesSet.has(getTransactionName(item)));
+        const intercompanyArItems = weekItems.filter(item => ('Type' in item && (item.Type === 'Invoice' || item.Type === 'Credit Memo')) && intercompanyNamesSet.has(getTransactionName(item)));
+        const manualInflowItems = weekItems.filter(item => 'type' in item && item.type === 'inflow');
 
-        const accountsReceivable = arItems.reduce((sum, item) => sum + getAmount(item), 0);
-        const intercompanyReceivable = intercompanyArItems.reduce((sum, item) => sum + getAmount(item), 0);
-        const accountsPayable = apItems.reduce((sum, item) => sum + getAmount(item), 0);
-        const intercompanyPayable = intercompanyApItems.reduce((sum, item) => sum + getAmount(item), 0);
+        const apItems = weekItems.filter(item => ('Type' in item && (item.Type === 'Bill' || item.Type === 'Bill Credit')) && !intercompanyNamesSet.has(getTransactionName(item)));
+        const intercompanyApItems = weekItems.filter(item => ('Type' in item && (item.Type === 'Bill' || item.Type === 'Bill Credit')) && intercompanyNamesSet.has(getTransactionName(item)));
+        const manualOutflowItems = weekItems.filter(item => 'type' in item && item.type === 'outflow');
+        
+        const accountsReceivable = arItems.reduce(getAmount, 0);
+        const intercompanyReceivable = intercompanyArItems.reduce(getAmount, 0);
+        const manualInflows = manualInflowItems.reduce(getAmount, 0);
 
-        const totalInflow = accountsReceivable + intercompanyReceivable;
-        const totalOutflow = accountsPayable + intercompanyPayable;
+        const accountsPayable = apItems.reduce(getAmount, 0);
+        const intercompanyPayable = intercompanyApItems.reduce(getAmount, 0);
+        const manualOutflows = manualOutflowItems.reduce(getAmount, 0);
+
+        const totalInflow = accountsReceivable + intercompanyReceivable + manualInflows;
+        const totalOutflow = accountsPayable + intercompanyPayable + manualOutflows;
         
         const netFlow = totalInflow - totalOutflow;
         currentBalance += netFlow;
@@ -178,10 +192,10 @@ export const calculateWeeklyBreakdown = ({
             intercompanyReceivable,
             accountsPayable,
             intercompanyPayable,
-            manualInflows: weekItems.filter(t => 'frequency' in t && t.type === 'inflow') as (ManualTransaction & {dueDate: Date})[],
-            manualOutflows: weekItems.filter(t => 'frequency' in t && t.type === 'outflow') as (ManualTransaction & {dueDate: Date})[],
-            arItems,
-            apItems,
+            manualInflows: manualInflowItems as (ManualTransaction & {dueDate: Date})[],
+            manualOutflows: manualOutflowItems as (ManualTransaction & {dueDate: Date})[],
+            arItems: [...arItems, ...intercompanyArItems, ...manualInflowItems],
+            apItems: [...apItems, ...intercompanyApItems, ...manualOutflowItems],
             intercompanyArItems,
             intercompanyApItems,
             totalInflow,
@@ -211,7 +225,7 @@ export const calculateForecastMetrics = ({
     const intercompanyNamesSet = new Set(intercompanyNames);
 
     // --- Source Data Preparation ---
-    const summarySourceData = (data || []).filter(item => 
+    const includedSourceData = (data || []).filter(item => 
       item.Status && 
       INCLUDED_STATUSES.includes(item.Status) &&
       (INFLOW_TYPES.includes(item.Type) || OUTFLOW_TYPES.includes(item.Type)) &&
@@ -233,11 +247,11 @@ export const calculateForecastMetrics = ({
             'Document Number': `manual-${t.id}-${i}`
         }));
 
-    const forecastData = [...summarySourceData.map(i => ({...i, dueDate: i['Due Date']!})), ...manualDataItems];
+    const forecastData = [...includedSourceData.map(i => ({...i, dueDate: i['Due Date']!})), ...manualDataItems];
     
     // --- Summary Metrics Calculation ---
-    const pendingItems = summarySourceData.filter(item => item.Status === 'Pending Approval');
-    const nonPendingItems = summarySourceData.filter(item => item.Status !== 'Pending Approval');
+    const pendingItems = includedSourceData.filter(item => item.Status === 'Pending Approval');
+    const nonPendingItems = includedSourceData.filter(item => item.Status !== 'Pending Approval');
     
     // Calculate totals from non-pending data
     const totalInvoices = nonPendingItems.filter(item => item.Type === 'Invoice').reduce((sum, item) => sum + item.RemainingAmount, 0);
@@ -248,13 +262,14 @@ export const calculateForecastMetrics = ({
     const manualInflows = manualDataItems.reduce((sum, item) => item.type === 'inflow' ? sum + item.amount : sum, 0);
     const manualOutflows = manualDataItems.reduce((sum, item) => item.type === 'outflow' ? sum + item.amount : sum, 0);
 
-    const pendingReceivables = pendingItems.filter(item => INFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
-    const pendingPayables = pendingItems.filter(item => OUTFLOW_TYPES.includes(item.Type)).reduce((sum, item) => sum + ((item.Type === 'Credit Memo' || item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
-
-    const totalReceivables = (totalInvoices - totalCreditMemos) + manualInflows;
-    const totalPayables = (totalBills - totalBillCredits) + manualOutflows;
+    const pendingReceivables = pendingItems.filter(item => item.Type === 'Invoice' || item.Type === 'Credit Memo').reduce((sum, item) => sum + ((item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount), 0);
+    const pendingPayables = pendingItems.filter(item => item.Type === 'Bill' || item.Type === 'Bill Credit').reduce((sum, item) => sum + ((item.Type === 'Bill Credit') ? -item.RemainingAmount : item.RemainingAmount), 0);
     
-    const netCashFlow = totalReceivables + pendingReceivables - (totalPayables + pendingPayables);
+
+    const totalReceivables = (totalInvoices - totalCreditMemos);
+    const totalPayables = (totalBills - totalBillCredits);
+    
+    const netCashFlow = (totalReceivables + manualInflows + pendingReceivables) - (totalPayables + manualOutflows + pendingPayables);
     const forecastBalance = startingBalance + netCashFlow;
 
 

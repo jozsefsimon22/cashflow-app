@@ -2,7 +2,7 @@
 "use client";
 
 import { useContext, useEffect, useState, useMemo } from 'react';
-import type { CashFlowItem, ManualTransaction, WeeklyBreakdown, GroupedItems } from '@/types';
+import type { CashFlowItem, ManualTransaction, WeeklyBreakdown, GroupedItems, ForecastItem } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDown, Users } from 'lucide-react';
 import { SettingsContext } from "@/context/settings-context";
@@ -27,7 +27,7 @@ import { calculateWeeklyBreakdown } from '@/lib/forecast-engine';
 
 interface DialogDetails {
     title: string;
-    items: (CashFlowItem | (ManualTransaction & { dueDate: Date }))[];
+    items: ForecastItem[];
     total: number;
     type: 'inflow' | 'outflow';
     pendingTotal: number;
@@ -73,21 +73,24 @@ export default function WeeklyViewPage() {
 
   const uniqueManualInflows = useMemo(() => {
     const seen = new Set();
-    return manualTransactions.filter(t => t.type === 'inflow').filter(t => {
+    const allManuals = weeklyBreakdown.flatMap(w => w.manualInflows);
+    return allManuals.filter(t => {
       const duplicate = seen.has(t.name);
       seen.add(t.name);
       return !duplicate;
     });
-  }, [manualTransactions]);
+  }, [weeklyBreakdown]);
 
   const uniqueManualOutflows = useMemo(() => {
     const seen = new Set();
-    return manualTransactions.filter(t => t.type === 'outflow').filter(t => {
+    const allManuals = weeklyBreakdown.flatMap(w => w.manualOutflows);
+    return allManuals.filter(t => {
       const duplicate = seen.has(t.name);
       seen.add(t.name);
       return !duplicate;
     });
-  }, [manualTransactions]);
+  }, [weeklyBreakdown]);
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -103,7 +106,7 @@ export default function WeeklyViewPage() {
   }
 
   const handleCellClick = (details: Omit<DialogDetails, 'pendingTotal'>) => {
-    if(details.total > 0 || details.items.length > 0) {
+    if(details.items.length > 0) {
         const pendingTotal = details.items
             .filter(item => 'Status' in item && item.Status === 'Pending Approval')
             .reduce((sum, item) => {
@@ -114,7 +117,7 @@ export default function WeeklyViewPage() {
                 return sum + amount;
             }, 0);
 
-        setDialogDetails({ ...details, pendingTotal });
+        setDialogDetails({ ...details, pendingTotal, total: details.total });
     }
   }
 
@@ -138,6 +141,7 @@ export default function WeeklyViewPage() {
         let amount;
         if (isManual) {
             amount = (item as ManualTransaction).amount;
+            if (dialogDetails.type === 'outflow') amount = -amount;
         } else {
             const cashFlowItem = item as CashFlowItem;
             amount = (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') 
@@ -153,7 +157,7 @@ export default function WeeklyViewPage() {
         return acc;
       }, {});
       
-      const getName = (item: (CashFlowItem | (ManualTransaction & { dueDate: Date }))): string => {
+      const getName = (item: (ForecastItem)): string => {
         if (!item) return '';
         const isManual = 'frequency' in item;
         const name = isManual ? (item as ManualTransaction).name : (item as CashFlowItem).Name;
@@ -286,8 +290,8 @@ export default function WeeklyViewPage() {
                                             </div>
                                         </TableCell>
                                         {weeklyBreakdown.map((week, index) => {
-                                            const manualInflowTotal = week.manualInflows.filter(t => t.name === manualInflow.name).reduce((sum, t) => sum + t.amount, 0);
                                             const items = week.manualInflows.filter(t => t.name === manualInflow.name);
+                                            const manualInflowTotal = items.reduce((sum, t) => sum + t.amount, 0);
                                             return (
                                                 <TableCell 
                                                     key={index} 
@@ -381,8 +385,8 @@ export default function WeeklyViewPage() {
                                             </div>
                                         </TableCell>
                                         {weeklyBreakdown.map((week, index) => {
-                                            const manualOutflowTotal = week.manualOutflows.filter(t => t.name === manualOutflow.name).reduce((sum, t) => sum + t.amount, 0);
                                             const items = week.manualOutflows.filter(t => t.name === manualOutflow.name);
+                                            const manualOutflowTotal = items.reduce((sum, t) => sum + t.amount, 0);
                                             return (
                                                 <TableCell 
                                                     key={index} 
@@ -489,7 +493,7 @@ export default function WeeklyViewPage() {
                   {dialogDetails?.type === 'inflow' ? <ArrowUpCircle className="w-6 h-6" /> : <ArrowDownCircle className="w-6 h-6" />}
                   <span>Total: {formatCurrency(dialogDetails?.total || 0)}</span>
               </div>
-              {dialogDetails && dialogDetails.pendingTotal > 0 && (
+              {dialogDetails && dialogDetails.pendingTotal !== 0 && (
                   <p className="text-sm text-muted-foreground mt-1">
                       (Pending Approval: {formatCurrency(dialogDetails.pendingTotal)})
                   </p>
