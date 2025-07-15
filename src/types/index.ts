@@ -151,3 +151,15 @@ export interface NamePair {
   receivableName: string;
   payableName: string;
 }
+
+export interface PeriodMetrics {
+    receivables: number;
+    payables: number;
+    net: number;
+    standardReceivables: number;
+    intercompanyReceivables: number;
+    manualReceivables: number;
+    standardPayables: number;
+    intercompanyPayables: number;
+    manualPayables: number;
+}
