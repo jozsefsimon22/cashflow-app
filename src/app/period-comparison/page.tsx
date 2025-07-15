@@ -64,40 +64,24 @@ const calculateMetricsForPeriod = (
         const isIntercompany = intercompanyNamesSet.has(cashFlowItem.Name);
         const amount = cashFlowItem.Amount;
 
-        if (cashFlowItem.Type === 'Invoice') {
-            metrics.receivables += amount;
+        if (cashFlowItem.Type === 'Invoice' || cashFlowItem.Type === 'Credit Memo') {
+            const value = cashFlowItem.Type === 'Invoice' ? amount : -amount;
+            metrics.receivables += value;
             if (isIntercompany) {
-                metrics.intercompanyReceivables += amount;
+                metrics.intercompanyReceivables += value;
                 metrics.intercompanyReceivablesItems.push(item);
             } else {
-                metrics.standardReceivables += amount;
+                metrics.standardReceivables += value;
                 metrics.standardReceivablesItems.push(item);
             }
-        } else if (cashFlowItem.Type === 'Credit Memo') {
-            metrics.receivables -= amount;
-            if (isIntercompany) {
-                metrics.intercompanyReceivables -= amount;
-                metrics.intercompanyReceivablesItems.push(item);
-            } else {
-                metrics.standardReceivables -= amount;
-                metrics.standardReceivablesItems.push(item);
-            }
-        } else if (cashFlowItem.Type === 'Bill') {
-            metrics.payables += amount;
+        } else if (cashFlowItem.Type === 'Bill' || cashFlowItem.Type === 'Bill Credit') {
+            const value = cashFlowItem.Type === 'Bill' ? amount : -amount;
+            metrics.payables += value;
              if (isIntercompany) {
-                metrics.intercompanyPayables += amount;
+                metrics.intercompanyPayables += value;
                 metrics.intercompanyPayablesItems.push(item);
             } else {
-                metrics.standardPayables += amount;
-                metrics.standardPayablesItems.push(item);
-            }
-        } else if (cashFlowItem.Type === 'Bill Credit') {
-            metrics.payables -= amount;
-            if (isIntercompany) {
-                metrics.intercompanyPayables -= amount;
-                metrics.intercompanyPayablesItems.push(item);
-            } else {
-                metrics.standardPayables -= amount;
+                metrics.standardPayables += value;
                 metrics.standardPayablesItems.push(item);
             }
         }
@@ -222,7 +206,14 @@ export default function PeriodComparisonPage() {
         const processItems = (items: ForecastItem[], factor: 1 | -1) => {
             items.forEach(item => {
                 const name = getItemName(item);
-                const amount = getAmount(item);
+                let amount = getAmount(item);
+                if (!('frequency' in item)) { // CashFlowItem
+                    const cashFlowItem = item as CashFlowItem;
+                    if (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') {
+                        amount = -amount;
+                    }
+                }
+                
                 if (!changesByName[name]) {
                     changesByName[name] = { name, netChange: 0, newItems: [], closedItems: [] };
                 }
