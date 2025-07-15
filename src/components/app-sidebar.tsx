@@ -25,6 +25,7 @@ import {
   Medal,
   BookUser,
   Link2,
+  Scale,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -33,6 +34,7 @@ interface AppSidebarProps {
     | 'weekly-view'
     | 'customer-scorecard'
     | 'balance-summary'
+    | 'period-comparison'
     | 'data'
     | 'manual-transactions'
     | 'exclusions'
@@ -86,6 +88,14 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                     <Link href="/balance-summary">
                     <BookUser />
                     <span>Balance Summary</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={activePage === 'period-comparison'}>
+                    <Link href="/period-comparison">
+                    <Scale />
+                    <span>Period Comparison</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
