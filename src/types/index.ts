@@ -173,6 +173,10 @@ export interface PeriodMetrics {
 
 export interface DiffDialogDetails {
     title: string;
-    newItems: ForecastItem[];
-    closedItems: ForecastItem[];
+    customerChanges: {
+        name: string;
+        netChange: number;
+        newItems: ForecastItem[];
+        closedItems: ForecastItem[];
+    }[];
 }
