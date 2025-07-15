@@ -32,6 +32,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
 const INFLOW_TYPES: (CashFlowItem['Type'])[] = ['Invoice', 'Bill Credit'];
 const OUTFLOW_TYPES: (CashFlowItem['Type'])[] = ['Bill', 'Credit Memo'];
+const ROWS_PER_PAGE = 50;
 
 type SortKey = keyof CashFlowItem | 'Installment Number';
 
@@ -45,6 +46,7 @@ export default function DataPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     setIsClient(true);
@@ -77,6 +79,7 @@ export default function DataPage() {
   
   const filteredData = useMemo(() => {
     if (!isClient || !data) return [];
+    setCurrentPage(1); // Reset to first page on filter change
     
     return data.filter(item => {
       const searchTermLower = searchTerm.toLowerCase();
@@ -114,6 +117,16 @@ export default function DataPage() {
     }
     return sortableItems;
   }, [filteredData, sortConfig]);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
+    return sortedData.slice(startIndex, startIndex + ROWS_PER_PAGE);
+  }, [sortedData, currentPage]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(sortedData.length / ROWS_PER_PAGE);
+  }, [sortedData]);
+
 
   const requestSort = (key: SortKey) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -261,8 +274,8 @@ export default function DataPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {isClient && sortedData.length > 0 ? (
-                        sortedData.map((item, index) => {
+                      {isClient && paginatedData.length > 0 ? (
+                        paginatedData.map((item, index) => {
                           const isIncluded = item.Status && INCLUDED_STATUSES.includes(item.Status);
                           return (
                             <TableRow key={index} className={!isIncluded ? 'bg-muted/50' : ''}>
@@ -304,6 +317,27 @@ export default function DataPage() {
                     </TableBody>
                   </Table>
                 </div>
+                 <div className="flex items-center justify-end space-x-2 py-4">
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -330,3 +364,5 @@ export default function DataPage() {
     </>
   );
 }
+
+    
