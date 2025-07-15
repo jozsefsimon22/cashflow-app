@@ -2,7 +2,7 @@
 "use client";
 
 import { useContext, useMemo, useState } from "react";
-import { format, isBefore, isEqual } from 'date-fns';
+import { format, isBefore, isEqual, isAfter } from 'date-fns';
 import { SettingsContext } from "@/context/settings-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -29,22 +29,31 @@ const calculateMetricsUpToDate = (data: CashFlowItem[] | null, upToDate: Date | 
         return { receivables: 0, payables: 0, net: 0 };
     }
 
-    const relevantData = data.filter(item => 
-        item.Date && (isBefore(item.Date, upToDate) || isEqual(item.Date, upToDate))
-    );
+    const relevantData = data.filter(item => {
+        const transactionDate = item.Date;
+        const closedDate = item['Date Closed'];
+        
+        // Transaction must exist on or before the comparison date
+        const isCreated = transactionDate && (isBefore(transactionDate, upToDate) || isEqual(transactionDate, upToDate));
+        if (!isCreated) return false;
+
+        // If it has a close date, it must be after the comparison date to be considered open
+        const isOpen = !closedDate || isAfter(closedDate, upToDate);
+        return isOpen;
+    });
 
     let receivables = 0;
     let payables = 0;
 
     relevantData.forEach(item => {
         if (item.Type === 'Invoice') {
-            receivables += item.Amount;
+            receivables += item.RemainingAmount;
         } else if (item.Type === 'Credit Memo') {
-            receivables -= item.Amount;
+            receivables -= item.RemainingAmount;
         } else if (item.Type === 'Bill') {
-            payables += item.Amount;
+            payables += item.RemainingAmount;
         } else if (item.Type === 'Bill Credit') {
-            payables -= item.Amount;
+            payables -= item.RemainingAmount;
         }
     });
 
@@ -154,7 +163,7 @@ export default function PeriodComparisonPage() {
                         Select Dates to Compare
                     </CardTitle>
                     <CardDescription>
-                        Choose two dates to compare cumulative financial metrics. The analysis is based on transactions with a 'Date' on or before the selected dates.
+                        Choose two dates to compare the total balance of open transactions. The analysis includes transactions created on or before the selected date, which were not yet closed.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -184,7 +193,7 @@ export default function PeriodComparisonPage() {
                 <Card className="mt-8">
                     <CardHeader>
                         <CardTitle className="font-headline">Comparison Results</CardTitle>
-                        <CardDescription>Comparing total balances up to and including the selected dates.</CardDescription>
+                        <CardDescription>Comparing total balances of open transactions up to and including the selected dates.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -211,4 +220,3 @@ export default function PeriodComparisonPage() {
     </>
   );
 }
-
