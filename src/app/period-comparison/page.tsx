@@ -368,8 +368,9 @@ export default function PeriodComparisonPage() {
           
         return Object.entries(grouped).sort(([, a], [, b]) => {
             if (sortConfig.key === 'name') {
-                const nameA = a.items[0]?.Name || ('name' in a.items[0] && a.items[0].name) || '';
-                const nameB = b.items[0]?.Name || ('name' in b.items[0] && b.items[0].name) || '';
+                const prefixRegex = /^CUS\d{1,5}\s+/i;
+                const nameA = (a.items[0]?.Name || ('name' in a.items[0] && a.items[0].name) || '').replace(prefixRegex, '');
+                const nameB = (b.items[0]?.Name || ('name' in b.items[0] && b.items[0].name) || '').replace(prefixRegex, '');
                 return nameA.localeCompare(nameB) * (sortConfig.direction === 'asc' ? 1 : -1);
             }
             return (b.total - a.total) * (sortConfig.direction === 'asc' ? -1 : 1);
@@ -607,4 +608,3 @@ export default function PeriodComparisonPage() {
     </>
   );
 }
-
