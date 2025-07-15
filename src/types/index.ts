@@ -170,3 +170,9 @@ export interface PeriodMetrics {
     intercompanyPayablesItems: ForecastItem[];
     manualPayablesItems: ForecastItem[];
 }
+
+export interface DiffDialogDetails {
+    title: string;
+    newItems: ForecastItem[];
+    closedItems: ForecastItem[];
+}

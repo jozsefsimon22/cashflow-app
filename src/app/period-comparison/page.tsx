@@ -9,11 +9,11 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Scale, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Calendar as CalendarIcon, Scale, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown, PlusCircle, MinusCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { CashFlowItem, ManualTransaction, PeriodMetrics, ForecastItem, GroupedItems } from "@/types";
+import type { CashFlowItem, ManualTransaction, PeriodMetrics, ForecastItem, GroupedItems, DiffDialogDetails } from "@/types";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -46,20 +46,20 @@ const calculateMetricsForPeriod = (
 
     const intercompanyNamesSet = new Set(intercompanyNames);
 
-    // --- Process Imported Data ---
-    const relevantImportedData: ForecastItem[] = (data || []).filter(item => {
-        const transactionDate = item.Date;
-        const closedDate = item['Date Closed'];
-        
-        const isCreated = transactionDate && (isBefore(transactionDate, upToDate) || isEqual(transactionDate, upToDate));
-        if (!isCreated) return false;
+    const openTransactions = (data || [])
+      .filter(item => {
+          const transactionDate = item.Date;
+          const closedDate = item['Date Closed'];
+          
+          const isCreated = transactionDate && (isBefore(transactionDate, upToDate) || isEqual(transactionDate, upToDate));
+          if (!isCreated) return false;
 
-        const isOpen = !closedDate || isAfter(closedDate, upToDate);
-        return isOpen;
-    }).map(item => ({...item, dueDate: item['Due Date']!}));
+          const isOpen = !closedDate || isAfter(closedDate, upToDate);
+          return isOpen;
+      })
+      .map(item => ({...item, dueDate: item['Due Date']!}));
 
-
-    relevantImportedData.forEach(item => {
+    openTransactions.forEach(item => {
         const cashFlowItem = item as CashFlowItem;
         const isIntercompany = intercompanyNamesSet.has(cashFlowItem.Name);
         const amount = cashFlowItem.RemainingAmount;
@@ -159,7 +159,7 @@ const calculateMetricsForPeriod = (
     return metrics;
 };
 
-interface DialogDetails {
+interface PeriodDialogDetails {
     title: string;
     items: ForecastItem[];
     total: number;
@@ -171,7 +171,8 @@ export default function PeriodComparisonPage() {
     const { data, manualTransactions, intercompanyNames } = useContext(SettingsContext);
     const [dateA, setDateA] = useState<Date | undefined>(new Date());
     const [dateB, setDateB] = useState<Date | undefined>(undefined);
-    const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
+    const [periodDialogDetails, setPeriodDialogDetails] = useState<PeriodDialogDetails | null>(null);
+    const [diffDialogDetails, setDiffDialogDetails] = useState<DiffDialogDetails | null>(null);
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
 
     const metricsA = useMemo(() => calculateMetricsForPeriod(data, manualTransactions, intercompanyNames, dateA), [data, manualTransactions, intercompanyNames, dateA]);
@@ -188,9 +189,33 @@ export default function PeriodComparisonPage() {
 
     const handleCellClick = (title: string, items: ForecastItem[] | undefined, total: number) => {
         if (items && items.length > 0) {
-            setDialogDetails({ title, items, total });
+            setPeriodDialogDetails({ title, items, total });
         }
     };
+    
+    const getItemId = (item: ForecastItem): string => {
+        if ('frequency' in item) { // ManualTransaction
+            return `${item.id}-${item.dueDate.toISOString()}`;
+        }
+        // CashFlowItem
+        return `${item['Document Number']}${item['Installment Number'] || ''}`;
+    }
+
+    const handleDiffClick = (title: string, itemsA: ForecastItem[] = [], itemsB: ForecastItem[] = [], diff: number) => {
+        if (diff === 0) return;
+
+        const setA = new Set(itemsA.map(getItemId));
+        const setB = new Set(itemsB.map(getItemId));
+        
+        const newItems = itemsB.filter(item => !setA.has(getItemId(item)));
+        const closedItems = itemsA.filter(item => !setB.has(getItemId(item)));
+
+        setDiffDialogDetails({
+            title: `Change in ${title}`,
+            newItems,
+            closedItems
+        });
+    }
     
     const DatePicker = ({ date, setDate, label }: { date: Date | undefined, setDate: (d: Date | undefined) => void, label: string }) => (
          <div className="grid gap-2">
@@ -257,7 +282,10 @@ export default function PeriodComparisonPage() {
                 >
                     {formatCurrency(valueB)}
                 </TableCell>
-                <TableCell className={cn("text-right font-mono", colorClass)}>
+                <TableCell 
+                  className={cn("text-right font-mono", colorClass, hasChanged && "cursor-pointer hover:underline")}
+                  onClick={() => handleDiffClick(title, itemsA, itemsB, diff)}
+                >
                     <div className="flex items-center justify-end gap-1">
                         {hasChanged && (diff > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
                         {formatCurrency(diff)}
@@ -284,10 +312,9 @@ export default function PeriodComparisonPage() {
         setSortConfig({ key, direction });
     };
 
-    const groupedDialogItems = useMemo((): [string, GroupedItems[string]][] => {
-        if (!dialogDetails) return [];
-
-        const grouped = dialogDetails.items.reduce((acc: GroupedItems, item) => {
+    const groupAndSortItems = (items: ForecastItem[]) => {
+       if (!items) return [];
+        const grouped = items.reduce((acc: GroupedItems, item) => {
             const name = 'frequency' in item ? item.name : (item as CashFlowItem).Name || 'Unnamed';
             let amount = getAmount(item);
 
@@ -297,7 +324,6 @@ export default function PeriodComparisonPage() {
                     amount = -amount;
                  }
             }
-
 
             if (!acc[name]) {
               acc[name] = { total: 0, items: [] };
@@ -313,9 +339,68 @@ export default function PeriodComparisonPage() {
                 const nameB = b.items[0]?.Name || ('name' in b.items[0] && b.items[0].name) || '';
                 return nameA.localeCompare(nameB) * (sortConfig.direction === 'asc' ? 1 : -1);
             }
-            return (a.total - b.total) * (sortConfig.direction === 'asc' ? 1 : -1);
+            return (b.total - a.total) * (sortConfig.direction === 'asc' ? -1 : 1);
         });
-    }, [dialogDetails, sortConfig]);
+    }
+
+    const groupedPeriodDialogItems = useMemo(() => groupAndSortItems(periodDialogDetails?.items || []), [periodDialogDetails, sortConfig]);
+    const groupedDiffNewItems = useMemo(() => groupAndSortItems(diffDialogDetails?.newItems || []), [diffDialogDetails, sortConfig]);
+    const groupedDiffClosedItems = useMemo(() => groupAndSortItems(diffDialogDetails?.closedItems || []), [diffDialogDetails, sortConfig]);
+
+
+    const renderTransactionList = (items: [string, GroupedItems[string]][], title: string, icon: React.ReactNode) => (
+        <div>
+            <h3 className="font-bold text-lg flex items-center gap-2 mb-2">{icon} {title}</h3>
+            <Accordion type="single" collapsible className="w-full">
+                {items.length > 0 ? items.map(([name, group]) => (
+                    <AccordionItem value={name} key={`breakdown-${name}`}>
+                        <AccordionTrigger>
+                            <div className="flex justify-between w-full pr-4">
+                            <span>{name}</span>
+                            <span className="font-mono">{formatCurrency(group.total)}</span>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Document #</TableHead>
+                                <TableHead>Due Date</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {group.items.map((item, index) => {
+                                    const isManual = 'frequency' in item;
+                                    const id = isManual ? 'Recurring' : (item as CashFlowItem)['Document Number'];
+                                    const type = isManual ? 'Manual' : (item as CashFlowItem).Type;
+                                    const dueDate = (item as any).dueDate;
+                                    let amount = getAmount(item);
+                                    if (!isManual) {
+                                        const cashFlowItem = item as CashFlowItem;
+                                        if (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') {
+                                            amount = -amount;
+                                        }
+                                    }
+                                    return (
+                                    <TableRow key={`${id}-${index}`}>
+                                        <TableCell>{id}</TableCell>
+                                        <TableCell>{dueDate ? format(dueDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                        <TableCell>{type}</TableCell>
+                                        <TableCell className="text-right font-mono">{formatCurrency(amount)}</TableCell>
+                                    </TableRow>
+                                    )
+                                })}
+                            </TableBody>
+                            </Table>
+                        </AccordionContent>
+                    </AccordionItem>
+                )) : <p className="text-sm text-muted-foreground text-center py-4">No transactions found.</p>}
+            </Accordion>
+        </div>
+    );
+
 
   return (
     <>
@@ -393,7 +478,7 @@ export default function PeriodComparisonPage() {
                                     <TableCell colSpan={5}></TableCell>
                                 </TableRow>
 
-                                <ComparisonRow title="Net Position" valueA={metricsA.net} itemsA={undefined} valueB={metricsB.net} itemsB={undefined} isIncreaseGood={true} />
+                                <ComparisonRow title="Net Position" valueA={metricsA.net} itemsA={[...metricsA.standardReceivablesItems, ...metricsA.intercompanyReceivablesItems, ...metricsA.manualReceivablesItems, ...metricsA.standardPayablesItems, ...metricsA.intercompanyPayablesItems, ...metricsA.manualPayablesItems]} valueB={metricsB.net} itemsB={[...metricsB.standardReceivablesItems, ...metricsB.intercompanyReceivablesItems, ...metricsB.manualReceivablesItems, ...metricsB.standardPayablesItems, ...metricsB.intercompanyPayablesItems, ...metricsB.manualPayablesItems]} isIncreaseGood={true} />
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -402,16 +487,16 @@ export default function PeriodComparisonPage() {
         </main>
       </SidebarInset>
 
-       <Dialog open={!!dialogDetails} onOpenChange={() => setDialogDetails(null)}>
+       <Dialog open={!!periodDialogDetails} onOpenChange={() => setPeriodDialogDetails(null)}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>{dialogDetails?.title}</DialogTitle>
+            <DialogTitle>{periodDialogDetails?.title}</DialogTitle>
             <DialogDescription>
               A breakdown of open transactions making up this total, grouped by name.
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xl font-bold font-mono text-primary">{formatCurrency(dialogDetails?.total || 0)}</p>
+            <p className="text-xl font-bold font-mono text-primary">{formatCurrency(periodDialogDetails?.total || 0)}</p>
             <div className="flex items-center gap-2">
                  <Button variant="ghost" size="sm" onClick={() => requestSort('name')}>
                     Sort by Name
@@ -424,61 +509,36 @@ export default function PeriodComparisonPage() {
             </div>
           </div>
            <div className="max-h-[60vh] overflow-y-auto mt-4 p-1">
-            <Accordion type="single" collapsible className="w-full">
-                {groupedDialogItems.length > 0 ? (
-                  groupedDialogItems.map(([name, group]) => (
-                    <AccordionItem value={name} key={`breakdown-${name}`}>
-                      <AccordionTrigger>
-                        <div className="flex justify-between w-full pr-4">
-                          <span>{name}</span>
-                          <span className="font-mono text-primary">{formatCurrency(group.total)}</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Document #</TableHead>
-                              <TableHead>Due Date</TableHead>
-                              <TableHead>Type</TableHead>
-                              <TableHead className="text-right">Amount</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {group.items.map((item, index) => {
-                                const isManual = 'frequency' in item;
-                                const id = isManual ? 'Recurring' : (item as CashFlowItem)['Document Number'];
-                                const type = isManual ? 'Manual' : (item as CashFlowItem).Type;
-                                const dueDate = (item as any).dueDate;
-                                let amount = getAmount(item);
-                                if (!isManual) {
-                                    const cashFlowItem = item as CashFlowItem;
-                                    if (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') {
-                                        amount = -amount;
-                                    }
-                                }
-
-                                return (
-                                <TableRow key={`${id}-${index}`}>
-                                    <TableCell>{id}</TableCell>
-                                    <TableCell>{dueDate ? format(dueDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                                    <TableCell>{type}</TableCell>
-                                    <TableCell className="text-right font-mono">{formatCurrency(amount)}</TableCell>
-                                </TableRow>
-                                )
-                            })}
-                          </TableBody>
-                        </Table>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No transactions found.</p>
-                )}
-              </Accordion>
+             {renderTransactionList(groupedPeriodDialogItems, '', '')}
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+       <Dialog open={!!diffDialogDetails} onOpenChange={() => setDiffDialogDetails(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{diffDialogDetails?.title}</DialogTitle>
+            <DialogDescription>
+              Transactions that were added or closed between {dateA ? format(dateA, 'dd/MM/yy') : 'Date A'} and {dateB ? format(dateB, 'dd/MM/yy') : 'Date B'}.
+            </DialogDescription>
+          </DialogHeader>
+           <div className="flex items-center justify-end gap-2">
+                 <Button variant="ghost" size="sm" onClick={() => requestSort('name')}>
+                    Sort by Name
+                    <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'name' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                 </Button>
+                  <Button variant="ghost" size="sm" onClick={() => requestSort('amount')}>
+                    Sort by Amount
+                    <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'amount' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                 </Button>
+            </div>
+           <div className="max-h-[60vh] overflow-y-auto mt-4 grid grid-cols-1 md:grid-cols-2 gap-8 p-1">
+             {renderTransactionList(groupedDiffNewItems, 'New Transactions', <PlusCircle className="text-primary" />)}
+             {renderTransactionList(groupedDiffClosedItems, 'Closed Transactions', <MinusCircle className="text-destructive" />)}
           </div>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+
