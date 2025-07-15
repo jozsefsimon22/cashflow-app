@@ -7,7 +7,7 @@ import { SettingsContext } from "@/context/settings-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Scale, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown, PlusCircle, MinusCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -64,40 +64,24 @@ const calculateMetricsForPeriod = (
         const isIntercompany = intercompanyNamesSet.has(cashFlowItem.Name);
         const amount = getAmount(item);
 
-        if (cashFlowItem.Type === 'Invoice') {
-            metrics.receivables += amount;
+        if (cashFlowItem.Type === 'Invoice' || cashFlowItem.Type === 'Credit Memo') {
+            const effectiveAmount = cashFlowItem.Type === 'Invoice' ? amount : -amount;
+            metrics.receivables += effectiveAmount;
             if (isIntercompany) {
-                metrics.intercompanyReceivables += amount;
+                metrics.intercompanyReceivables += effectiveAmount;
                 metrics.intercompanyReceivablesItems.push(item);
             } else {
-                metrics.standardReceivables += amount;
+                metrics.standardReceivables += effectiveAmount;
                 metrics.standardReceivablesItems.push(item);
             }
-        } else if (cashFlowItem.Type === 'Credit Memo') {
-            metrics.receivables -= amount;
-            if (isIntercompany) {
-                metrics.intercompanyReceivables -= amount;
-                metrics.intercompanyReceivablesItems.push(item);
-            } else {
-                metrics.standardReceivables -= amount;
-                metrics.standardReceivablesItems.push(item);
-            }
-        } else if (cashFlowItem.Type === 'Bill') {
-            metrics.payables += amount;
+        } else if (cashFlowItem.Type === 'Bill' || cashFlowItem.Type === 'Bill Credit') {
+             const effectiveAmount = cashFlowItem.Type === 'Bill' ? amount : -amount;
+             metrics.payables += effectiveAmount;
              if (isIntercompany) {
-                metrics.intercompanyPayables += amount;
+                metrics.intercompanyPayables += effectiveAmount;
                 metrics.intercompanyPayablesItems.push(item);
             } else {
-                metrics.standardPayables += amount;
-                metrics.standardPayablesItems.push(item);
-            }
-        } else if (cashFlowItem.Type === 'Bill Credit') {
-             metrics.payables -= amount;
-             if (isIntercompany) {
-                metrics.intercompanyPayables -= amount;
-                metrics.intercompanyPayablesItems.push(item);
-            } else {
-                metrics.standardPayables -= amount;
+                metrics.standardPayables += effectiveAmount;
                 metrics.standardPayablesItems.push(item);
             }
         }
@@ -223,6 +207,7 @@ export default function PeriodComparisonPage() {
             items.forEach(item => {
                 const name = getItemName(item);
                 let amount = getAmount(item);
+
                 if (!('frequency' in item)) { // CashFlowItem
                     const cashFlowItem = item as CashFlowItem;
                     if (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') {
@@ -376,8 +361,8 @@ export default function PeriodComparisonPage() {
         return Object.entries(grouped).sort(([, a], [, b]) => {
             if (sortConfig.key === 'name') {
                 const prefixRegex = /^CUS\d{1,5}\s+/i;
-                const nameA = (a.items[0]?.Name || ('name' in a.items[0] && a.items[0].name) || '').replace(prefixRegex, '');
-                const nameB = (b.items[0]?.Name || ('name' in b.items[0] && b.items[0].name) || '').replace(prefixRegex, '');
+                const nameA = (getItemName(a.items[0]) || '').replace(prefixRegex, '');
+                const nameB = (getItemName(b.items[0]) || '').replace(prefixRegex, '');
                 return nameA.localeCompare(nameB) * (sortConfig.direction === 'asc' ? 1 : -1);
             }
             return (b.total - a.total) * (sortConfig.direction === 'asc' ? -1 : 1);
@@ -416,12 +401,7 @@ export default function PeriodComparisonPage() {
 
         return (
             <div className="pt-2">
-                <div className="flex justify-between items-center mb-1">
-                    <h4 className="font-semibold text-muted-foreground">{title}</h4>
-                    <span className={cn("font-mono font-semibold", subtotal >= 0 ? 'text-primary' : 'text-destructive')}>
-                        Subtotal: {formatCurrency(subtotal)}
-                    </span>
-                </div>
+                 <h4 className="font-semibold text-muted-foreground mb-1">{title}</h4>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -454,6 +434,14 @@ export default function PeriodComparisonPage() {
                             )
                         })}
                     </TableBody>
+                     <TableFooter>
+                        <TableRow>
+                            <TableCell colSpan={3} className="text-right font-semibold">Subtotal</TableCell>
+                            <TableCell className={cn("text-right font-mono font-semibold", subtotal >= 0 ? 'text-primary' : 'text-destructive')}>
+                                {formatCurrency(subtotal)}
+                            </TableCell>
+                        </TableRow>
+                    </TableFooter>
                 </Table>
             </div>
         )
@@ -510,7 +498,7 @@ export default function PeriodComparisonPage() {
                  <Card className="mt-8 flex flex-col items-center justify-center p-12 text-center border-dashed">
                     <h3 className="text-xl font-semibold font-headline text-foreground">Awaiting Data</h3>
                     <p className="text-muted-foreground mt-1 max-w-md mx-auto">
-                        Please go to the <Link href="/data" className="text-primary underline font-medium">Imported Data</Link> page to upload a file with transaction history to use this feature.
+                        Please go to the <Link href="/data" className="text-primary underline">Imported Data</Link> page to upload a file with transaction history to use this feature.
                     </p>
                 </Card>
             ) : !dateB ? (
