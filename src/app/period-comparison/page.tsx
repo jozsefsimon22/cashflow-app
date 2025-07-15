@@ -401,7 +401,11 @@ export default function PeriodComparisonPage() {
 
         return (
             <div className="pt-2">
-                 <h4 className="font-semibold text-muted-foreground mb-1">{title}</h4>
+                 <h4 className="font-semibold text-muted-foreground mb-1 flex items-center gap-2">
+                    {title === 'New Transactions' && <PlusCircle className="w-4 h-4 text-green-500" />}
+                    {title === 'Closed Transactions' && <MinusCircle className="w-4 h-4 text-red-500" />}
+                    {title}
+                 </h4>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -621,3 +625,4 @@ export default function PeriodComparisonPage() {
     </>
   );
 }
+
