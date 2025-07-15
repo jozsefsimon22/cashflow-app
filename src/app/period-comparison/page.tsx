@@ -291,6 +291,14 @@ export default function PeriodComparisonPage() {
             const name = 'frequency' in item ? item.name : (item as CashFlowItem).Name || 'Unnamed';
             let amount = getAmount(item);
 
+            if (!('frequency' in item)) {
+                 const cashFlowItem = item as CashFlowItem;
+                 if (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') {
+                    amount = -amount;
+                 }
+            }
+
+
             if (!acc[name]) {
               acc[name] = { total: 0, items: [] };
             }
@@ -442,7 +450,14 @@ export default function PeriodComparisonPage() {
                                 const id = isManual ? 'Recurring' : (item as CashFlowItem)['Document Number'];
                                 const type = isManual ? 'Manual' : (item as CashFlowItem).Type;
                                 const dueDate = (item as any).dueDate;
-                                const amount = getAmount(item);
+                                let amount = getAmount(item);
+                                if (!isManual) {
+                                    const cashFlowItem = item as CashFlowItem;
+                                    if (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') {
+                                        amount = -amount;
+                                    }
+                                }
+
                                 return (
                                 <TableRow key={`${id}-${index}`}>
                                     <TableCell>{id}</TableCell>
