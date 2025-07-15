@@ -7,8 +7,9 @@ import { SettingsContext } from "@/context/settings-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Scale, ArrowRight } from "lucide-react";
+import { Calendar as CalendarIcon, Scale, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -59,27 +60,6 @@ export default function PeriodComparisonPage() {
     const metricsA = useMemo(() => calculateMetricsUpToDate(data, dateA), [data, dateA]);
     const metricsB = useMemo(() => calculateMetricsUpToDate(data, dateB), [data, dateB]);
 
-    const comparison = useMemo(() => {
-        const diffReceivables = metricsB.receivables - metricsA.receivables;
-        const diffPayables = metricsB.payables - metricsA.payables;
-        const diffNet = metricsB.net - metricsA.net;
-
-        const percChange = (oldVal: number, newVal: number) => {
-            if (oldVal === 0) return newVal > 0 ? Infinity : 0;
-            return ((newVal - oldVal) / Math.abs(oldVal)) * 100;
-        };
-        
-        return {
-            diffReceivables,
-            percReceivables: percChange(metricsA.receivables, metricsB.receivables),
-            diffPayables,
-            percPayables: percChange(metricsA.payables, metricsB.payables),
-            diffNet,
-            percNet: percChange(metricsA.net, metricsB.net),
-        };
-
-    }, [metricsA, metricsB]);
-
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-GB', {
           style: 'currency',
@@ -87,15 +67,6 @@ export default function PeriodComparisonPage() {
           minimumFractionDigits: 0,
           maximumFractionDigits: 0,
         }).format(amount);
-    };
-
-    const formatPercentage = (perc: number) => {
-        if (perc === Infinity) return <Badge variant="secondary" className="bg-green-100 text-green-800">New Activity</Badge>;
-        if (perc === 0 && comparison.diffReceivables === 0) return "0.0%";
-
-        const plus = perc > 0 ? '+' : '';
-        const colorClass = perc > 0 ? "text-primary" : "text-destructive";
-        return <span className={cn(colorClass)}>{`${plus}${perc.toFixed(1)}%`}</span>;
     };
     
     const DatePicker = ({ date, setDate, label }: { date: Date | undefined, setDate: (d: Date | undefined) => void, label: string }) => (
@@ -126,42 +97,44 @@ export default function PeriodComparisonPage() {
             </Popover>
           </div>
     );
-
-    const ComparisonCard = ({ title, valueA, valueB }: { title: string, valueA: number, valueB: number }) => {
+    
+    const ComparisonRow = ({ title, valueA, valueB, isIncreaseGood }: { title: string, valueA: number, valueB: number, isIncreaseGood: boolean }) => {
         const diff = valueB - valueA;
         const perc = useMemo(() => {
-             if (valueA === 0) return valueB > 0 ? Infinity : 0;
+             if (valueA === 0) return valueB === 0 ? 0 : Infinity;
              return ((valueB - valueA) / Math.abs(valueA)) * 100;
         }, [valueA, valueB]);
-
-        const isIncreaseGood = title !== "Payables";
+        
         const hasIncreased = diff > 0;
-        const colorClass = hasIncreased ? (isIncreaseGood ? "text-primary" : "text-destructive") : (!hasIncreased && diff !== 0 ? (isIncreaseGood ? "text-destructive" : "text-primary") : "text-muted-foreground");
+        const hasChanged = diff !== 0;
+
+        let colorClass = "text-muted-foreground";
+        if (hasChanged) {
+          colorClass = hasIncreased ? (isIncreaseGood ? "text-primary" : "text-destructive") : (isIncreaseGood ? "text-destructive" : "text-primary");
+        }
+
+        const formatPercentage = (p: number) => {
+            if (p === Infinity) return <Badge variant="secondary" className="bg-green-100 text-green-800">New</Badge>;
+            if (!hasChanged) return <span className="text-muted-foreground">0.0%</span>
+            const plus = p > 0 ? '+' : '';
+            return <span className={cn(colorClass)}>{`${plus}${p.toFixed(1)}%`}</span>;
+        };
 
         return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex justify-between items-baseline">
-                        <span className="text-sm text-muted-foreground">As at {dateA ? format(dateA, 'dd/MM/yy') : 'Period A'}</span>
-                        <span className="font-mono">{formatCurrency(valueA)}</span>
+            <TableRow>
+                <TableCell className="font-medium">{title}</TableCell>
+                <TableCell className="text-right font-mono">{formatCurrency(valueA)}</TableCell>
+                <TableCell className="text-right font-mono">{formatCurrency(valueB)}</TableCell>
+                <TableCell className={cn("text-right font-mono", colorClass)}>
+                    <div className="flex items-center justify-end gap-1">
+                        {hasChanged && (hasIncreased ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                        {formatCurrency(diff)}
                     </div>
-                     <div className="flex justify-between items-baseline">
-                        <span className="text-sm text-muted-foreground">As at {dateB ? format(dateB, 'dd/MM/yy') : 'Period B'}</span>
-                        <span className="font-mono">{formatCurrency(valueB)}</span>
-                    </div>
-                    <hr/>
-                    <div className="flex justify-between items-baseline">
-                        <span className="font-semibold">Change</span>
-                         <div className="text-right">
-                           <p className={cn("font-mono font-bold text-lg", colorClass)}>{formatCurrency(diff)}</p>
-                           <p className="text-sm">{formatPercentage(perc)}</p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                </TableCell>
+                <TableCell className="text-right font-mono">
+                    {formatPercentage(perc)}
+                </TableCell>
+            </TableRow>
         );
     }
 
@@ -208,17 +181,34 @@ export default function PeriodComparisonPage() {
                     </p>
                  </Card>
             ) : (
-                <div className="mt-8">
-                    <h2 className="text-2xl font-bold font-headline mb-4">Comparison Results</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <ComparisonCard title="Receivables" valueA={metricsA.receivables} valueB={metricsB.receivables} />
-                        <ComparisonCard title="Payables" valueA={metricsA.payables} valueB={metricsB.payables} />
-                        <ComparisonCard title="Net Position" valueA={metricsA.net} valueB={metricsB.net} />
-                    </div>
-                </div>
+                <Card className="mt-8">
+                    <CardHeader>
+                        <CardTitle className="font-headline">Comparison Results</CardTitle>
+                        <CardDescription>Comparing total balances up to and including the selected dates.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[180px]">Category</TableHead>
+                                    <TableHead className="text-right">As at {dateA ? format(dateA, 'dd/MM/yy') : 'Period A'}</TableHead>
+                                    <TableHead className="text-right">As at {dateB ? format(dateB, 'dd/MM/yy') : 'Period B'}</TableHead>
+                                    <TableHead className="text-right">Change (£)</TableHead>
+                                    <TableHead className="text-right">Change (%)</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <ComparisonRow title="Receivables" valueA={metricsA.receivables} valueB={metricsB.receivables} isIncreaseGood={true} />
+                                <ComparisonRow title="Payables" valueA={metricsA.payables} valueB={metricsB.payables} isIncreaseGood={false} />
+                                <ComparisonRow title="Net Position" valueA={metricsA.net} valueB={metricsB.net} isIncreaseGood={true} />
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
             )}
         </main>
       </SidebarInset>
     </>
   );
 }
+
