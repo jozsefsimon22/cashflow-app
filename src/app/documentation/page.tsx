@@ -3,9 +3,9 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from '@/components/app-sidebar';
-import { GanttChartSquare, FileSpreadsheet, Settings2, MousePointerClick, DatabaseZap } from 'lucide-react';
+import { GanttChartSquare, FileSpreadsheet, Settings2, MousePointerClick, DatabaseZap, LayoutDashboard, CalendarDays, Medal, BookUser, Repeat, XCircle, Users, Link2, Download, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function DocumentationPage() {
@@ -16,7 +16,6 @@ export default function DocumentationPage() {
         <main className="p-4 sm:p-6 md:p-8">
           <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-4">
-                
                 <h1 className="text-3xl font-bold font-headline text-foreground">Documentation</h1>
               </div>
           </div>
@@ -30,12 +29,97 @@ export default function DocumentationPage() {
               </CardHeader>
               <CardContent className="space-y-4 text-muted-foreground">
                 <p>
-                  Welcome to <strong>Cashflow JS</strong>. This application is designed to provide a clear, visual representation of your cash flow based on data from an Excel or CSV file.
+                  Welcome to <strong>Cashflow JS</strong>. This application is designed to provide a clear, visual, and interactive analysis of your cash flow. By uploading your financial data, you can generate a 12-week forecast, analyze customer payment behavior, and manage complex financial scenarios with ease.
                 </p>
                 <p>
-                  By uploading your financial data from the <Link href="/data" className="text-primary underline">Imported Data</Link> page, you can see a 12-week forecast of your balance, a weekly summary of incoming and outgoing funds, and drill down into specific transactions.
+                   The application is divided into three main sections: <strong>Analysis</strong> for visualizing your data, <strong>Data Management</strong> for inputting and refining your data sources, and <strong>Configuration</strong> for customizing the application to your needs.
                 </p>
               </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-2xl">Analysis Pages</CardTitle>
+                    <CardDescription>
+                        These pages provide different ways to visualize and interact with your cash flow forecast.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="flex items-start gap-4">
+                        <LayoutDashboard className="w-7 h-7 text-primary mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-lg text-foreground">Dashboard</h3>
+                            <p className="text-muted-foreground">The main landing page, offering a high-level overview. It includes a 12-week balance forecast chart, summary cards for key metrics, and charts breaking down receivables and payables by type (Standard, Intercompany, Manual). It also features toggles for <Badge variant="outline" className="text-amber-600 border-amber-500"><Sparkles className="w-3 h-3 mr-1"/>Predicted Cashflow</Badge> and <Badge variant="outline">Exclusions</Badge>.</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-4">
+                        <CalendarDays className="w-7 h-7 text-primary mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-lg text-foreground">Weekly View</h3>
+                            <p className="text-muted-foreground">A detailed grid view of your cash flow, broken down by category (Accounts Receivable, Accounts Payable, etc.) for each of the next 12 weeks. Clicking any monetary value opens a dialog with the underlying transaction details.</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-4">
+                        <Medal className="w-7 h-7 text-primary mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-lg text-foreground">Customer Scorecard</h3>
+                            <p className="text-muted-foreground">Analyzes and scores customers based on their historical payment behavior. It calculates on-time payment percentages and average days late, providing insights into which customers are reliable payers. Click a customer to see their paid invoice history.</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-4">
+                        <BookUser className="w-7 h-7 text-primary mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-lg text-foreground">Balance Summary</h3>
+                            <p className="text-muted-foreground">Consolidates all transactions to show a net balance for every entity (customer/vendor). It uses data from the Name Pairing page to merge related accounts. Clicking an entity's name opens a dialog showing a full breakdown of their receivables and payables.</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+            
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline text-2xl">Data Management Pages</CardTitle>
+                    <CardDescription>
+                        These pages are for inputting data, refining it, and managing specific financial rules for your forecast.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                     <div className="flex items-start gap-4">
+                        <DatabaseZap className="w-7 h-7 text-primary mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-lg text-foreground">Imported Data</h3>
+                            <p className="text-muted-foreground">The starting point of the application. Upload an Excel file (.xlsx, .xls, .csv), or a previously exported session file (.json) here. The page includes a table to view all raw data from your file.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <Repeat className="w-7 h-7 text-primary mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-lg text-foreground">Manual Transactions</h3>
+                            <p className="text-muted-foreground">Add one-off or recurring transactions (e.g., rent, salaries, subscriptions) that are not present in your imported file. You can configure start dates, frequency, and end conditions. A history page allows you to manage past-due occurrences.</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-4">
+                        <XCircle className="w-7 h-7 text-primary mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-lg text-foreground">Exclusions</h3>
+                            <p className="text-muted-foreground">Select names from your data to completely exclude from all forecast calculations. This is useful for removing test data or irrelevant entities without altering your source file.</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-4">
+                        <Users className="w-7 h-7 text-primary mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-lg text-foreground">Intercompany</h3>
+                            <p className="text-muted-foreground">Tag specific names as "Intercompany". This allows for separate tracking and analysis in the breakdown charts on the Dashboard and in the Weekly View grid.</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-4">
+                        <Link2 className="w-7 h-7 text-primary mt-1" />
+                        <div>
+                            <h3 className="font-semibold text-lg text-foreground">Name Pairing</h3>
+                            <p className="text-muted-foreground">Link receivable names with their corresponding payable names. This is crucial for entities that are both a customer and a vendor, allowing the Balance Summary page to show a true, consolidated net balance. The app can auto-suggest pairs based on name similarity.</p>
+                        </div>
+                    </div>
+                </CardContent>
             </Card>
 
             <Card>
@@ -45,47 +129,30 @@ export default function DocumentationPage() {
                   File Format Requirements
                 </CardTitle>
                 <CardDescription>
-                  For the application to parse your data correctly, your file must contain specific columns.
+                  For the application to parse your data correctly, your file must contain specific columns. These can be re-mapped in Settings.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-muted-foreground">The application requires the following columns by default (these can be re-mapped in Settings):</p>
+                <p className="text-muted-foreground">The application requires the following columns:</p>
                 <ul className="list-disc list-inside space-y-2 pl-4 text-muted-foreground">
-                  <li>
-                    <strong>Type</strong>: Must contain one of 'Invoice', 'Bill', 'Bill Credit', or 'Credit Memo'.
-                    <ul className="list-['-_'] list-inside pl-4 mt-1">
-                        <li><strong>Inflows</strong> (money in): 'Invoice', 'Bill Credit'</li>
-                        <li><strong>Outflows</strong> (money out): 'Bill', 'Credit Memo'</li>
-                    </ul>
-                  </li>
-                  <li><strong>Document Number</strong>: A unique identifier for the transaction (e.g., invoice number).</li>
+                  <li><strong>Type</strong>: Must contain one of 'Invoice', 'Bill', 'Bill Credit', or 'Credit Memo'.</li>
+                  <li><strong>Document Number</strong>: A unique identifier for the transaction.</li>
                   <li><strong>Name</strong>: The name of the client or vendor.</li>
-                  <li><strong>Due Date</strong>: The date the payment is due. Various formats are supported (e.g., YYYY-MM-DD, DD/MM/YYYY).</li>
-                  <li><strong>Date</strong>: The transaction date. This is used as a fallback if the 'Due Date' for a row is empty.</li>
-                  <li><strong>Amount</strong>: The transaction amount as a number.</li>
-                  <li><strong>Remaining Amount</strong>: The open or outstanding amount of the transaction.</li>
-                  <li><strong>Status</strong>: The current state of the transaction (e.g., 'Open', 'Paid', 'Unpaid'). This column is optional.</li>
-                  <li><strong>Date Closed</strong>: The date a transaction was closed. Used to infer status if the 'Status' column is missing.</li>
-                  <li><strong>Installment Due Date</strong>: (Optional) The specific due date for an installment. Overrides 'Due Date'.</li>
-                  <li><strong>Installment Amount</strong>: (Optional) The specific amount for an installment. Overrides 'Remaining Amount'.</li>
-                  <li><strong>Installment Number</strong>: (Optional) The identifier for the installment (e.g., "1/3"). If present, installment logic is triggered.</li>
-                  <li><strong>Installment Status</strong>: (Optional) The status of the specific installment. Overrides 'Status'.</li>
+                  <li><strong>Due Date</strong>: The date the payment is due.</li>
+                  <li><strong>Date</strong>: A fallback transaction date if 'Due Date' is empty.</li>
+                  <li><strong>Amount</strong>: The original transaction amount.</li>
+                  <li><strong>Remaining Amount</strong>: The open or outstanding amount.</li>
+                </ul>
+                 <p className="text-muted-foreground">The following columns are optional but recommended for full functionality:</p>
+                 <ul className="list-disc list-inside space-y-2 pl-4 text-muted-foreground">
+                  <li><strong>Status</strong>: The current state (e.g., 'Open', 'Paid'). If missing, it's inferred from 'Date Closed'.</li>
+                  <li><strong>Date Closed</strong>: The date a transaction was paid. Used for status inference and customer payment analysis.</li>
+                  <li><strong>Installment Columns</strong>: If your data has installment-based payments, you can map columns for Installment Due Date, Amount, Number, and Status to override the main transaction fields.</li>
                 </ul>
                 <div className="p-4 bg-secondary/50 rounded-lg">
                   <h4 className="font-semibold text-foreground mb-2">Status-Based Filtering</h4>
                   <p className="text-muted-foreground">
-                    The application automatically filters your data to ensure the forecast is accurate. Only transactions with a status of <strong>'Open'</strong>, <strong>'Unpaid'</strong>, or <strong>'Pending Approval'</strong> will be included in the cash flow analysis on the dashboard.
-                  </p>
-                   <p className="text-muted-foreground mt-3">
-                    If the 'Status' column is not provided in your file, the app will try to infer it. If a row has a 'Date Closed', its status will be set to 'Paid'. Otherwise, it will be set to 'Unpaid'. The same logic applies to 'Installment Status' if used.
-                  </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
-                      <Badge variant="secondary">Included: Open</Badge>
-                      <Badge variant="secondary">Included: Pending Approval</Badge>
-                      <Badge variant="secondary">Included: Unpaid</Badge>
-                  </div>
-                   <p className="text-muted-foreground mt-3">
-                    All other statuses (e.g., 'Paid', 'Paid In Full', 'Cancelled', 'Rejected') will be imported but excluded from the forecast. You can view all imported data, including excluded items, on the <Link href="/data" className="text-primary underline">Imported Data</Link> page.
+                    Only transactions with a status of <strong>'Open'</strong>, <strong>'Unpaid'</strong>, or <strong>'Pending Approval'</strong> are included in the forecast. All other statuses are ignored in calculations but are still visible on the <Link href="/data" className="text-primary underline">Imported Data</Link> page.
                   </p>
                 </div>
               </CardContent>
@@ -93,57 +160,35 @@ export default function DocumentationPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2">
-                  <Settings2 className="w-6 h-6" />
-                  Custom Column Mapping
-                </CardTitle>
+                <CardTitle className="font-headline text-2xl">Configuration &amp; Export</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-muted-foreground">
-                <p>
-                  If your file uses different column names (e.g., 'Client' instead of 'Name'), you can map them in the <Link href="/settings" className="text-primary underline">Settings</Link> page.
-                </p>
-                <p>
-                  Simply enter the column names from your file into the corresponding fields and save the changes. These settings are saved in your browser for future use.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2">
-                  <MousePointerClick className="w-6 h-6" />
-                  Interacting with Your Data
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-muted-foreground">
-                <p>
-                  The dashboard is designed to be interactive:
-                </p>
-                <ul className="list-disc list-inside space-y-2 pl-4">
-                  <li><strong>Balance Chart</strong>: Click on any data point in the line chart to open a dialog with a detailed breakdown of that week's transactions.</li>
-                  <li><strong>Weekly Summary Table</strong>: Click on any row in the summary table to see the same weekly breakdown.</li>
-                  <li><strong>Weekly Details Dialog</strong>: Inside the dialog, transactions are grouped by customer/vendor. Click on a name to expand the view and see the individual invoices or bills that make up their total for that week.</li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2">
-                  <DatabaseZap className="w-6 h-6" />
-                  Data Storage & Sharing
-                </CardTitle>
-                <CardDescription>
-                  Your data privacy is paramount. The application is designed to work entirely within your browser.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 text-muted-foreground">
-                 <ul className="list-disc list-inside space-y-2 pl-4">
-                  <li><strong>No Server Upload</strong>: Your financial data is never sent to or stored on any server. It is processed directly in your browser.</li>
-                  <li><strong>Session Storage</strong>: The imported cash flow data is stored in your browser's <strong>sessionStorage</strong>. This means it is temporary and will be cleared when you close the browser tab.</li>
-                  <li><strong>Local Storage</strong>: Your column mapping preferences, manual transactions, and other settings are saved in your browser's <strong>localStorage</strong>, so they persist between sessions.</li>
-                  <li><strong>Session Export/Import</strong>: From the <Link href="/export" className="text-primary underline">Export</Link> page, you can download a `.json` file containing your entire application state (imported data, settings, manual transactions, etc.). This file can be shared with other users, who can then upload it on the <Link href="/data" className="text-primary underline">Imported Data</Link> page to load the exact same session.</li>
-                </ul>
+              <CardContent className="space-y-6">
+                <div className="flex items-start gap-4">
+                    <Settings2 className="w-7 h-7 text-primary mt-1" />
+                    <div>
+                        <h3 className="font-semibold text-lg text-foreground">Settings</h3>
+                        <p className="text-muted-foreground">Configure your starting bank balance and map the column names from your file to the fields the application expects. Date format preferences can also be set here.</p>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4">
+                    <Download className="w-7 h-7 text-primary mt-1" />
+                    <div>
+                        <h3 className="font-semibold text-lg text-foreground">Export</h3>
+                        <p className="text-muted-foreground">Download your data in two ways:
+                          <ul className="list-['-_'] list-inside pl-4 mt-1">
+                              <li><strong>To Excel</strong>: Exports the 12-week summary forecast.</li>
+                              <li><strong>To JSON</strong>: Exports your entire session (imported data, all settings, manual transactions, etc.). This file can be shared and re-uploaded by another user to perfectly replicate your session.</li>
+                          </ul>
+                        </p>
+                    </div>
+                </div>
+                 <div className="flex items-start gap-4">
+                    <DatabaseZap className="w-7 h-7 text-primary mt-1" />
+                    <div>
+                        <h3 className="font-semibold text-lg text-foreground">Data Storage</h3>
+                        <p className="text-muted-foreground">The application works entirely in your browser. Raw imported data is stored in <strong>sessionStorage</strong> (cleared when the tab closes). All settings, manual transactions, and name pairings are stored in <strong>localStorage</strong> (persists between sessions).</p>
+                    </div>
+                </div>
               </CardContent>
             </Card>
 
