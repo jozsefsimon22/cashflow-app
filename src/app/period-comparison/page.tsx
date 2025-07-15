@@ -488,7 +488,7 @@ export default function PeriodComparisonPage() {
       </SidebarInset>
 
        <Dialog open={!!periodDialogDetails} onOpenChange={() => setPeriodDialogDetails(null)}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-6xl">
           <DialogHeader>
             <DialogTitle>{periodDialogDetails?.title}</DialogTitle>
             <DialogDescription>
@@ -515,7 +515,7 @@ export default function PeriodComparisonPage() {
       </Dialog>
       
        <Dialog open={!!diffDialogDetails} onOpenChange={() => setDiffDialogDetails(null)}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-6xl">
           <DialogHeader>
             <DialogTitle>{diffDialogDetails?.title}</DialogTitle>
             <DialogDescription>
