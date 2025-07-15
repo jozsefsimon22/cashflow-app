@@ -62,26 +62,42 @@ const calculateMetricsForPeriod = (
     openTransactions.forEach(item => {
         const cashFlowItem = item as CashFlowItem;
         const isIntercompany = intercompanyNamesSet.has(cashFlowItem.Name);
-        const amount = cashFlowItem.Amount;
+        const amount = getAmount(item);
 
-        if (cashFlowItem.Type === 'Invoice' || cashFlowItem.Type === 'Credit Memo') {
-            const value = cashFlowItem.Type === 'Invoice' ? amount : -amount;
-            metrics.receivables += value;
+        if (cashFlowItem.Type === 'Invoice') {
+            metrics.receivables += amount;
             if (isIntercompany) {
-                metrics.intercompanyReceivables += value;
+                metrics.intercompanyReceivables += amount;
                 metrics.intercompanyReceivablesItems.push(item);
             } else {
-                metrics.standardReceivables += value;
+                metrics.standardReceivables += amount;
                 metrics.standardReceivablesItems.push(item);
             }
-        } else if (cashFlowItem.Type === 'Bill' || cashFlowItem.Type === 'Bill Credit') {
-            const value = cashFlowItem.Type === 'Bill' ? amount : -amount;
-            metrics.payables += value;
+        } else if (cashFlowItem.Type === 'Credit Memo') {
+            metrics.receivables -= amount;
+            if (isIntercompany) {
+                metrics.intercompanyReceivables -= amount;
+                metrics.intercompanyReceivablesItems.push(item);
+            } else {
+                metrics.standardReceivables -= amount;
+                metrics.standardReceivablesItems.push(item);
+            }
+        } else if (cashFlowItem.Type === 'Bill') {
+            metrics.payables += amount;
              if (isIntercompany) {
-                metrics.intercompanyPayables += value;
+                metrics.intercompanyPayables += amount;
                 metrics.intercompanyPayablesItems.push(item);
             } else {
-                metrics.standardPayables += value;
+                metrics.standardPayables += amount;
+                metrics.standardPayablesItems.push(item);
+            }
+        } else if (cashFlowItem.Type === 'Bill Credit') {
+             metrics.payables -= amount;
+             if (isIntercompany) {
+                metrics.intercompanyPayables -= amount;
+                metrics.intercompanyPayablesItems.push(item);
+            } else {
+                metrics.standardPayables -= amount;
                 metrics.standardPayablesItems.push(item);
             }
         }
@@ -384,10 +400,28 @@ export default function PeriodComparisonPage() {
         });
     }, [diffDialogDetails, sortConfig]);
 
-    const renderTransactionTable = (items: ForecastItem[], title: string) => (
-        items.length > 0 && (
+    const renderTransactionTable = (items: ForecastItem[], title: string) => {
+        if (items.length === 0) return null;
+        
+        const subtotal = items.reduce((sum, item) => {
+            let amount = getAmount(item);
+            if (!('frequency' in item)) {
+                const cashFlowItem = item as CashFlowItem;
+                if (cashFlowItem.Type === 'Credit Memo' || cashFlowItem.Type === 'Bill Credit') {
+                    amount = -amount;
+                }
+            }
+            return sum + amount;
+        }, 0);
+
+        return (
             <div className="pt-2">
-                <h4 className="font-semibold text-muted-foreground mb-1">{title}</h4>
+                <div className="flex justify-between items-center mb-1">
+                    <h4 className="font-semibold text-muted-foreground">{title}</h4>
+                    <span className={cn("font-mono font-semibold", subtotal >= 0 ? 'text-primary' : 'text-destructive')}>
+                        Subtotal: {formatCurrency(subtotal)}
+                    </span>
+                </div>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -423,7 +457,7 @@ export default function PeriodComparisonPage() {
                 </Table>
             </div>
         )
-    );
+    };
 
     const renderTransactionList = (items: [string, GroupedItems[string]][]) => (
         <Accordion type="single" collapsible className="w-full">
@@ -581,8 +615,8 @@ export default function PeriodComparisonPage() {
                         <AccordionTrigger>
                             <div className="flex justify-between w-full pr-4">
                                 <span>{change.name}</span>
-                                <span className={cn("font-mono", change.netChange > 0 ? "text-primary" : "text-destructive")}>
-                                    {change.netChange > 0 ? '+' : ''}{formatCurrency(change.netChange)}
+                                <span className={cn("font-mono", change.netChange >= 0 ? "text-primary" : "text-destructive")}>
+                                    {change.netChange >= 0 ? '+' : ''}{formatCurrency(change.netChange)}
                                 </span>
                             </div>
                         </AccordionTrigger>
