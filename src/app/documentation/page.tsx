@@ -49,7 +49,7 @@ export default function DocumentationPage() {
                         <LayoutDashboard className="w-7 h-7 text-primary mt-1" />
                         <div>
                             <h3 className="font-semibold text-lg text-foreground">Dashboard</h3>
-                            <p className="text-muted-foreground">The main landing page, offering a high-level overview. It includes a 12-week balance forecast chart, summary cards for key metrics, and charts breaking down receivables and payables by type (Standard, Intercompany, Manual). It also features toggles for <Badge variant="outline" className="text-amber-600 border-amber-500"><Sparkles className="w-3 h-3 mr-1"/>Predicted Cashflow</Badge> and <Badge variant="outline">Exclusions</Badge>.</p>
+                            <div className="text-muted-foreground">The main landing page, offering a high-level overview. It includes a 12-week balance forecast chart, summary cards for key metrics, and charts breaking down receivables and payables by type (Standard, Intercompany, Manual). It also features toggles for <Badge variant="outline" className="text-amber-600 border-amber-500"><Sparkles className="w-3 h-3 mr-1"/>Predicted Cashflow</Badge> and <Badge variant="outline">Exclusions</Badge>.</div>
                         </div>
                     </div>
                      <div className="flex items-start gap-4">
@@ -175,7 +175,7 @@ export default function DocumentationPage() {
                     <div>
                         <h3 className="font-semibold text-lg text-foreground">Export</h3>
                         <div className="text-muted-foreground">
-                            <p>Download your data in two ways:</p>
+                            <div>Download your data in two ways:</div>
                             <ul className="list-['-_'] list-inside pl-4 mt-1">
                                 <li><strong>To Excel</strong>: Exports the 12-week summary forecast.</li>
                                 <li><strong>To JSON</strong>: Exports your entire session (imported data, all settings, manual transactions, etc.). This file can be shared and re-uploaded by another user to perfectly replicate your session.</li>
