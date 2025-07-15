@@ -2,14 +2,13 @@
 "use client";
 
 import { useContext, useMemo, useState } from "react";
-import { DateRange } from "react-day-picker";
-import { addDays, format, isWithinInterval, startOfToday } from 'date-fns';
+import { format, isBefore, isEqual } from 'date-fns';
 import { SettingsContext } from "@/context/settings-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Scale, TrendingUp, TrendingDown, Wallet, ArrowRight } from "lucide-react";
+import { Calendar as CalendarIcon, Scale, ArrowRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -24,19 +23,19 @@ interface PeriodMetrics {
     net: number;
 }
 
-const calculateMetricsForPeriod = (data: CashFlowItem[] | null, period: DateRange | undefined): PeriodMetrics => {
-    if (!data || !period || !period.from || !period.to) {
+const calculateMetricsUpToDate = (data: CashFlowItem[] | null, upToDate: Date | undefined): PeriodMetrics => {
+    if (!data || !upToDate) {
         return { receivables: 0, payables: 0, net: 0 };
     }
 
-    const periodData = data.filter(item => 
-        item['Date Closed'] && isWithinInterval(item['Date Closed'], { start: period.from!, end: period.to! })
+    const relevantData = data.filter(item => 
+        item.Date && (isBefore(item.Date, upToDate) || isEqual(item.Date, upToDate))
     );
 
     let receivables = 0;
     let payables = 0;
 
-    periodData.forEach(item => {
+    relevantData.forEach(item => {
         if (item.Type === 'Invoice') {
             receivables += item.Amount;
         } else if (item.Type === 'Credit Memo') {
@@ -54,12 +53,11 @@ const calculateMetricsForPeriod = (data: CashFlowItem[] | null, period: DateRang
 
 export default function PeriodComparisonPage() {
     const { data } = useContext(SettingsContext);
-    const today = startOfToday();
-    const [periodA, setPeriodA] = useState<DateRange | undefined>({ from: addDays(today, -30), to: today });
-    const [periodB, setPeriodB] = useState<DateRange | undefined>(undefined);
+    const [dateA, setDateA] = useState<Date | undefined>(new Date());
+    const [dateB, setDateB] = useState<Date | undefined>(undefined);
 
-    const metricsA = useMemo(() => calculateMetricsForPeriod(data, periodA), [data, periodA]);
-    const metricsB = useMemo(() => calculateMetricsForPeriod(data, periodB), [data, periodB]);
+    const metricsA = useMemo(() => calculateMetricsUpToDate(data, dateA), [data, dateA]);
+    const metricsB = useMemo(() => calculateMetricsUpToDate(data, dateB), [data, dateB]);
 
     const comparison = useMemo(() => {
         const diffReceivables = metricsB.receivables - metricsA.receivables;
@@ -68,7 +66,7 @@ export default function PeriodComparisonPage() {
 
         const percChange = (oldVal: number, newVal: number) => {
             if (oldVal === 0) return newVal > 0 ? Infinity : 0;
-            return ((newVal - oldVal) / oldVal) * 100;
+            return ((newVal - oldVal) / Math.abs(oldVal)) * 100;
         };
         
         return {
@@ -96,10 +94,11 @@ export default function PeriodComparisonPage() {
         if (perc === 0 && comparison.diffReceivables === 0) return "0.0%";
 
         const plus = perc > 0 ? '+' : '';
-        return <span className={cn(perc > 0 ? "text-primary" : "text-destructive")}>{`${plus}${perc.toFixed(1)}%`}</span>;
+        const colorClass = perc > 0 ? "text-primary" : "text-destructive";
+        return <span className={cn(colorClass)}>{`${plus}${perc.toFixed(1)}%`}</span>;
     };
     
-    const DateRangePicker = ({ period, setPeriod, label }: { period: DateRange | undefined, setPeriod: (p: DateRange | undefined) => void, label: string }) => (
+    const DatePicker = ({ date, setDate, label }: { date: Date | undefined, setDate: (d: Date | undefined) => void, label: string }) => (
          <div className="grid gap-2">
             <h3 className="text-center font-semibold">{label}</h3>
             <Popover>
@@ -108,52 +107,33 @@ export default function PeriodComparisonPage() {
                   id="date"
                   variant={"outline"}
                   className={cn(
-                    "w-[300px] justify-start text-left font-normal",
-                    !period && "text-muted-foreground"
+                    "w-[260px] justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {period?.from ? (
-                    period.to ? (
-                      <>
-                        {format(period.from, "LLL dd, y")} -{" "}
-                        {format(period.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(period.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
+                  {date ? format(date, "LLL dd, y") : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   initialFocus
-                  mode="range"
-                  defaultMonth={period?.from}
-                  selected={period}
-                  onSelect={setPeriod}
-                  numberOfMonths={2}
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
                 />
               </PopoverContent>
             </Popover>
           </div>
     );
 
-    const MetricCard = ({ title, value, icon: Icon }: { title: string, value: number, icon: React.ElementType }) => (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(value)}</div>
-            </CardContent>
-        </Card>
-    );
-    
-    const ComparisonCard = ({ title, oldValue, newValue, diff, perc }: { title: string, oldValue: number, newValue: number, diff: number, perc: number }) => {
+    const ComparisonCard = ({ title, valueA, valueB }: { title: string, valueA: number, valueB: number }) => {
+        const diff = valueB - valueA;
+        const perc = useMemo(() => {
+             if (valueA === 0) return valueB > 0 ? Infinity : 0;
+             return ((valueB - valueA) / Math.abs(valueA)) * 100;
+        }, [valueA, valueB]);
+
         const isIncreaseGood = title !== "Payables";
         const hasIncreased = diff > 0;
         const colorClass = hasIncreased ? (isIncreaseGood ? "text-primary" : "text-destructive") : (!hasIncreased && diff !== 0 ? (isIncreaseGood ? "text-destructive" : "text-primary") : "text-muted-foreground");
@@ -165,12 +145,12 @@ export default function PeriodComparisonPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex justify-between items-baseline">
-                        <span className="text-sm text-muted-foreground">Period A</span>
-                        <span className="font-mono">{formatCurrency(oldValue)}</span>
+                        <span className="text-sm text-muted-foreground">As at {dateA ? format(dateA, 'dd/MM/yy') : 'Period A'}</span>
+                        <span className="font-mono">{formatCurrency(valueA)}</span>
                     </div>
                      <div className="flex justify-between items-baseline">
-                        <span className="text-sm text-muted-foreground">Period B</span>
-                        <span className="font-mono">{formatCurrency(newValue)}</span>
+                        <span className="text-sm text-muted-foreground">As at {dateB ? format(dateB, 'dd/MM/yy') : 'Period B'}</span>
+                        <span className="font-mono">{formatCurrency(valueB)}</span>
                     </div>
                     <hr/>
                     <div className="flex justify-between items-baseline">
@@ -185,7 +165,6 @@ export default function PeriodComparisonPage() {
         );
     }
 
-
   return (
     <>
       <AppSidebar activePage="period-comparison" />
@@ -199,17 +178,17 @@ export default function PeriodComparisonPage() {
                 <CardHeader>
                     <CardTitle className="font-headline flex items-center gap-2">
                         <Scale className="w-6 h-6" />
-                        Select Periods to Compare
+                        Select Dates to Compare
                     </CardTitle>
                     <CardDescription>
-                        Choose two date ranges to compare financial metrics. The analysis is based on transactions with a 'Date Closed' within the selected periods.
+                        Choose two dates to compare cumulative financial metrics. The analysis is based on transactions with a 'Date' on or before the selected dates.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
-                        <DateRangePicker period={periodA} setPeriod={setPeriodA} label="Period A" />
+                        <DatePicker date={dateA} setDate={setDateA} label="Date A" />
                         <ArrowRight className="h-6 w-6 text-muted-foreground hidden sm:block" />
-                        <DateRangePicker period={periodB} setPeriod={setPeriodB} label="Period B" />
+                        <DatePicker date={dateB} setDate={setDateB} label="Date B" />
                     </div>
                 </CardContent>
             </Card>
@@ -221,20 +200,20 @@ export default function PeriodComparisonPage() {
                         Please go to the <Link href="/data" className="text-primary underline font-medium">Imported Data</Link> page to upload a file with transaction history to use this feature.
                     </p>
                 </Card>
-            ) : !periodB ? (
+            ) : !dateB ? (
                  <Card className="mt-8 flex flex-col items-center justify-center p-12 text-center border-dashed">
-                     <h3 className="text-xl font-semibold font-headline text-foreground">Select Period B</h3>
+                     <h3 className="text-xl font-semibold font-headline text-foreground">Select Date B</h3>
                     <p className="text-muted-foreground mt-1 max-w-md mx-auto">
-                        Please select a second date range to see the comparison.
+                        Please select a second date to see the comparison.
                     </p>
                  </Card>
             ) : (
                 <div className="mt-8">
                     <h2 className="text-2xl font-bold font-headline mb-4">Comparison Results</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <ComparisonCard title="Receivables" oldValue={metricsA.receivables} newValue={metricsB.receivables} diff={comparison.diffReceivables} perc={comparison.percReceivables} />
-                        <ComparisonCard title="Payables" oldValue={metricsA.payables} newValue={metricsB.payables} diff={comparison.diffPayables} perc={comparison.percPayables} />
-                        <ComparisonCard title="Net Position" oldValue={metricsA.net} newValue={metricsB.net} diff={comparison.diffNet} perc={comparison.percNet} />
+                        <ComparisonCard title="Receivables" valueA={metricsA.receivables} valueB={metricsB.receivables} />
+                        <ComparisonCard title="Payables" valueA={metricsA.payables} valueB={metricsB.payables} />
+                        <ComparisonCard title="Net Position" valueA={metricsA.net} valueB={metricsB.net} />
                     </div>
                 </div>
             )}
@@ -243,4 +222,3 @@ export default function PeriodComparisonPage() {
     </>
   );
 }
-
