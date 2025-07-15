@@ -46,7 +46,7 @@ const calculateMetricsForPeriod = (
 
     const intercompanyNamesSet = new Set(intercompanyNames);
 
-    const openTransactions = (data || [])
+    const openTransactions: ForecastItem[] = (data || [])
       .filter(item => {
           const transactionDate = item.Date;
           const closedDate = item['Date Closed'];
@@ -206,9 +206,8 @@ export default function PeriodComparisonPage() {
     };
     
     const handleDiffClick = (title: string, itemsA: ForecastItem[] = [], itemsB: ForecastItem[] = []) => {
-        const diff = calculateMetricsForPeriod(data, manualTransactions, intercompanyNames, dateB)[title.toLowerCase() as keyof PeriodMetrics] as number -
-                     calculateMetricsForPeriod(data, manualTransactions, intercompanyNames, dateA)[title.toLowerCase() as keyof PeriodMetrics] as number;
-
+        const diff = valueB - valueA;
+        
         if (diff === 0 && itemsA.length === 0 && itemsB.length === 0) return;
 
         const setA = new Set(itemsA.map(getItemId));
@@ -245,6 +244,9 @@ export default function PeriodComparisonPage() {
             customerChanges,
         });
     }
+
+    const valueA = metricsA.net;
+    const valueB = metricsB.net;
     
     const DatePicker = ({ date, setDate, label }: { date: Date | undefined, setDate: (d: Date | undefined) => void, label: string }) => (
          <div className="grid gap-2">
@@ -297,16 +299,7 @@ export default function PeriodComparisonPage() {
         };
 
         const handleDiffRowClick = () => {
-             const keyMap = {
-                'Total Receivables': 'receivables',
-                'Total Payables': 'payables',
-                'Net Position': 'net',
-                'Standard': isSubcategory ? (title === 'Standard' && itemsA && itemsA[0] && ['Invoice', 'Credit Memo'].includes((itemsA[0] as CashFlowItem).Type) ? 'standardReceivables' : 'standardPayables') : title.toLowerCase(),
-                'Intercompany': isSubcategory ? (title === 'Intercompany' && itemsA && itemsA[0] && ['Invoice', 'Credit Memo'].includes((itemsA[0] as CashFlowItem).Type) ? 'intercompanyReceivables' : 'intercompanyPayables') : title.toLowerCase(),
-                'Manual': isSubcategory ? (title === 'Manual' && itemsA && itemsA[0] && ['inflow'].includes((itemsA[0] as ManualTransaction).type) ? 'manualReceivables' : 'manualPayables') : title.toLowerCase(),
-            };
-            const categoryTitle = Object.keys(keyMap).find(k => k === title) || title;
-            handleDiffClick(categoryTitle, itemsA, itemsB);
+             handleDiffClick(title, itemsA, itemsB);
         }
 
         return (
@@ -387,6 +380,19 @@ export default function PeriodComparisonPage() {
 
     const groupedPeriodDialogItems = useMemo(() => groupAndSortItems(periodDialogDetails?.items || []), [periodDialogDetails, sortConfig]);
     
+    const sortedCustomerChanges = useMemo(() => {
+        if (!diffDialogDetails) return [];
+        return [...diffDialogDetails.customerChanges].sort((a, b) => {
+            if (sortConfig.key === 'name') {
+                return a.name.localeCompare(b.name) * (sortConfig.direction === 'asc' ? 1 : -1);
+            }
+            // sort by absolute amount
+            const valA = Math.abs(a.netChange);
+            const valB = Math.abs(b.netChange);
+            return (valB - valA) * (sortConfig.direction === 'desc' ? 1 : -1);
+        });
+    }, [diffDialogDetails, sortConfig]);
+
     const renderTransactionTable = (items: ForecastItem[], title: string) => (
         items.length > 0 && (
             <div className="pt-2">
@@ -579,7 +585,7 @@ export default function PeriodComparisonPage() {
             </div>
            <div className="max-h-[60vh] overflow-y-auto mt-4 p-1">
              <Accordion type="single" collapsible className="w-full">
-                {diffDialogDetails?.customerChanges.map(change => (
+                {sortedCustomerChanges.map(change => (
                      <AccordionItem value={change.name} key={change.name}>
                         <AccordionTrigger>
                             <div className="flex justify-between w-full pr-4">
