@@ -26,7 +26,7 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 
-const getAmount = (item: ForecastItem) => 'frequency' in item ? item.amount : item.RemainingAmount;
+const getAmount = (item: ForecastItem) => 'frequency' in item ? item.amount : (item as CashFlowItem).Amount;
 
 const calculateMetricsForPeriod = (
     data: CashFlowItem[] | null, 
@@ -62,7 +62,7 @@ const calculateMetricsForPeriod = (
     openTransactions.forEach(item => {
         const cashFlowItem = item as CashFlowItem;
         const isIntercompany = intercompanyNamesSet.has(cashFlowItem.Name);
-        const amount = cashFlowItem.RemainingAmount;
+        const amount = cashFlowItem.Amount;
 
         if (cashFlowItem.Type === 'Invoice') {
             metrics.receivables += amount;
@@ -541,4 +541,3 @@ export default function PeriodComparisonPage() {
     </>
   );
 }
-
