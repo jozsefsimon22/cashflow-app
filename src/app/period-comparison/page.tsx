@@ -97,7 +97,7 @@ const calculateMetricsForPeriod = (
                 metrics.intercompanyPayables -= amount;
                 metrics.intercompanyPayablesItems.push(item);
             } else {
-                metrics.standardPayables += amount;
+                metrics.standardPayables -= amount;
                 metrics.standardPayablesItems.push(item);
             }
         }
@@ -382,7 +382,10 @@ export default function PeriodComparisonPage() {
         if (!diffDialogDetails) return [];
         return [...diffDialogDetails.customerChanges].sort((a, b) => {
             if (sortConfig.key === 'name') {
-                return a.name.localeCompare(b.name) * (sortConfig.direction === 'asc' ? 1 : -1);
+                const prefixRegex = /^CUS\d{1,5}\s+/i;
+                const cleanAName = a.name.replace(prefixRegex, '');
+                const cleanBName = b.name.replace(prefixRegex, '');
+                return cleanAName.localeCompare(cleanBName) * (sortConfig.direction === 'asc' ? 1 : -1);
             }
             // sort by net amount
             return (b.netChange - a.netChange) * (sortConfig.direction === 'desc' ? 1 : -1);
@@ -605,4 +608,3 @@ export default function PeriodComparisonPage() {
   );
 }
 
-    
