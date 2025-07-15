@@ -174,12 +174,13 @@ export default function DocumentationPage() {
                     <Download className="w-7 h-7 text-primary mt-1" />
                     <div>
                         <h3 className="font-semibold text-lg text-foreground">Export</h3>
-                        <p className="text-muted-foreground">Download your data in two ways:
-                          <ul className="list-['-_'] list-inside pl-4 mt-1">
-                              <li><strong>To Excel</strong>: Exports the 12-week summary forecast.</li>
-                              <li><strong>To JSON</strong>: Exports your entire session (imported data, all settings, manual transactions, etc.). This file can be shared and re-uploaded by another user to perfectly replicate your session.</li>
-                          </ul>
-                        </p>
+                        <div className="text-muted-foreground">
+                            <p>Download your data in two ways:</p>
+                            <ul className="list-['-_'] list-inside pl-4 mt-1">
+                                <li><strong>To Excel</strong>: Exports the 12-week summary forecast.</li>
+                                <li><strong>To JSON</strong>: Exports your entire session (imported data, all settings, manual transactions, etc.). This file can be shared and re-uploaded by another user to perfectly replicate your session.</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
                  <div className="flex items-start gap-4">
