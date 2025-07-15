@@ -162,4 +162,11 @@ export interface PeriodMetrics {
     standardPayables: number;
     intercompanyPayables: number;
     manualPayables: number;
+    // Items for drilldown
+    standardReceivablesItems: ForecastItem[];
+    intercompanyReceivablesItems: ForecastItem[];
+    manualReceivablesItems: ForecastItem[];
+    standardPayablesItems: ForecastItem[];
+    intercompanyPayablesItems: ForecastItem[];
+    manualPayablesItems: ForecastItem[];
 }

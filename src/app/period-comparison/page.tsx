@@ -9,33 +9,45 @@ import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Scale, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
+import { Calendar as CalendarIcon, Scale, ArrowRight, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { CashFlowItem, ManualTransaction, PeriodMetrics } from "@/types";
+import type { CashFlowItem, ManualTransaction, PeriodMetrics, ForecastItem, GroupedItems } from "@/types";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 
-const calculateMetricsUpToDate = (
+const getAmount = (item: ForecastItem) => 'frequency' in item ? item.amount : item.RemainingAmount;
+
+const calculateMetricsForPeriod = (
     data: CashFlowItem[] | null, 
     manualTransactions: ManualTransaction[],
     intercompanyNames: string[],
     upToDate: Date | undefined
 ): PeriodMetrics => {
-    const baseMetrics: PeriodMetrics = {
+    let metrics: PeriodMetrics = {
         receivables: 0, payables: 0, net: 0,
         standardReceivables: 0, intercompanyReceivables: 0, manualReceivables: 0,
         standardPayables: 0, intercompanyPayables: 0, manualPayables: 0,
+        standardReceivablesItems: [], intercompanyReceivablesItems: [], manualReceivablesItems: [],
+        standardPayablesItems: [], intercompanyPayablesItems: [], manualPayablesItems: [],
     };
 
-    if (!upToDate) return baseMetrics;
+    if (!upToDate) return metrics;
 
     const intercompanyNamesSet = new Set(intercompanyNames);
 
     // --- Process Imported Data ---
-    const relevantImportedData = (data || []).filter(item => {
+    const relevantImportedData: ForecastItem[] = (data || []).filter(item => {
         const transactionDate = item.Date;
         const closedDate = item['Date Closed'];
         
@@ -44,65 +56,68 @@ const calculateMetricsUpToDate = (
 
         const isOpen = !closedDate || isAfter(closedDate, upToDate);
         return isOpen;
-    });
+    }).map(item => ({...item, dueDate: item['Due Date']!}));
+
 
     relevantImportedData.forEach(item => {
-        const isIntercompany = intercompanyNamesSet.has(item.Name);
-        if (item.Type === 'Invoice') {
-            baseMetrics.receivables += item.RemainingAmount;
-            if (isIntercompany) baseMetrics.intercompanyReceivables += item.RemainingAmount;
-            else baseMetrics.standardReceivables += item.RemainingAmount;
-        } else if (item.Type === 'Credit Memo') {
-            baseMetrics.receivables -= item.RemainingAmount;
-            if (isIntercompany) baseMetrics.intercompanyReceivables -= item.RemainingAmount;
-            else baseMetrics.standardReceivables -= item.RemainingAmount;
-        } else if (item.Type === 'Bill') {
-            baseMetrics.payables += item.RemainingAmount;
-            if (isIntercompany) baseMetrics.intercompanyPayables += item.RemainingAmount;
-            else baseMetrics.standardPayables += item.RemainingAmount;
-        } else if (item.Type === 'Bill Credit') {
-            baseMetrics.payables -= item.RemainingAmount;
-            if (isIntercompany) baseMetrics.intercompanyPayables -= item.RemainingAmount;
-            else baseMetrics.standardPayables -= item.RemainingAmount;
+        const cashFlowItem = item as CashFlowItem;
+        const isIntercompany = intercompanyNamesSet.has(cashFlowItem.Name);
+        const amount = cashFlowItem.RemainingAmount;
+
+        if (cashFlowItem.Type === 'Invoice') {
+            metrics.receivables += amount;
+            if (isIntercompany) {
+                metrics.intercompanyReceivables += amount;
+                metrics.intercompanyReceivablesItems.push(item);
+            } else {
+                metrics.standardReceivables += amount;
+                metrics.standardReceivablesItems.push(item);
+            }
+        } else if (cashFlowItem.Type === 'Credit Memo') {
+            metrics.receivables -= amount;
+            if (isIntercompany) {
+                metrics.intercompanyReceivables -= amount;
+                metrics.intercompanyReceivablesItems.push(item);
+            } else {
+                metrics.standardReceivables -= amount;
+                metrics.standardReceivablesItems.push(item);
+            }
+        } else if (cashFlowItem.Type === 'Bill') {
+            metrics.payables += amount;
+             if (isIntercompany) {
+                metrics.intercompanyPayables += amount;
+                metrics.intercompanyPayablesItems.push(item);
+            } else {
+                metrics.standardPayables += amount;
+                metrics.standardPayablesItems.push(item);
+            }
+        } else if (cashFlowItem.Type === 'Bill Credit') {
+            metrics.payables -= amount;
+            if (isIntercompany) {
+                metrics.intercompanyPayables -= amount;
+                metrics.intercompanyPayablesItems.push(item);
+            } else {
+                metrics.standardPayables -= amount;
+                metrics.standardPayablesItems.push(item);
+            }
         }
     });
     
     // --- Process Manual Transactions ---
+    const allManualItems: ForecastItem[] = [];
+
     manualTransactions.forEach(t => {
         if (isAfter(t.startDate, upToDate)) return;
 
-        const isIntercompany = intercompanyNamesSet.has(t.name);
-
         if (t.frequency === 'once') {
-            if (t.type === 'inflow') {
-                baseMetrics.receivables += t.amount;
-                baseMetrics.manualReceivables += t.amount;
-            } else {
-                baseMetrics.payables += t.amount;
-                baseMetrics.manualPayables += t.amount;
-            }
+            allManualItems.push({ ...t, dueDate: t.startDate });
         } else {
-             // For recurring, count all occurrences up to the target date
             let currentDate = t.startDate;
-            let i = 0;
             let occurrenceCount = 0;
-
             while (isBefore(currentDate, upToDate) || isEqual(currentDate, upToDate)) {
-                 if (t.endCondition === 'date' && t.endDate && isAfter(currentDate, t.endDate)) {
-                    break;
-                }
-                if (t.endCondition === 'occurrences' && t.occurrences && occurrenceCount >= t.occurrences) {
-                    break;
-                }
-
-                if (t.type === 'inflow') {
-                    baseMetrics.receivables += t.amount;
-                    baseMetrics.manualReceivables += t.amount;
-                } else {
-                    baseMetrics.payables += t.amount;
-                    baseMetrics.manualPayables += t.amount;
-                }
-                
+                 if (t.endCondition === 'date' && t.endDate && isAfter(currentDate, t.endDate)) break;
+                 if (t.endCondition === 'occurrences' && t.occurrences && occurrenceCount >= t.occurrences) break;
+                allManualItems.push({ ...t, dueDate: currentDate });
                 occurrenceCount++;
                 switch (t.frequency) {
                     case 'weekly': currentDate = addWeeks(currentDate, 1); break;
@@ -110,24 +125,57 @@ const calculateMetricsUpToDate = (
                     case 'monthly': currentDate = addMonths(currentDate, 1); break;
                     case 'quarterly': currentDate = addQuarters(currentDate, 1); break;
                 }
-                i++;
-                if (i > 1000) break; // Safety break
             }
         }
     });
 
-    baseMetrics.net = baseMetrics.receivables - baseMetrics.payables;
-    return baseMetrics;
+    allManualItems.forEach(item => {
+        const manualItem = item as ManualTransaction & { dueDate: Date };
+        const isIntercompany = intercompanyNamesSet.has(manualItem.name);
+        const amount = manualItem.amount;
+        
+        if (manualItem.type === 'inflow') {
+            metrics.receivables += amount;
+            if(isIntercompany) {
+                metrics.intercompanyReceivables += amount;
+                metrics.intercompanyReceivablesItems.push(item);
+            } else {
+                metrics.manualReceivables += amount;
+                metrics.manualReceivablesItems.push(item);
+            }
+        } else {
+            metrics.payables += amount;
+            if(isIntercompany) {
+                metrics.intercompanyPayables += amount;
+                metrics.intercompanyPayablesItems.push(item);
+            } else {
+                metrics.manualPayables += amount;
+                metrics.manualPayablesItems.push(item);
+            }
+        }
+    });
+
+    metrics.net = metrics.receivables - metrics.payables;
+    return metrics;
 };
 
+interface DialogDetails {
+    title: string;
+    items: ForecastItem[];
+    total: number;
+}
+type SortKey = 'name' | 'amount';
+type SortDirection = 'asc' | 'desc';
 
 export default function PeriodComparisonPage() {
     const { data, manualTransactions, intercompanyNames } = useContext(SettingsContext);
     const [dateA, setDateA] = useState<Date | undefined>(new Date());
     const [dateB, setDateB] = useState<Date | undefined>(undefined);
+    const [dialogDetails, setDialogDetails] = useState<DialogDetails | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
 
-    const metricsA = useMemo(() => calculateMetricsUpToDate(data, manualTransactions, intercompanyNames, dateA), [data, manualTransactions, intercompanyNames, dateA]);
-    const metricsB = useMemo(() => calculateMetricsUpToDate(data, manualTransactions, intercompanyNames, dateB), [data, manualTransactions, intercompanyNames, dateB]);
+    const metricsA = useMemo(() => calculateMetricsForPeriod(data, manualTransactions, intercompanyNames, dateA), [data, manualTransactions, intercompanyNames, dateA]);
+    const metricsB = useMemo(() => calculateMetricsForPeriod(data, manualTransactions, intercompanyNames, dateB), [data, manualTransactions, intercompanyNames, dateB]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-GB', {
@@ -136,6 +184,12 @@ export default function PeriodComparisonPage() {
           minimumFractionDigits: 0,
           maximumFractionDigits: 0,
         }).format(amount);
+    };
+
+    const handleCellClick = (title: string, items: ForecastItem[] | undefined, total: number) => {
+        if (items && items.length > 0) {
+            setDialogDetails({ title, items, total });
+        }
     };
     
     const DatePicker = ({ date, setDate, label }: { date: Date | undefined, setDate: (d: Date | undefined) => void, label: string }) => (
@@ -167,19 +221,18 @@ export default function PeriodComparisonPage() {
           </div>
     );
     
-    const ComparisonRow = ({ title, valueA, valueB, isIncreaseGood, isSubcategory = false }: { title: string, valueA: number, valueB: number, isIncreaseGood: boolean, isSubcategory?: boolean }) => {
+    const ComparisonRow = ({ title, valueA, itemsA, valueB, itemsB, isIncreaseGood, isSubcategory = false }: { title: string, valueA: number, itemsA: ForecastItem[] | undefined, valueB: number, itemsB: ForecastItem[] | undefined, isIncreaseGood: boolean, isSubcategory?: boolean }) => {
         const diff = valueB - valueA;
         const perc = useMemo(() => {
              if (valueA === 0) return valueB === 0 ? 0 : Infinity;
              return ((valueB - valueA) / Math.abs(valueA)) * 100;
         }, [valueA, valueB]);
         
-        const hasIncreased = diff > 0;
         const hasChanged = diff !== 0;
 
         let colorClass = "text-muted-foreground";
         if (hasChanged) {
-          colorClass = hasIncreased ? (isIncreaseGood ? "text-primary" : "text-destructive") : (isIncreaseGood ? "text-destructive" : "text-primary");
+          colorClass = diff > 0 ? (isIncreaseGood ? "text-primary" : "text-destructive") : (isIncreaseGood ? "text-destructive" : "text-primary");
         }
 
         const formatPercentage = (p: number) => {
@@ -192,11 +245,21 @@ export default function PeriodComparisonPage() {
         return (
             <TableRow className={cn(!isSubcategory && "bg-secondary/50 font-semibold")}>
                 <TableCell className={cn(isSubcategory && "pl-8")}>{title}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(valueA)}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(valueB)}</TableCell>
+                <TableCell 
+                    className={cn("text-right font-mono", itemsA && itemsA.length > 0 && "cursor-pointer hover:underline")}
+                    onClick={() => handleCellClick(`${title} - As at ${dateA ? format(dateA, 'dd/MM/yy') : ''}`, itemsA, valueA)}
+                >
+                    {formatCurrency(valueA)}
+                </TableCell>
+                <TableCell 
+                    className={cn("text-right font-mono", itemsB && itemsB.length > 0 && "cursor-pointer hover:underline")}
+                    onClick={() => handleCellClick(`${title} - As at ${dateB ? format(dateB, 'dd/MM/yy') : ''}`, itemsB, valueB)}
+                >
+                    {formatCurrency(valueB)}
+                </TableCell>
                 <TableCell className={cn("text-right font-mono", colorClass)}>
                     <div className="flex items-center justify-end gap-1">
-                        {hasChanged && (hasIncreased ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                        {hasChanged && (diff > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
                         {formatCurrency(diff)}
                     </div>
                 </TableCell>
@@ -212,6 +275,39 @@ export default function PeriodComparisonPage() {
             <TableCell colSpan={5} className="font-bold text-lg text-foreground">{title}</TableCell>
         </TableRow>
     );
+
+    const requestSort = (key: SortKey) => {
+        let direction: SortDirection = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const groupedDialogItems = useMemo((): [string, GroupedItems[string]][] => {
+        if (!dialogDetails) return [];
+
+        const grouped = dialogDetails.items.reduce((acc: GroupedItems, item) => {
+            const name = 'frequency' in item ? item.name : (item as CashFlowItem).Name || 'Unnamed';
+            let amount = getAmount(item);
+
+            if (!acc[name]) {
+              acc[name] = { total: 0, items: [] };
+            }
+            acc[name].total += amount;
+            acc[name].items.push(item);
+            return acc;
+          }, {});
+          
+        return Object.entries(grouped).sort(([, a], [, b]) => {
+            if (sortConfig.key === 'name') {
+                const nameA = a.items[0]?.Name || ('name' in a.items[0] && a.items[0].name) || '';
+                const nameB = b.items[0]?.Name || ('name' in b.items[0] && b.items[0].name) || '';
+                return nameA.localeCompare(nameB) * (sortConfig.direction === 'asc' ? 1 : -1);
+            }
+            return (a.total - b.total) * (sortConfig.direction === 'asc' ? 1 : -1);
+        });
+    }, [dialogDetails, sortConfig]);
 
   return (
     <>
@@ -259,7 +355,7 @@ export default function PeriodComparisonPage() {
                 <Card className="mt-8">
                     <CardHeader>
                         <CardTitle className="font-headline">Comparison Results</CardTitle>
-                        <CardDescription>Comparing total balances of open transactions up to and including the selected dates.</CardDescription>
+                        <CardDescription>Comparing total balances of open transactions up to and including the selected dates. Click a value for a breakdown.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -274,22 +370,22 @@ export default function PeriodComparisonPage() {
                             </TableHeader>
                             <TableBody>
                                 <CategoryHeader title="Receivables" />
-                                <ComparisonRow title="Standard" valueA={metricsA.standardReceivables} valueB={metricsB.standardReceivables} isIncreaseGood={true} isSubcategory />
-                                <ComparisonRow title="Intercompany" valueA={metricsA.intercompanyReceivables} valueB={metricsB.intercompanyReceivables} isIncreaseGood={true} isSubcategory />
-                                <ComparisonRow title="Manual" valueA={metricsA.manualReceivables} valueB={metricsB.manualReceivables} isIncreaseGood={true} isSubcategory />
-                                <ComparisonRow title="Total Receivables" valueA={metricsA.receivables} valueB={metricsB.receivables} isIncreaseGood={true} />
+                                <ComparisonRow title="Standard" valueA={metricsA.standardReceivables} itemsA={metricsA.standardReceivablesItems} valueB={metricsB.standardReceivables} itemsB={metricsB.standardReceivablesItems} isIncreaseGood={true} isSubcategory />
+                                <ComparisonRow title="Intercompany" valueA={metricsA.intercompanyReceivables} itemsA={metricsA.intercompanyReceivablesItems} valueB={metricsB.intercompanyReceivables} itemsB={metricsB.intercompanyReceivablesItems} isIncreaseGood={true} isSubcategory />
+                                <ComparisonRow title="Manual" valueA={metricsA.manualReceivables} itemsA={metricsA.manualReceivablesItems} valueB={metricsB.manualReceivables} itemsB={metricsB.manualReceivablesItems} isIncreaseGood={true} isSubcategory />
+                                <ComparisonRow title="Total Receivables" valueA={metricsA.receivables} itemsA={[...metricsA.standardReceivablesItems, ...metricsA.intercompanyReceivablesItems, ...metricsA.manualReceivablesItems]} valueB={metricsB.receivables} itemsB={[...metricsB.standardReceivablesItems, ...metricsB.intercompanyReceivablesItems, ...metricsB.manualReceivablesItems]} isIncreaseGood={true} />
 
                                 <CategoryHeader title="Payables" />
-                                <ComparisonRow title="Standard" valueA={metricsA.standardPayables} valueB={metricsB.standardPayables} isIncreaseGood={false} isSubcategory />
-                                <ComparisonRow title="Intercompany" valueA={metricsA.intercompanyPayables} valueB={metricsB.intercompanyPayables} isIncreaseGood={false} isSubcategory />
-                                <ComparisonRow title="Manual" valueA={metricsA.manualPayables} valueB={metricsB.manualPayables} isIncreaseGood={false} isSubcategory />
-                                <ComparisonRow title="Total Payables" valueA={metricsA.payables} valueB={metricsB.payables} isIncreaseGood={false} />
+                                <ComparisonRow title="Standard" valueA={metricsA.standardPayables} itemsA={metricsA.standardPayablesItems} valueB={metricsB.standardPayables} itemsB={metricsB.standardPayablesItems} isIncreaseGood={false} isSubcategory />
+                                <ComparisonRow title="Intercompany" valueA={metricsA.intercompanyPayables} itemsA={metricsA.intercompanyPayablesItems} valueB={metricsB.intercompanyPayables} itemsB={metricsB.intercompanyPayablesItems} isIncreaseGood={false} isSubcategory />
+                                <ComparisonRow title="Manual" valueA={metricsA.manualPayables} itemsA={metricsA.manualPayablesItems} valueB={metricsB.manualPayables} itemsB={metricsB.manualPayablesItems} isIncreaseGood={false} isSubcategory />
+                                <ComparisonRow title="Total Payables" valueA={metricsA.payables} itemsA={[...metricsA.standardPayablesItems, ...metricsA.intercompanyPayablesItems, ...metricsA.manualPayablesItems]} valueB={metricsB.payables} itemsB={[...metricsB.standardPayablesItems, ...metricsB.intercompanyPayablesItems, ...metricsB.manualPayablesItems]} isIncreaseGood={false} />
                                 
                                 <TableRow className="border-t-2 border-primary/20">
                                     <TableCell colSpan={5}></TableCell>
                                 </TableRow>
 
-                                <ComparisonRow title="Net Position" valueA={metricsA.net} valueB={metricsB.net} isIncreaseGood={true} />
+                                <ComparisonRow title="Net Position" valueA={metricsA.net} itemsA={undefined} valueB={metricsB.net} itemsB={undefined} isIncreaseGood={true} />
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -297,6 +393,77 @@ export default function PeriodComparisonPage() {
             )}
         </main>
       </SidebarInset>
+
+       <Dialog open={!!dialogDetails} onOpenChange={() => setDialogDetails(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{dialogDetails?.title}</DialogTitle>
+            <DialogDescription>
+              A breakdown of open transactions making up this total, grouped by name.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xl font-bold font-mono text-primary">{formatCurrency(dialogDetails?.total || 0)}</p>
+            <div className="flex items-center gap-2">
+                 <Button variant="ghost" size="sm" onClick={() => requestSort('name')}>
+                    Sort by Name
+                    <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'name' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                 </Button>
+                  <Button variant="ghost" size="sm" onClick={() => requestSort('amount')}>
+                    Sort by Amount
+                    <ArrowUpDown className={`ml-2 h-4 w-4 ${sortConfig.key === 'amount' ? 'text-foreground' : 'text-muted-foreground/50'}`} />
+                 </Button>
+            </div>
+          </div>
+           <div className="max-h-[60vh] overflow-y-auto mt-4 p-1">
+            <Accordion type="single" collapsible className="w-full">
+                {groupedDialogItems.length > 0 ? (
+                  groupedDialogItems.map(([name, group]) => (
+                    <AccordionItem value={name} key={`breakdown-${name}`}>
+                      <AccordionTrigger>
+                        <div className="flex justify-between w-full pr-4">
+                          <span>{name}</span>
+                          <span className="font-mono text-primary">{formatCurrency(group.total)}</span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Document #</TableHead>
+                              <TableHead>Due Date</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {group.items.map((item, index) => {
+                                const isManual = 'frequency' in item;
+                                const id = isManual ? 'Recurring' : (item as CashFlowItem)['Document Number'];
+                                const type = isManual ? 'Manual' : (item as CashFlowItem).Type;
+                                const dueDate = (item as any).dueDate;
+                                const amount = getAmount(item);
+                                return (
+                                <TableRow key={`${id}-${index}`}>
+                                    <TableCell>{id}</TableCell>
+                                    <TableCell>{dueDate ? format(dueDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                    <TableCell>{type}</TableCell>
+                                    <TableCell className="text-right font-mono">{formatCurrency(amount)}</TableCell>
+                                </TableRow>
+                                )
+                            })}
+                          </TableBody>
+                        </Table>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No transactions found.</p>
+                )}
+              </Accordion>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
