@@ -97,13 +97,12 @@ const calculateMetricsForPeriod = (
                 metrics.intercompanyPayables -= amount;
                 metrics.intercompanyPayablesItems.push(item);
             } else {
-                metrics.standardPayables -= amount;
+                metrics.standardPayables += amount;
                 metrics.standardPayablesItems.push(item);
             }
         }
     });
     
-    // --- Process Manual Transactions ---
     const allManualItems: ForecastItem[] = [];
 
     manualTransactions.forEach(t => {
@@ -206,6 +205,8 @@ export default function PeriodComparisonPage() {
     };
     
     const handleDiffClick = (title: string, itemsA: ForecastItem[] = [], itemsB: ForecastItem[] = []) => {
+        const valueA = itemsA.reduce((sum, item) => sum + getAmount(item), 0);
+        const valueB = itemsB.reduce((sum, item) => sum + getAmount(item), 0);
         const diff = valueB - valueA;
         
         if (diff === 0 && itemsA.length === 0 && itemsB.length === 0) return;
@@ -244,9 +245,6 @@ export default function PeriodComparisonPage() {
             customerChanges,
         });
     }
-
-    const valueA = metricsA.net;
-    const valueB = metricsB.net;
     
     const DatePicker = ({ date, setDate, label }: { date: Date | undefined, setDate: (d: Date | undefined) => void, label: string }) => (
          <div className="grid gap-2">
@@ -386,10 +384,8 @@ export default function PeriodComparisonPage() {
             if (sortConfig.key === 'name') {
                 return a.name.localeCompare(b.name) * (sortConfig.direction === 'asc' ? 1 : -1);
             }
-            // sort by absolute amount
-            const valA = Math.abs(a.netChange);
-            const valB = Math.abs(b.netChange);
-            return (valB - valA) * (sortConfig.direction === 'desc' ? 1 : -1);
+            // sort by net amount
+            return (b.netChange - a.netChange) * (sortConfig.direction === 'desc' ? 1 : -1);
         });
     }, [diffDialogDetails, sortConfig]);
 
@@ -608,3 +604,5 @@ export default function PeriodComparisonPage() {
     </>
   );
 }
+
+    
