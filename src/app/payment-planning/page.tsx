@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import type { CashFlowItem, ManualTransaction, ForecastItem, PaymentPlanItem } from "@/types";
 import { format, startOfToday, isBefore, isEqual } from 'date-fns';
 import { HandCoins, Search, CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 type SortKey = 'name' | 'dueDate' | 'amount';
 type SortDirection = 'asc' | 'desc';
@@ -273,3 +274,5 @@ export default function PaymentPlanningPage() {
         </>
     );
 }
+
+    
