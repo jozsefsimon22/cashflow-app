@@ -180,3 +180,13 @@ export interface DiffDialogDetails {
         closedItems: ForecastItem[];
     }[];
 }
+
+export interface PaymentPlanItem {
+    id: string;
+    name: string;
+    type: 'inflow' | 'outflow';
+    docType: CashFlowItem['Type'] | 'Manual Inflow' | 'Manual Outflow';
+    docNumber: string;
+    dueDate: Date;
+    amount: number;
+}

@@ -26,6 +26,7 @@ import {
   BookUser,
   Link2,
   Scale,
+  HandCoins,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -35,6 +36,7 @@ interface AppSidebarProps {
     | 'customer-scorecard'
     | 'balance-summary'
     | 'period-comparison'
+    | 'payment-planning'
     | 'data'
     | 'manual-transactions'
     | 'exclusions'
@@ -96,6 +98,14 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                     <Link href="/period-comparison">
                     <Scale />
                     <span>Period Comparison</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={activePage === 'payment-planning'}>
+                    <Link href="/payment-planning">
+                    <HandCoins />
+                    <span>Payment Planning</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
