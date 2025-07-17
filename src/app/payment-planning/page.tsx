@@ -179,6 +179,15 @@ export default function PaymentPlanningPage() {
     };
 
     const formatDate = (date: Date) => format(date, 'dd/MM/yyyy');
+    
+    const AccordionColumnHeader = () => (
+        <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-muted-foreground">
+            <div className="col-span-6">Name</div>
+            <div className="col-span-2 text-right">Total Due</div>
+            <div className="col-span-2 text-right">Selected</div>
+            <div className="col-span-2 text-right">Remaining</div>
+        </div>
+    );
 
     return (
         <>
@@ -244,13 +253,14 @@ export default function PaymentPlanningPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="max-h-[60vh] overflow-y-auto pr-2">
+                                    <AccordionColumnHeader />
+                                    <div className="max-h-[60vh] overflow-y-auto pr-2 border-t">
                                         <Accordion type="multiple" className="w-full">
                                             {payables.map(group => (
                                                 <AccordionItem value={group.name} key={group.name}>
-                                                    <AccordionTrigger>
-                                                        <div className="flex justify-between items-center w-full pr-4">
-                                                          <div className="flex items-center gap-4">
+                                                    <AccordionTrigger className="hover:no-underline">
+                                                        <div className="grid grid-cols-12 gap-4 items-center w-full">
+                                                          <div className="col-span-6 flex items-center gap-4">
                                                             <Checkbox 
                                                                 onClick={(e) => { e.stopPropagation(); handleGroupSelect(group.items, 'payable') }}
                                                                 checked={group.items.every(i => selectedPayables.has(i.id))}
@@ -258,10 +268,9 @@ export default function PaymentPlanningPage() {
                                                             />
                                                             <span className="font-semibold text-left">{group.name}</span>
                                                           </div>
-                                                          <div className="flex flex-col items-end">
-                                                            <span className="font-mono text-base">{formatCurrency(group.totalAmount)}</span>
-                                                            {group.selectedAmount > 0 && <Badge variant="secondary" className="mt-1">{formatCurrency(group.selectedAmount)} selected</Badge>}
-                                                          </div>
+                                                          <div className="col-span-2 text-right font-mono">{formatCurrency(group.totalAmount)}</div>
+                                                          <div className="col-span-2 text-right font-mono text-destructive">{formatCurrency(group.selectedAmount)}</div>
+                                                          <div className="col-span-2 text-right font-mono text-muted-foreground">{formatCurrency(group.totalAmount - group.selectedAmount)}</div>
                                                         </div>
                                                     </AccordionTrigger>
                                                     <AccordionContent>
@@ -293,13 +302,14 @@ export default function PaymentPlanningPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="max-h-[60vh] overflow-y-auto pr-2">
+                                    <AccordionColumnHeader />
+                                    <div className="max-h-[60vh] overflow-y-auto pr-2 border-t">
                                        <Accordion type="multiple" className="w-full">
                                             {receivables.map(group => (
                                                 <AccordionItem value={group.name} key={group.name}>
-                                                    <AccordionTrigger>
-                                                        <div className="flex justify-between items-center w-full pr-4">
-                                                          <div className="flex items-center gap-4">
+                                                    <AccordionTrigger className="hover:no-underline">
+                                                        <div className="grid grid-cols-12 gap-4 items-center w-full">
+                                                          <div className="col-span-6 flex items-center gap-4">
                                                             <Checkbox 
                                                                 onClick={(e) => { e.stopPropagation(); handleGroupSelect(group.items, 'receivable') }}
                                                                 checked={group.items.every(i => selectedReceivables.has(i.id))}
@@ -307,10 +317,9 @@ export default function PaymentPlanningPage() {
                                                             />
                                                             <span className="font-semibold text-left">{group.name}</span>
                                                           </div>
-                                                          <div className="flex flex-col items-end">
-                                                            <span className="font-mono text-base">{formatCurrency(group.totalAmount)}</span>
-                                                            {group.selectedAmount > 0 && <Badge variant="secondary" className="mt-1">{formatCurrency(group.selectedAmount)} selected</Badge>}
-                                                          </div>
+                                                          <div className="col-span-2 text-right font-mono">{formatCurrency(group.totalAmount)}</div>
+                                                          <div className="col-span-2 text-right font-mono text-primary">{formatCurrency(group.selectedAmount)}</div>
+                                                          <div className="col-span-2 text-right font-mono text-muted-foreground">{formatCurrency(group.totalAmount - group.selectedAmount)}</div>
                                                         </div>
                                                     </AccordionTrigger>
                                                     <AccordionContent>
@@ -419,4 +428,3 @@ export default function PaymentPlanningPage() {
         </>
     );
 }
-
