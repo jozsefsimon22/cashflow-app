@@ -36,6 +36,7 @@ const defaultConfig: ColumnConfig = {
   date: 'Date',
   dateClosed: 'Date Closed',
   dateFormat: 'auto',
+  currency: 'GBP',
   installmentDueDate: 'Installment Due Date',
   installmentAmount: 'Installment Amount',
   installmentNumber: 'Installment Number',

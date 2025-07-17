@@ -62,9 +62,18 @@ const manualTransactionSchema = z.object({
 
 
 export default function ManualTransactionsPage() {
-  const { manualTransactions, setManualTransactions } = useContext(SettingsContext);
+  const { manualTransactions, setManualTransactions, columnConfig } = useContext(SettingsContext);
   const { toast } = useToast();
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: columnConfig.currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
 
   const manualTransactionForm = useForm<z.infer<typeof manualTransactionSchema>>({
     resolver: zodResolver(manualTransactionSchema),
@@ -212,7 +221,7 @@ export default function ManualTransactionsPage() {
                             name="amount"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Amount (£)</FormLabel>
+                                <FormLabel>Amount</FormLabel>
                                 <FormControl>
                                     <Input type="number" placeholder="e.g., 1200" {...field} />
                                 </FormControl>
@@ -458,7 +467,7 @@ export default function ManualTransactionsPage() {
                             {manualTransactions.length > 0 ? manualTransactions.map(t => (
                                 <TableRow key={t.id} className={cn(editingTransactionId === t.id && 'bg-primary/10')}>
                                 <TableCell>{t.name}</TableCell>
-                                <TableCell>£{t.amount.toFixed(2)}</TableCell>
+                                <TableCell>{formatCurrency(t.amount)}</TableCell>
                                 <TableCell>
                                     <span className={cn("inline-flex items-center gap-1.5 capitalize", t.type === 'inflow' ? 'text-primary' : 'text-destructive')}>
                                     {t.type === 'inflow' ? <ArrowUpCircle className="w-4 h-4"/> : <ArrowDownCircle className="w-4 h-4" />}

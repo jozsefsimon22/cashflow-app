@@ -163,7 +163,7 @@ const getItemName = (item: ForecastItem): string => {
 }
 
 export default function PeriodComparisonPage() {
-    const { data, manualTransactions, intercompanyNames } = useContext(SettingsContext);
+    const { data, manualTransactions, intercompanyNames, columnConfig } = useContext(SettingsContext);
     const [dateA, setDateA] = useState<Date | undefined>(new Date());
     const [dateB, setDateB] = useState<Date | undefined>(undefined);
     const [periodDialogDetails, setPeriodDialogDetails] = useState<PeriodDialogDetails | null>(null);
@@ -174,9 +174,9 @@ export default function PeriodComparisonPage() {
     const metricsB = useMemo(() => calculateMetricsForPeriod(data, manualTransactions, intercompanyNames, dateB), [data, manualTransactions, intercompanyNames, dateB]);
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-GB', {
+        return new Intl.NumberFormat('en-US', {
           style: 'currency',
-          currency: 'GBP',
+          currency: columnConfig.currency,
           minimumFractionDigits: 0,
           maximumFractionDigits: 0,
         }).format(amount);
@@ -525,7 +525,7 @@ export default function PeriodComparisonPage() {
                                     <TableHead className="w-[220px]">Category</TableHead>
                                     <TableHead className="text-right">As at {dateA ? format(dateA, 'dd/MM/yy') : 'Period A'}</TableHead>
                                     <TableHead className="text-right">As at {dateB ? format(dateB, 'dd/MM/yy') : 'Period B'}</TableHead>
-                                    <TableHead className="text-right">Change (£)</TableHead>
+                                    <TableHead className="text-right">Change</TableHead>
                                     <TableHead className="text-right">Change (%)</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -625,4 +625,3 @@ export default function PeriodComparisonPage() {
     </>
   );
 }
-

@@ -38,7 +38,8 @@ export default function BalanceSummaryPage() {
     paidManualOccurrences,
     intercompanyNames,
     startingBalance,
-    namePairings
+    namePairings,
+    columnConfig,
   } = useContext(SettingsContext);
   
   const [applyExclusions, setApplyExclusions] = useState(false);
@@ -170,18 +171,18 @@ export default function BalanceSummaryPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'GBP',
+      currency: columnConfig.currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
   };
 
   const formatCurrencyDialog = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'GBP',
+      currency: columnConfig.currency,
     }).format(amount);
   }
 

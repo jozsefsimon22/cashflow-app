@@ -25,6 +25,7 @@ export default function ExportPage() {
     paidManualOccurrences, 
     intercompanyNames,
     namePairings,
+    directDebitNames,
   } = useContext(SettingsContext);
   const { toast } = useToast();
   const [applyExclusions, setApplyExclusions] = useState(false);
@@ -37,9 +38,10 @@ export default function ExportPage() {
       startingBalance,
       excludedNames,
       intercompanyNames,
+      directDebitNames,
       applyExclusions,
     });
-  }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions]);
+  }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions, directDebitNames]);
 
   const handleExcelExport = () => {
     try {
@@ -108,6 +110,7 @@ export default function ExportPage() {
         columnConfig,
         paidManualOccurrences,
         namePairings,
+        directDebitNames,
       };
 
       const jsonString = JSON.stringify(sessionData, null, 2);

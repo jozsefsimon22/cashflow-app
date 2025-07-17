@@ -25,7 +25,7 @@ type SortKey = keyof Omit<CustomerScore, 'invoices'>;
 type SortDirection = 'asc' | 'desc';
 
 export default function CustomerScorecardPage() {
-  const { data } = useContext(SettingsContext);
+  const { data, columnConfig } = useContext(SettingsContext);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'paymentScore', direction: 'desc' });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerScore | null>(null);
@@ -131,9 +131,9 @@ export default function CustomerScorecardPage() {
   };
   
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'GBP',
+      currency: columnConfig.currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);

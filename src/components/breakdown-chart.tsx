@@ -6,6 +6,8 @@ import { Pie, PieChart, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer } from '@/components/ui/chart';
 import { TrendingDown, TrendingUp } from 'lucide-react';
+import { SettingsContext } from '@/context/settings-context';
+
 
 interface BreakdownChartProps {
   title: string;
@@ -23,17 +25,19 @@ const COLORS = {
   payables: ['hsl(var(--destructive))', 'hsl(var(--destructive)/0.7)', 'hsl(var(--destructive)/0.4)'],
 };
 
-const formatCurrency = (amount: number) => {
-    if (amount === 0) return '£0';
-    return new Intl.NumberFormat('en-GB', {
+export function BreakdownChart({ title, type, data, onSliceClick }: BreakdownChartProps) {
+  const { columnConfig } = React.useContext(SettingsContext);
+
+  const formatCurrency = (amount: number) => {
+    if (amount === 0) return new Intl.NumberFormat('en-US', { style: 'currency', currency: columnConfig.currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(0);
+    return new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'GBP',
+        currency: columnConfig.currency,
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).format(amount);
-};
-
-export function BreakdownChart({ title, type, data, onSliceClick }: BreakdownChartProps) {
+  };
+  
   const chartData = [
     { name: 'Standard', value: data.Standard },
     { name: 'Intercompany', value: data.Intercompany },

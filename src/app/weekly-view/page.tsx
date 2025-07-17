@@ -46,7 +46,8 @@ export default function WeeklyViewPage() {
     startingBalance, 
     paidManualOccurrences, 
     intercompanyNames,
-    directDebitNames
+    directDebitNames,
+    columnConfig,
   } = useContext(SettingsContext);
 
   const [isClient, setIsClient] = useState(false);
@@ -99,9 +100,9 @@ export default function WeeklyViewPage() {
 
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'GBP',
+      currency: columnConfig.currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);

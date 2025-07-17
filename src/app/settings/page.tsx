@@ -31,6 +31,7 @@ const columnFormSchema = z.object({
   date: z.string().min(1, "Column name cannot be empty."),
   dateClosed: z.string(),
   dateFormat: z.string(),
+  currency: z.enum(['USD', 'GBP', 'EUR', 'SEK']),
   installmentDueDate: z.string(),
   installmentAmount: z.string(),
   installmentNumber: z.string(),
@@ -122,12 +123,12 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle>Forecast Settings</CardTitle>
                   <CardDescription>
-                    Configure the starting point for your cash flow forecast.
+                    Configure the starting point and currency for your cash flow forecast.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="max-w-sm space-y-2">
-                    <Label htmlFor="starting-balance">Current Bank Balance (£)</Label>
+                <CardContent className="grid md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <Label htmlFor="starting-balance">Current Bank Balance</Label>
                     <div className="relative">
                        <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input 
@@ -142,6 +143,34 @@ export default function SettingsPage() {
                     </div>
                     <p className="text-sm text-muted-foreground">
                       This will be used as the starting point for the balance chart on the dashboard.
+                    </p>
+                  </div>
+                   <div className="space-y-2">
+                      <FormField
+                        control={columnForm.control}
+                        name="currency"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Currency</FormLabel>
+                             <Select onValueChange={field.onChange} value={field.value} >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a currency" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="GBP">GBP (£)</SelectItem>
+                                <SelectItem value="USD">USD ($)</SelectItem>
+                                <SelectItem value="EUR">EUR (€)</SelectItem>
+                                <SelectItem value="SEK">SEK (kr)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                     <p className="text-sm text-muted-foreground">
+                      This will be used for all monetary values across the application.
                     </p>
                   </div>
                 </CardContent>

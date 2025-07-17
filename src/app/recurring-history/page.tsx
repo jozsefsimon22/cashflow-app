@@ -71,7 +71,7 @@ const generateAllOccurrences = (manualTransactions: ManualTransaction[], paidOcc
 };
 
 export default function RecurringHistoryPage() {
-    const { manualTransactions, paidManualOccurrences, setPaidManualOccurrences } = useContext(SettingsContext);
+    const { manualTransactions, paidManualOccurrences, setPaidManualOccurrences, columnConfig } = useContext(SettingsContext);
     const { toast } = useToast();
     const [showPaid, setShowPaid] = useState(false);
     const [isGrouped, setIsGrouped] = useState(true);
@@ -145,7 +145,7 @@ export default function RecurringHistoryPage() {
     }
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(amount);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: columnConfig.currency }).format(amount);
     };
     
     const RenderStatusBadge = ({ item }: { item: Occurrence }) => {

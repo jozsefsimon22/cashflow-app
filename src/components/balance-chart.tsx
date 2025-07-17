@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useContext } from 'react';
 import type { WeeklyDetails, WeeklyBreakdown } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
-import { format } from 'date-fns';
+import { SettingsContext } from '@/context/settings-context';
 import { TrendingUp } from 'lucide-react';
 
 interface BalanceChartProps {
@@ -15,6 +15,7 @@ interface BalanceChartProps {
 }
 
 export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
+  const { columnConfig } = useContext(SettingsContext);
   
   const chartData = useMemo(() => {
     // The first item is 'Overdue', which doesn't have a week label in the same format.
@@ -55,18 +56,28 @@ export function BalanceChart({ data, onWeekSelect }: BalanceChartProps) {
     }
   };
 
+  const getCurrencySymbol = () => {
+    try {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: columnConfig.currency }).formatToParts(0).find(part => part.type === 'currency')?.value || '$';
+    } catch {
+      return '$';
+    }
+  };
+  const currencySymbol = getCurrencySymbol();
+
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'GBP',
+      currency: columnConfig.currency,
     }).format(amount);
   };
   
   const formatYAxis = (amount: number) => {
     if (Math.abs(amount) >= 1000) {
-      return `£${amount / 1000}k`;
+      return `${currencySymbol}${amount / 1000}k`;
     }
-    return `£${amount}`;
+    return `${currencySymbol}${amount}`;
   }
 
 

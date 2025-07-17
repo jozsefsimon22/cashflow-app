@@ -55,6 +55,7 @@ export interface ColumnConfig {
   date: string;
   dateClosed: string;
   dateFormat: string;
+  currency: 'USD' | 'GBP' | 'EUR' | 'SEK';
   installmentDueDate: string;
   installmentAmount: string;
   installmentNumber: string;

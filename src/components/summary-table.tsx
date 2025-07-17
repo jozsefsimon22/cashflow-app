@@ -1,10 +1,13 @@
 
 "use client";
 
+import { useContext } from 'react';
 import type { WeeklyDetails, WeeklyBreakdown } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ListTodo } from 'lucide-react';
+import { SettingsContext } from '@/context/settings-context';
+
 
 interface SummaryTableProps {
   data: WeeklyBreakdown[];
@@ -12,6 +15,7 @@ interface SummaryTableProps {
 }
 
 export function SummaryTable({ data: summaryData, onWeekSelect }: SummaryTableProps) {
+  const { columnConfig } = useContext(SettingsContext);
   
   const handleRowClick = (week: WeeklyBreakdown) => {
     let weekLabel;
@@ -34,9 +38,9 @@ export function SummaryTable({ data: summaryData, onWeekSelect }: SummaryTablePr
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'GBP',
+      currency: columnConfig.currency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);

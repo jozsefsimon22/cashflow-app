@@ -50,7 +50,8 @@ export default function Home() {
     manualTransactions, 
     excludedNames, 
     paidManualOccurrences,
-    intercompanyNames 
+    intercompanyNames,
+    columnConfig
   } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
@@ -96,15 +97,15 @@ export default function Home() {
   };
   
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'GBP',
+      currency: columnConfig.currency,
     }).format(amount);
   };
    const formatCurrencyTooltip = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'GBP',
+      currency: columnConfig.currency,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -546,4 +547,3 @@ export default function Home() {
     </>
   );
 }
-
