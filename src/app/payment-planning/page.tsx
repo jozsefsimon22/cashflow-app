@@ -6,16 +6,16 @@ import { SettingsContext } from "@/context/settings-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { CashFlowItem, ManualTransaction, ForecastItem, PaymentPlanItem } from "@/types";
+import type { CashFlowItem, ManualTransaction, ForecastItem, PaymentPlanItem, PaymentPlanSummary } from "@/types";
 import { format, startOfToday, isBefore, isEqual } from 'date-fns';
-import { HandCoins, Search, CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
+import { HandCoins, Search, CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet, ArrowLeft, ArrowRight } from "lucide-react";
 import { Label } from "@/components/ui/label";
 
 type SortKey = 'name' | 'dueDate' | 'amount';
@@ -24,6 +24,7 @@ type SortDirection = 'asc' | 'desc';
 export default function PaymentPlanningPage() {
     const { data, manualTransactions, startingBalance } = useContext(SettingsContext);
 
+    const [view, setView] = useState<'selection' | 'summary'>('selection');
     const [paymentDate, setPaymentDate] = useState<Date>(startOfToday());
     const [selectedPayables, setSelectedPayables] = useState<Set<string>>(new Set());
     const [selectedReceivables, setSelectedReceivables] = useState<Set<string>>(new Set());
@@ -112,6 +113,29 @@ export default function PaymentPlanningPage() {
         return { payablesTotal, receivablesTotal, closingBalance };
     }, [payables, receivables, selectedPayables, selectedReceivables, startingBalance]);
 
+    const paymentPlanSummary = useMemo((): PaymentPlanSummary => {
+        const selectedPayableItems = payables.filter(p => selectedPayables.has(p.id));
+        const remainingOverduePayables = payables.filter(p => !selectedPayables.has(p.id));
+
+        const paymentsByName = selectedPayableItems.reduce((acc, item) => {
+            if (!acc[item.name]) {
+                acc[item.name] = 0;
+            }
+            acc[item.name] += item.amount;
+            return acc;
+        }, {} as { [name: string]: number });
+
+        const totalRemainingOverdue = remainingOverduePayables.reduce((sum, item) => sum + item.amount, 0);
+
+        return {
+            paymentsByName: Object.entries(paymentsByName).map(([name, totalAmount]) => ({ name, totalAmount })),
+            totalPayment: totals.payablesTotal,
+            remainingOverduePayables,
+            totalRemainingOverdue,
+        };
+    }, [payables, selectedPayables, totals.payablesTotal]);
+
+
     const handleSelect = (id: string, type: 'payable' | 'receivable') => {
         const setter = type === 'payable' ? setSelectedPayables : setSelectedReceivables;
         setter(prev => {
@@ -151,128 +175,215 @@ export default function PaymentPlanningPage() {
                     <div className="flex items-center gap-4 mb-8">
                         <h1 className="text-3xl font-bold font-headline text-foreground">Payment Planning</h1>
                     </div>
-
-                    <Card className="mb-8">
-                        <CardHeader>
-                            <CardTitle className="font-headline flex items-center gap-2"><HandCoins className="w-6 h-6"/>Planning Summary</CardTitle>
-                            <CardDescription>Select a payment date and choose items to see the impact on your balance.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-                            <div className="space-y-2">
-                                <Label>Payment Date</Label>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !paymentDate && "text-muted-foreground")}>
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {paymentDate ? format(paymentDate, "PPP") : <span>Pick a date</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                        <Calendar mode="single" selected={paymentDate} onSelect={(d) => setPaymentDate(d || startOfToday())} initialFocus />
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            <div className="p-4 rounded-lg bg-secondary">
-                                <div className="text-sm font-medium text-muted-foreground">Starting Balance</div>
-                                <div className="text-2xl font-bold font-mono">{formatCurrency(startingBalance)}</div>
-                            </div>
-                             <div className="p-4 rounded-lg bg-destructive/10">
-                                <div className="text-sm font-medium text-muted-foreground">Selected Payments</div>
-                                <div className="text-2xl font-bold font-mono text-destructive">{formatCurrency(totals.payablesTotal)}</div>
-                            </div>
-                            <div className="p-4 rounded-lg bg-primary/10">
-                                <div className="text-sm font-medium text-muted-foreground">Projected Closing Balance</div>
-                                <div className={cn("text-2xl font-bold font-mono", totals.closingBalance >= 0 ? 'text-primary' : 'text-destructive')}>
-                                    {formatCurrency(totals.closingBalance)}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <Card>
+                    {view === 'selection' && (
+                        <>
+                        <Card className="mb-8">
                             <CardHeader>
-                                <CardTitle className="font-headline flex items-center gap-2 text-destructive"><ArrowDownCircle/>Payables to Settle</CardTitle>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input placeholder="Search payables..." value={payablesSearch} onChange={e => setPayablesSearch(e.target.value)} className="pl-10"/>
-                                </div>
+                                <CardTitle className="font-headline flex items-center gap-2"><HandCoins className="w-6 h-6"/>Planning Summary</CardTitle>
+                                <CardDescription>Select a payment date and choose items to see the impact on your balance.</CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div className="max-h-[60vh] overflow-y-auto">
-                                <Table>
-                                    <TableHeader className="sticky top-0 bg-card">
-                                        <TableRow>
-                                            <TableHead className="w-[50px]"><Checkbox onCheckedChange={(checked) => {
-                                                const allIds = new Set(payables.map(p => p.id));
-                                                setSelectedPayables(checked ? allIds : new Set());
-                                            }}
-                                            checked={selectedPayables.size > 0 && selectedPayables.size === payables.length}
-                                            indeterminate={selectedPayables.size > 0 && selectedPayables.size < payables.length}
-                                            /></TableHead>
-                                            <TableHead><Button variant="ghost" onClick={() => requestSort('payables', 'name')}>Name</Button></TableHead>
-                                            <TableHead><Button variant="ghost" onClick={() => requestSort('payables', 'dueDate')}>Due</Button></TableHead>
-                                            <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('payables', 'amount')}>Amount</Button></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {payables.map(item => (
-                                            <TableRow key={item.id} data-state={selectedPayables.has(item.id) ? "selected" : ""}>
-                                                <TableCell><Checkbox checked={selectedPayables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'payable')}/></TableCell>
-                                                <TableCell className="font-medium">{item.name}<p className="text-xs text-muted-foreground">{item.docType} #{item.docNumber}</p></TableCell>
-                                                <TableCell>{formatDate(item.dueDate)}</TableCell>
-                                                <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                                <div className="space-y-2">
+                                    <Label>Payment Date</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !paymentDate && "text-muted-foreground")}>
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {paymentDate ? format(paymentDate, "PPP") : <span>Pick a date</span>}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0">
+                                            <Calendar mode="single" selected={paymentDate} onSelect={(d) => setPaymentDate(d || startOfToday())} initialFocus />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                                <div className="p-4 rounded-lg bg-secondary">
+                                    <div className="text-sm font-medium text-muted-foreground">Starting Balance</div>
+                                    <div className="text-2xl font-bold font-mono">{formatCurrency(startingBalance)}</div>
+                                </div>
+                                <div className="p-4 rounded-lg bg-destructive/10">
+                                    <div className="text-sm font-medium text-muted-foreground">Selected Payments</div>
+                                    <div className="text-2xl font-bold font-mono text-destructive">{formatCurrency(totals.payablesTotal)}</div>
+                                </div>
+                                <div className="p-4 rounded-lg bg-primary/10">
+                                    <div className="text-sm font-medium text-muted-foreground">Projected Closing Balance</div>
+                                    <div className={cn("text-2xl font-bold font-mono", totals.closingBalance >= 0 ? 'text-primary' : 'text-destructive')}>
+                                        {formatCurrency(totals.closingBalance)}
+                                    </div>
+                                </div>
+                            </CardContent>
+                             <CardContent>
+                                <div className="flex justify-end">
+                                    <Button onClick={() => setView('summary')} disabled={selectedPayables.size === 0}>
+                                        Review Payment Plan <ArrowRight className="ml-2 w-4 h-4"/>
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>
-                         <Card>
-                            <CardHeader>
-                                <CardTitle className="font-headline flex items-center gap-2 text-primary"><ArrowUpCircle/>Receivables to Include</CardTitle>
-                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input placeholder="Search receivables..." value={receivablesSearch} onChange={e => setReceivablesSearch(e.target.value)} className="pl-10"/>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="max-h-[60vh] overflow-y-auto">
-                                <Table>
-                                    <TableHeader className="sticky top-0 bg-card">
-                                        <TableRow>
-                                            <TableHead className="w-[50px]"><Checkbox onCheckedChange={(checked) => {
-                                                const allIds = new Set(receivables.map(p => p.id));
-                                                setSelectedReceivables(checked ? allIds : new Set());
-                                            }}
-                                            checked={selectedReceivables.size > 0 && selectedReceivables.size === receivables.length}
-                                            indeterminate={selectedReceivables.size > 0 && selectedReceivables.size < receivables.length}
-                                            /></TableHead>
-                                            <TableHead><Button variant="ghost" onClick={() => requestSort('receivables', 'name')}>Name</Button></TableHead>
-                                            <TableHead><Button variant="ghost" onClick={() => requestSort('receivables', 'dueDate')}>Due</Button></TableHead>
-                                            <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('receivables', 'amount')}>Amount</Button></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {receivables.map(item => (
-                                            <TableRow key={item.id} data-state={selectedReceivables.has(item.id) ? "selected" : ""}>
-                                                <TableCell><Checkbox checked={selectedReceivables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'receivable')}/></TableCell>
-                                                <TableCell className="font-medium">{item.name}<p className="text-xs text-muted-foreground">{item.docType} #{item.docNumber}</p></TableCell>
-                                                <TableCell>{formatDate(item.dueDate)}</TableCell>
-                                                <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline flex items-center gap-2 text-destructive"><ArrowDownCircle/>Payables to Settle</CardTitle>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input placeholder="Search payables..." value={payablesSearch} onChange={e => setPayablesSearch(e.target.value)} className="pl-10"/>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="max-h-[60vh] overflow-y-auto">
+                                    <Table>
+                                        <TableHeader className="sticky top-0 bg-card">
+                                            <TableRow>
+                                                <TableHead className="w-[50px]"><Checkbox onCheckedChange={(checked) => {
+                                                    const allIds = new Set(payables.map(p => p.id));
+                                                    setSelectedPayables(checked ? allIds : new Set());
+                                                }}
+                                                checked={payables.length > 0 && selectedPayables.size === payables.length}
+                                                indeterminate={selectedPayables.size > 0 && selectedPayables.size < payables.length}
+                                                /></TableHead>
+                                                <TableHead><Button variant="ghost" onClick={() => requestSort('payables', 'name')}>Name</Button></TableHead>
+                                                <TableHead><Button variant="ghost" onClick={() => requestSort('payables', 'dueDate')}>Due</Button></TableHead>
+                                                <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('payables', 'amount')}>Amount</Button></TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {payables.map(item => (
+                                                <TableRow key={item.id} data-state={selectedPayables.has(item.id) ? "selected" : ""}>
+                                                    <TableCell><Checkbox checked={selectedPayables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'payable')}/></TableCell>
+                                                    <TableCell className="font-medium">{item.name}<p className="text-xs text-muted-foreground">{item.docType} #{item.docNumber}</p></TableCell>
+                                                    <TableCell>{formatDate(item.dueDate)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="font-headline flex items-center gap-2 text-primary"><ArrowUpCircle/>Receivables to Include</CardTitle>
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input placeholder="Search receivables..." value={receivablesSearch} onChange={e => setReceivablesSearch(e.target.value)} className="pl-10"/>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="max-h-[60vh] overflow-y-auto">
+                                    <Table>
+                                        <TableHeader className="sticky top-0 bg-card">
+                                            <TableRow>
+                                                <TableHead className="w-[50px]"><Checkbox onCheckedChange={(checked) => {
+                                                    const allIds = new Set(receivables.map(p => p.id));
+                                                    setSelectedReceivables(checked ? allIds : new Set());
+                                                }}
+                                                checked={receivables.length > 0 && selectedReceivables.size === receivables.length}
+                                                indeterminate={selectedReceivables.size > 0 && selectedReceivables.size < receivables.length}
+                                                /></TableHead>
+                                                <TableHead><Button variant="ghost" onClick={() => requestSort('receivables', 'name')}>Name</Button></TableHead>
+                                                <TableHead><Button variant="ghost" onClick={() => requestSort('receivables', 'dueDate')}>Due</Button></TableHead>
+                                                <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('receivables', 'amount')}>Amount</Button></TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {receivables.map(item => (
+                                                <TableRow key={item.id} data-state={selectedReceivables.has(item.id) ? "selected" : ""}>
+                                                    <TableCell><Checkbox checked={selectedReceivables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'receivable')}/></TableCell>
+                                                    <TableCell className="font-medium">{item.name}<p className="text-xs text-muted-foreground">{item.docType} #{item.docNumber}</p></TableCell>
+                                                    <TableCell>{formatDate(item.dueDate)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                        </>
+                    )}
+
+                    {view === 'summary' && (
+                        <div className="space-y-8">
+                             <div className="flex justify-start">
+                                <Button variant="outline" onClick={() => setView('selection')}>
+                                    <ArrowLeft className="mr-2 w-4 h-4"/> Back to Selection
+                                </Button>
+                            </div>
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Payments to be Made</CardTitle>
+                                    <CardDescription>A summary of the payments you have selected to make.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Payable Name</TableHead>
+                                                <TableHead className="text-right">Total Amount</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {paymentPlanSummary.paymentsByName.map(item => (
+                                                <TableRow key={item.name}>
+                                                    <TableCell className="font-medium">{item.name}</TableCell>
+                                                    <TableCell className="text-right font-mono">{formatCurrency(item.totalAmount)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                        <TableFooter>
+                                            <TableRow>
+                                                <TableCell className="font-bold">Total Payments</TableCell>
+                                                <TableCell className="text-right font-bold font-mono text-lg text-destructive">{formatCurrency(paymentPlanSummary.totalPayment)}</TableCell>
+                                            </TableRow>
+                                        </TableFooter>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Remaining Overdue Payables</CardTitle>
+                                    <CardDescription>These are payables due on or before {format(paymentDate, 'PPP')} that you have chosen not to pay.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Table>
+                                         <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Payable Name</TableHead>
+                                                <TableHead>Due Date</TableHead>
+                                                <TableHead className="text-right">Amount</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {paymentPlanSummary.remainingOverduePayables.length > 0 ? paymentPlanSummary.remainingOverduePayables.map(item => (
+                                                <TableRow key={item.id}>
+                                                    <TableCell className="font-medium">{item.name}</TableCell>
+                                                    <TableCell>{formatDate(item.dueDate)}</TableCell>
+                                                    <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                                                </TableRow>
+                                            )) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
+                                                        No remaining overdue payables.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                        <TableFooter>
+                                            <TableRow>
+                                                <TableCell colSpan={2} className="font-bold">Total Remaining</TableCell>
+                                                <TableCell className="text-right font-bold font-mono text-lg text-destructive">{formatCurrency(paymentPlanSummary.totalRemainingOverdue)}</TableCell>
+                                            </TableRow>
+                                        </TableFooter>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
                 </main>
             </SidebarInset>
         </>
     );
 }
 
-    

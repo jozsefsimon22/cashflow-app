@@ -190,3 +190,10 @@ export interface PaymentPlanItem {
     dueDate: Date;
     amount: number;
 }
+
+export interface PaymentPlanSummary {
+  paymentsByName: { name: string, totalAmount: number }[];
+  totalPayment: number;
+  remainingOverduePayables: PaymentPlanItem[];
+  totalRemainingOverdue: number;
+}
