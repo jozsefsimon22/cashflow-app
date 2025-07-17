@@ -13,13 +13,19 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import type { CashFlowItem, ManualTransaction, ForecastItem, PaymentPlanItem, PaymentPlanSummary } from "@/types";
+import type { CashFlowItem, ManualTransaction, PaymentPlanItem, PaymentPlanSummary } from "@/types";
 import { format, startOfToday, isBefore, isEqual } from 'date-fns';
-import { HandCoins, Search, CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet, ArrowLeft, ArrowRight } from "lucide-react";
+import { HandCoins, Search, CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet, ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 
-type SortKey = 'name' | 'dueDate' | 'amount';
-type SortDirection = 'asc' | 'desc';
+type GroupedPaymentItem = {
+    name: string;
+    totalAmount: number;
+    selectedAmount: number;
+    items: PaymentPlanItem[];
+};
 
 export default function PaymentPlanningPage() {
     const { data, manualTransactions, startingBalance } = useContext(SettingsContext);
@@ -32,13 +38,9 @@ export default function PaymentPlanningPage() {
     const [payablesSearch, setPayablesSearch] = useState('');
     const [receivablesSearch, setReceivablesSearch] = useState('');
 
-    const [payablesSort, setPayablesSort] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'dueDate', direction: 'asc' });
-    const [receivablesSort, setReceivablesSort] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'dueDate', direction: 'asc' });
-
     const allItems = useMemo((): PaymentPlanItem[] => {
         const items: PaymentPlanItem[] = [];
 
-        // Process imported data
         (data || []).forEach((item, index) => {
             if (item.Status && ['Open', 'Unpaid', 'Pending Approval'].includes(item.Status)) {
                 items.push({
@@ -53,7 +55,6 @@ export default function PaymentPlanningPage() {
             }
         });
 
-        // Process manual transactions
         manualTransactions.forEach(t => {
             if (t.frequency === 'once' && t.startDate) {
                 items.push({
@@ -70,52 +71,59 @@ export default function PaymentPlanningPage() {
 
         return items.filter(item => item.dueDate && (isBefore(item.dueDate, paymentDate) || isEqual(item.dueDate, paymentDate)));
     }, [data, manualTransactions, paymentDate]);
+    
+    const groupAndCalculate = (
+        items: PaymentPlanItem[],
+        selectionSet: Set<string>,
+        searchTerm: string
+    ): GroupedPaymentItem[] => {
+        const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        const grouped = filteredItems.reduce((acc, item) => {
+            if (!acc[item.name]) {
+                acc[item.name] = { name: item.name, totalAmount: 0, selectedAmount: 0, items: [] };
+            }
+            acc[item.name].items.push(item);
+            acc[item.name].totalAmount += item.amount;
+            if (selectionSet.has(item.id)) {
+                acc[item.name].selectedAmount += item.amount;
+            }
+            return acc;
+        }, {} as { [name: string]: GroupedPaymentItem });
 
-    const sortItems = (items: PaymentPlanItem[], config: { key: SortKey, direction: SortDirection }) => {
-        return [...items].sort((a, b) => {
-            const valA = a[config.key];
-            const valB = b[config.key];
-            
-            if (valA instanceof Date && valB instanceof Date) {
-                 return (valA.getTime() - valB.getTime()) * (config.direction === 'asc' ? 1 : -1);
-            }
-            if (typeof valA === 'string' && typeof valB === 'string') {
-                return valA.localeCompare(valB) * (config.direction === 'asc' ? 1 : -1);
-            }
-            if (typeof valA === 'number' && typeof valB === 'number') {
-                return (valA - valB) * (config.direction === 'asc' ? 1 : -1);
-            }
-            return 0;
-        });
+        return Object.values(grouped).sort((a, b) => a.name.localeCompare(b.name));
     };
 
     const payables = useMemo(() => {
-        const filtered = allItems.filter(item => item.type === 'outflow' && item.name.toLowerCase().includes(payablesSearch.toLowerCase()));
-        return sortItems(filtered, payablesSort);
-    }, [allItems, payablesSearch, payablesSort]);
-
+        const payableItems = allItems.filter(item => item.type === 'outflow');
+        return groupAndCalculate(payableItems, selectedPayables, payablesSearch);
+    }, [allItems, payablesSearch, selectedPayables]);
+    
     const receivables = useMemo(() => {
-        const filtered = allItems.filter(item => item.type === 'inflow' && item.name.toLowerCase().includes(receivablesSearch.toLowerCase()));
-        return sortItems(filtered, receivablesSort);
-    }, [allItems, receivablesSearch, receivablesSort]);
+        const receivableItems = allItems.filter(item => item.type === 'inflow');
+        return groupAndCalculate(receivableItems, selectedReceivables, receivablesSearch);
+    }, [allItems, receivablesSearch, selectedReceivables]);
 
     const totals = useMemo(() => {
-        const payablesTotal = payables
-            .filter(p => selectedPayables.has(p.id))
-            .reduce((sum, item) => sum + item.amount, 0);
+        const payablesTotal = Array.from(selectedPayables).reduce((sum, id) => {
+            const item = allItems.find(i => i.id === id);
+            return sum + (item ? item.amount : 0);
+        }, 0);
 
-        const receivablesTotal = receivables
-            .filter(r => selectedReceivables.has(r.id))
-            .reduce((sum, item) => sum + item.amount, 0);
+        const receivablesTotal = Array.from(selectedReceivables).reduce((sum, id) => {
+            const item = allItems.find(i => i.id === id);
+            return sum + (item ? item.amount : 0);
+        }, 0);
             
         const closingBalance = startingBalance + receivablesTotal - payablesTotal;
 
         return { payablesTotal, receivablesTotal, closingBalance };
-    }, [payables, receivables, selectedPayables, selectedReceivables, startingBalance]);
+    }, [allItems, selectedPayables, selectedReceivables, startingBalance]);
 
     const paymentPlanSummary = useMemo((): PaymentPlanSummary => {
-        const selectedPayableItems = payables.filter(p => selectedPayables.has(p.id));
-        const remainingOverduePayables = payables.filter(p => !selectedPayables.has(p.id));
+        const allPayableItems = allItems.filter(p => p.type === 'outflow');
+        const selectedPayableItems = allPayableItems.filter(p => selectedPayables.has(p.id));
+        const remainingOverduePayables = allPayableItems.filter(p => !selectedPayables.has(p.id));
 
         const paymentsByName = selectedPayableItems.reduce((acc, item) => {
             if (!acc[item.name]) {
@@ -133,11 +141,11 @@ export default function PaymentPlanningPage() {
             remainingOverduePayables,
             totalRemainingOverdue,
         };
-    }, [payables, selectedPayables, totals.payablesTotal]);
+    }, [allItems, selectedPayables, totals.payablesTotal]);
 
 
     const handleSelect = (id: string, type: 'payable' | 'receivable') => {
-        const setter = type === 'payable' ? setSelectedPayables : setSelectedReceivables;
+        const [selection, setter] = type === 'payable' ? [selectedPayables, setSelectedPayables] : [selectedReceivables, setSelectedReceivables];
         setter(prev => {
             const newSet = new Set(prev);
             if (newSet.has(id)) {
@@ -148,24 +156,29 @@ export default function PaymentPlanningPage() {
             return newSet;
         });
     };
+    
+    const handleGroupSelect = (groupItems: PaymentPlanItem[], type: 'payable' | 'receivable') => {
+        const [selection, setter] = type === 'payable' ? [selectedPayables, setSelectedPayables] : [selectedReceivables, setSelectedReceivables];
+        const groupIds = groupItems.map(i => i.id);
+        const areAllSelected = groupIds.every(id => selection.has(id));
+
+        setter(prev => {
+            const newSet = new Set(prev);
+            if(areAllSelected) {
+                groupIds.forEach(id => newSet.delete(id));
+            } else {
+                groupIds.forEach(id => newSet.add(id));
+            }
+            return newSet;
+        })
+
+    }
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(amount);
     };
 
     const formatDate = (date: Date) => format(date, 'dd/MM/yyyy');
-    
-    const requestSort = (type: 'payables' | 'receivables', key: SortKey) => {
-        const [config, setter] = type === 'payables' 
-            ? [payablesSort, setPayablesSort] 
-            : [receivablesSort, setReceivablesSort];
-        
-        let direction: SortDirection = 'asc';
-        if (config.key === key && config.direction === 'asc') {
-            direction = 'desc';
-        }
-        setter({ key, direction });
-    };
 
     return (
         <>
@@ -231,33 +244,43 @@ export default function PaymentPlanningPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="max-h-[60vh] overflow-y-auto">
-                                    <Table>
-                                        <TableHeader className="sticky top-0 bg-card">
-                                            <TableRow>
-                                                <TableHead className="w-[50px]"><Checkbox onCheckedChange={(checked) => {
-                                                    const allIds = new Set(payables.map(p => p.id));
-                                                    setSelectedPayables(checked ? allIds : new Set());
-                                                }}
-                                                checked={payables.length > 0 && selectedPayables.size === payables.length}
-                                                indeterminate={selectedPayables.size > 0 && selectedPayables.size < payables.length}
-                                                /></TableHead>
-                                                <TableHead><Button variant="ghost" onClick={() => requestSort('payables', 'name')}>Name</Button></TableHead>
-                                                <TableHead><Button variant="ghost" onClick={() => requestSort('payables', 'dueDate')}>Due</Button></TableHead>
-                                                <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('payables', 'amount')}>Amount</Button></TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {payables.map(item => (
-                                                <TableRow key={item.id} data-state={selectedPayables.has(item.id) ? "selected" : ""}>
-                                                    <TableCell><Checkbox checked={selectedPayables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'payable')}/></TableCell>
-                                                    <TableCell className="font-medium">{item.name}<p className="text-xs text-muted-foreground">{item.docType} #{item.docNumber}</p></TableCell>
-                                                    <TableCell>{formatDate(item.dueDate)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
-                                                </TableRow>
+                                    <div className="max-h-[60vh] overflow-y-auto pr-2">
+                                        <Accordion type="multiple" className="w-full">
+                                            {payables.map(group => (
+                                                <AccordionItem value={group.name} key={group.name}>
+                                                    <AccordionTrigger>
+                                                        <div className="flex justify-between items-center w-full pr-4">
+                                                          <div className="flex items-center gap-4">
+                                                            <Checkbox 
+                                                                onClick={(e) => { e.stopPropagation(); handleGroupSelect(group.items, 'payable') }}
+                                                                checked={group.items.every(i => selectedPayables.has(i.id))}
+                                                                indeterminate={group.items.some(i => selectedPayables.has(i.id)) && !group.items.every(i => selectedPayables.has(i.id))}
+                                                            />
+                                                            <span className="font-semibold text-left">{group.name}</span>
+                                                          </div>
+                                                          <div className="flex flex-col items-end">
+                                                            <span className="font-mono text-base">{formatCurrency(group.totalAmount)}</span>
+                                                            {group.selectedAmount > 0 && <Badge variant="secondary" className="mt-1">{formatCurrency(group.selectedAmount)} selected</Badge>}
+                                                          </div>
+                                                        </div>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <Table>
+                                                            <TableBody>
+                                                                {group.items.map(item => (
+                                                                    <TableRow key={item.id} data-state={selectedPayables.has(item.id) ? "selected" : ""}>
+                                                                        <TableCell className="w-[50px]"><Checkbox checked={selectedPayables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'payable')}/></TableCell>
+                                                                        <TableCell className="font-medium">{item.docType} #{item.docNumber}</TableCell>
+                                                                        <TableCell>{formatDate(item.dueDate)}</TableCell>
+                                                                        <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </AccordionContent>
+                                                </AccordionItem>
                                             ))}
-                                        </TableBody>
-                                    </Table>
+                                        </Accordion>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -270,33 +293,43 @@ export default function PaymentPlanningPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="max-h-[60vh] overflow-y-auto">
-                                    <Table>
-                                        <TableHeader className="sticky top-0 bg-card">
-                                            <TableRow>
-                                                <TableHead className="w-[50px]"><Checkbox onCheckedChange={(checked) => {
-                                                    const allIds = new Set(receivables.map(p => p.id));
-                                                    setSelectedReceivables(checked ? allIds : new Set());
-                                                }}
-                                                checked={receivables.length > 0 && selectedReceivables.size === receivables.length}
-                                                indeterminate={selectedReceivables.size > 0 && selectedReceivables.size < receivables.length}
-                                                /></TableHead>
-                                                <TableHead><Button variant="ghost" onClick={() => requestSort('receivables', 'name')}>Name</Button></TableHead>
-                                                <TableHead><Button variant="ghost" onClick={() => requestSort('receivables', 'dueDate')}>Due</Button></TableHead>
-                                                <TableHead className="text-right"><Button variant="ghost" onClick={() => requestSort('receivables', 'amount')}>Amount</Button></TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {receivables.map(item => (
-                                                <TableRow key={item.id} data-state={selectedReceivables.has(item.id) ? "selected" : ""}>
-                                                    <TableCell><Checkbox checked={selectedReceivables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'receivable')}/></TableCell>
-                                                    <TableCell className="font-medium">{item.name}<p className="text-xs text-muted-foreground">{item.docType} #{item.docNumber}</p></TableCell>
-                                                    <TableCell>{formatDate(item.dueDate)}</TableCell>
-                                                    <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
-                                                </TableRow>
+                                    <div className="max-h-[60vh] overflow-y-auto pr-2">
+                                       <Accordion type="multiple" className="w-full">
+                                            {receivables.map(group => (
+                                                <AccordionItem value={group.name} key={group.name}>
+                                                    <AccordionTrigger>
+                                                        <div className="flex justify-between items-center w-full pr-4">
+                                                          <div className="flex items-center gap-4">
+                                                            <Checkbox 
+                                                                onClick={(e) => { e.stopPropagation(); handleGroupSelect(group.items, 'receivable') }}
+                                                                checked={group.items.every(i => selectedReceivables.has(i.id))}
+                                                                indeterminate={group.items.some(i => selectedReceivables.has(i.id)) && !group.items.every(i => selectedReceivables.has(i.id))}
+                                                            />
+                                                            <span className="font-semibold text-left">{group.name}</span>
+                                                          </div>
+                                                          <div className="flex flex-col items-end">
+                                                            <span className="font-mono text-base">{formatCurrency(group.totalAmount)}</span>
+                                                            {group.selectedAmount > 0 && <Badge variant="secondary" className="mt-1">{formatCurrency(group.selectedAmount)} selected</Badge>}
+                                                          </div>
+                                                        </div>
+                                                    </AccordionTrigger>
+                                                    <AccordionContent>
+                                                        <Table>
+                                                            <TableBody>
+                                                                {group.items.map(item => (
+                                                                    <TableRow key={item.id} data-state={selectedReceivables.has(item.id) ? "selected" : ""}>
+                                                                        <TableCell className="w-[50px]"><Checkbox checked={selectedReceivables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'receivable')}/></TableCell>
+                                                                        <TableCell className="font-medium">{item.docType} #{item.docNumber}</TableCell>
+                                                                        <TableCell>{formatDate(item.dueDate)}</TableCell>
+                                                                        <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </AccordionContent>
+                                                </AccordionItem>
                                             ))}
-                                        </TableBody>
-                                    </Table>
+                                        </Accordion>
                                     </div>
                                 </CardContent>
                             </Card>
