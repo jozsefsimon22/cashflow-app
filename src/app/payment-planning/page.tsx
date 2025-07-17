@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { CashFlowItem, ManualTransaction, PaymentPlanItem, PaymentPlanSummary } from "@/types";
-import { format, startOfToday, isBefore, isEqual } from 'date-fns';
+import { format, startOfToday, isBefore, isEqual, differenceInCalendarDays } from 'date-fns';
 import { HandCoins, Search, CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet, ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -275,15 +275,30 @@ export default function PaymentPlanningPage() {
                                                     </AccordionTrigger>
                                                     <AccordionContent>
                                                         <Table>
+                                                            <TableHeader>
+                                                                <TableRow>
+                                                                    <TableHead className="w-[50px]"></TableHead>
+                                                                    <TableHead>Document</TableHead>
+                                                                    <TableHead>Due Date</TableHead>
+                                                                    <TableHead className="text-center">Days Overdue</TableHead>
+                                                                    <TableHead className="text-right">Amount</TableHead>
+                                                                </TableRow>
+                                                            </TableHeader>
                                                             <TableBody>
-                                                                {group.items.map(item => (
-                                                                    <TableRow key={item.id} data-state={selectedPayables.has(item.id) ? "selected" : ""}>
-                                                                        <TableCell className="w-[50px]"><Checkbox checked={selectedPayables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'payable')}/></TableCell>
-                                                                        <TableCell className="font-medium">{item.docType} #{item.docNumber}</TableCell>
-                                                                        <TableCell>{formatDate(item.dueDate)}</TableCell>
-                                                                        <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
-                                                                    </TableRow>
-                                                                ))}
+                                                                {group.items.map(item => {
+                                                                    const daysOverdue = differenceInCalendarDays(paymentDate, item.dueDate);
+                                                                    return (
+                                                                        <TableRow key={item.id} data-state={selectedPayables.has(item.id) ? "selected" : ""}>
+                                                                            <TableCell><Checkbox checked={selectedPayables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'payable')}/></TableCell>
+                                                                            <TableCell className="font-medium">{item.docType} #{item.docNumber}</TableCell>
+                                                                            <TableCell>{formatDate(item.dueDate)}</TableCell>
+                                                                            <TableCell className="text-center">
+                                                                                {daysOverdue > 0 ? <Badge variant="destructive">{daysOverdue}</Badge> : '-'}
+                                                                            </TableCell>
+                                                                            <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                                                                        </TableRow>
+                                                                    );
+                                                                })}
                                                             </TableBody>
                                                         </Table>
                                                     </AccordionContent>
@@ -324,15 +339,30 @@ export default function PaymentPlanningPage() {
                                                     </AccordionTrigger>
                                                     <AccordionContent>
                                                         <Table>
+                                                            <TableHeader>
+                                                                <TableRow>
+                                                                    <TableHead className="w-[50px]"></TableHead>
+                                                                    <TableHead>Document</TableHead>
+                                                                    <TableHead>Due Date</TableHead>
+                                                                    <TableHead className="text-center">Days Overdue</TableHead>
+                                                                    <TableHead className="text-right">Amount</TableHead>
+                                                                </TableRow>
+                                                            </TableHeader>
                                                             <TableBody>
-                                                                {group.items.map(item => (
-                                                                    <TableRow key={item.id} data-state={selectedReceivables.has(item.id) ? "selected" : ""}>
-                                                                        <TableCell className="w-[50px]"><Checkbox checked={selectedReceivables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'receivable')}/></TableCell>
-                                                                        <TableCell className="font-medium">{item.docType} #{item.docNumber}</TableCell>
-                                                                        <TableCell>{formatDate(item.dueDate)}</TableCell>
-                                                                        <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
-                                                                    </TableRow>
-                                                                ))}
+                                                                {group.items.map(item => {
+                                                                    const daysOverdue = differenceInCalendarDays(paymentDate, item.dueDate);
+                                                                    return (
+                                                                        <TableRow key={item.id} data-state={selectedReceivables.has(item.id) ? "selected" : ""}>
+                                                                            <TableCell><Checkbox checked={selectedReceivables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'receivable')}/></TableCell>
+                                                                            <TableCell className="font-medium">{item.docType} #{item.docNumber}</TableCell>
+                                                                            <TableCell>{formatDate(item.dueDate)}</TableCell>
+                                                                            <TableCell className="text-center">
+                                                                                {daysOverdue > 0 ? <Badge variant="destructive">{daysOverdue}</Badge> : '-'}
+                                                                            </TableCell>
+                                                                            <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                                                                        </TableRow>
+                                                                    );
+                                                                })}
                                                             </TableBody>
                                                         </Table>
                                                     </AccordionContent>
