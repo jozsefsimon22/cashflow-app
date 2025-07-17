@@ -103,14 +103,6 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={activePage === 'payment-planning'}>
-                    <Link href="/payment-planning">
-                    <HandCoins />
-                    <span>Payment Planning</span>
-                    </Link>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
 
                 <SidebarGroupLabel>Data Management</SidebarGroupLabel>
                 <SidebarMenuItem>
