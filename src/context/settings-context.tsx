@@ -41,6 +41,8 @@ const defaultConfig: ColumnConfig = {
   installmentAmount: 'Installment Amount',
   installmentNumber: 'Installment Number',
   installmentStatus: 'Installment Status',
+  defaultApplyPrediction: false,
+  defaultApplyExclusions: false,
 };
 
 export const SettingsContext = createContext<SettingsContextType>({

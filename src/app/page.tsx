@@ -55,8 +55,8 @@ export default function Home() {
   } = useContext(SettingsContext);
   const [isClient, setIsClient] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<WeeklyDetails | null>(null);
-  const [applyExclusions, setApplyExclusions] = useState(false);
-  const [applyPrediction, setApplyPrediction] = useState(false);
+  const [applyExclusions, setApplyExclusions] = useState(columnConfig.defaultApplyExclusions);
+  const [applyPrediction, setApplyPrediction] = useState(columnConfig.defaultApplyPrediction);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
   const [breakdownDialogData, setBreakdownDialogData] = useState<BreakdownDialogData | null>(null);
 
@@ -64,6 +64,12 @@ export default function Home() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    setApplyExclusions(columnConfig.defaultApplyExclusions);
+    setApplyPrediction(columnConfig.defaultApplyPrediction);
+  }, [columnConfig.defaultApplyExclusions, columnConfig.defaultApplyPrediction]);
+
 
   const { forecastData, summaryMetrics } = useMemo(() => {
     return calculateForecastMetrics({
@@ -89,6 +95,7 @@ export default function Home() {
       intercompanyNames,
       applyExclusions,
       applyPrediction,
+      directDebitNames: [], // Not needed for dashboard view
     });
   }, [isClient, data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions, applyPrediction]);
 

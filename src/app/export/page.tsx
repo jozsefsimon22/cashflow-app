@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useContext, useState, useMemo } from "react";
+import { useContext, useState, useMemo, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import { SettingsContext } from "@/context/settings-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +28,11 @@ export default function ExportPage() {
     directDebitNames,
   } = useContext(SettingsContext);
   const { toast } = useToast();
-  const [applyExclusions, setApplyExclusions] = useState(false);
+  const [applyExclusions, setApplyExclusions] = useState(columnConfig.defaultApplyExclusions);
+
+  useEffect(() => {
+    setApplyExclusions(columnConfig.defaultApplyExclusions);
+  }, [columnConfig.defaultApplyExclusions]);
 
   const weeklyBreakdown = useMemo(() => {
     return calculateWeeklyBreakdown({
@@ -40,7 +44,7 @@ export default function ExportPage() {
       intercompanyNames,
       directDebitNames,
       applyExclusions,
-      applyPrediction: false,
+      applyPrediction: false, // Prediction is not applied to Excel export
     });
   }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions, directDebitNames]);
 

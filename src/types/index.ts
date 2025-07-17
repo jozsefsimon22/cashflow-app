@@ -60,6 +60,8 @@ export interface ColumnConfig {
   installmentAmount: string;
   installmentNumber: string;
   installmentStatus: string;
+  defaultApplyPrediction: boolean;
+  defaultApplyExclusions: boolean;
 }
 
 export interface WeeklyDetails {

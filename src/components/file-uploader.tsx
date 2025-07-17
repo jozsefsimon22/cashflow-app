@@ -89,6 +89,7 @@ export function FileUploader({ onDataUploaded, columnConfig: propColumnConfig }:
         const transactionsWithDates = sessionData.manualTransactions.map((t: any) => ({
             ...t,
             startDate: new Date(t.startDate),
+            endDate: t.endDate ? new Date(t.endDate) : undefined,
         }));
         setManualTransactions(transactionsWithDates);
         
