@@ -258,7 +258,7 @@ export default function PaymentPlanningPage() {
                                         <Accordion type="multiple" className="w-full">
                                             {payables.map(group => (
                                                 <AccordionItem value={group.name} key={group.name}>
-                                                    <AccordionTrigger className="hover:no-underline">
+                                                    <AccordionTrigger className={cn("hover:no-underline p-2 rounded-md transition-colors", group.totalAmount > 0 && group.totalAmount - group.selectedAmount === 0 && 'bg-primary/10 hover:bg-primary/20')}>
                                                         <div className="grid grid-cols-12 gap-4 items-center w-full">
                                                           <div className="col-span-6 flex items-center gap-4">
                                                             <Checkbox 
@@ -307,7 +307,7 @@ export default function PaymentPlanningPage() {
                                        <Accordion type="multiple" className="w-full">
                                             {receivables.map(group => (
                                                 <AccordionItem value={group.name} key={group.name}>
-                                                    <AccordionTrigger className="hover:no-underline">
+                                                    <AccordionTrigger className={cn("hover:no-underline p-2 rounded-md transition-colors", group.totalAmount > 0 && group.totalAmount - group.selectedAmount === 0 && 'bg-primary/10 hover:bg-primary/20')}>
                                                         <div className="grid grid-cols-12 gap-4 items-center w-full">
                                                           <div className="col-span-6 flex items-center gap-4">
                                                             <Checkbox 
