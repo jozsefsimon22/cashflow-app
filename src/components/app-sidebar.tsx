@@ -27,6 +27,7 @@ import {
   Link2,
   Scale,
   HandCoins,
+  CreditCard,
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -42,6 +43,7 @@ interface AppSidebarProps {
     | 'exclusions'
     | 'intercompany'
     | 'name-pairing'
+    | 'direct-debits'
     | 'settings'
     | 'export'
     | 'documentation';
@@ -148,6 +150,14 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
                     <Link href="/name-pairing">
                     <Link2 />
                     <span>Name Pairing</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={activePage === 'direct-debits'}>
+                    <Link href="/direct-debits">
+                    <CreditCard />
+                    <span>Direct Debits</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>

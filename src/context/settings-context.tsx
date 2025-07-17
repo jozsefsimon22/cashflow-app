@@ -21,6 +21,8 @@ interface SettingsContextType {
   setIntercompanyNames: (names: string[]) => void;
   namePairings: NamePair[];
   setNamePairings: (pairings: NamePair[]) => void;
+  directDebitNames: string[];
+  setDirectDebitNames: (names: string[]) => void;
 }
 
 const defaultConfig: ColumnConfig = {
@@ -57,6 +59,8 @@ export const SettingsContext = createContext<SettingsContextType>({
   setIntercompanyNames: () => {},
   namePairings: [],
   setNamePairings: () => {},
+  directDebitNames: [],
+  setDirectDebitNames: () => {},
 });
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -68,6 +72,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [excludedNames, setExcludedNamesState] = useState<string[]>([]);
   const [intercompanyNames, setIntercompanyNamesState] = useState<string[]>([]);
   const [namePairings, setNamePairingsState] = useState<NamePair[]>([]);
+  const [directDebitNames, setDirectDebitNamesState] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
@@ -110,6 +115,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const savedNamePairings = localStorage.getItem('namePairings');
       if (savedNamePairings) {
         setNamePairingsState(JSON.parse(savedNamePairings));
+      }
+      const savedDirectDebitNames = localStorage.getItem('directDebitNames');
+      if (savedDirectDebitNames) {
+        setDirectDebitNamesState(JSON.parse(savedDirectDebitNames));
       }
     } catch (error) {
       console.error("Failed to parse settings from localStorage", error);
@@ -226,6 +235,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const setDirectDebitNames = (names: string[]) => {
+    setDirectDebitNamesState(names);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('directDebitNames', JSON.stringify(names));
+      } catch (error) {
+        console.error("Failed to save direct debit names to localStorage", error);
+      }
+    }
+  };
+
   const providerValue = {
     columnConfig,
     setColumnConfig,
@@ -243,6 +263,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setIntercompanyNames,
     namePairings,
     setNamePairings,
+    directDebitNames,
+    setDirectDebitNames,
   };
 
   return (
