@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useContext, useState, useMemo } from "react";
+import { useContext, useState, useMemo, useEffect } from "react";
 import { SettingsContext } from "@/context/settings-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -15,7 +15,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { CashFlowItem, ManualTransaction, PaymentPlanItem, PaymentPlanSummary } from "@/types";
 import { format, startOfToday, isBefore, isEqual, differenceInCalendarDays } from 'date-fns';
-import { HandCoins, Search, CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet, ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
+import { HandCoins, Search, CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet, ArrowLeft, ArrowRight, ChevronDown, CreditCard } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,7 @@ type GroupedPaymentItem = {
 };
 
 export default function PaymentPlanningPage() {
-    const { data, manualTransactions, startingBalance } = useContext(SettingsContext);
+    const { data, manualTransactions, startingBalance, directDebitNames } = useContext(SettingsContext);
 
     const [view, setView] = useState<'selection' | 'summary'>('selection');
     const [paymentDate, setPaymentDate] = useState<Date>(startOfToday());
@@ -37,6 +37,8 @@ export default function PaymentPlanningPage() {
 
     const [payablesSearch, setPayablesSearch] = useState('');
     const [receivablesSearch, setReceivablesSearch] = useState('');
+    
+    const directDebitNamesSet = useMemo(() => new Set(directDebitNames), [directDebitNames]);
 
     const allItems = useMemo((): PaymentPlanItem[] => {
         const items: PaymentPlanItem[] = [];
@@ -51,6 +53,7 @@ export default function PaymentPlanningPage() {
                     docNumber: String(item['Document Number']),
                     dueDate: item['Due Date']!,
                     amount: (item.Type === 'Bill Credit' || item.Type === 'Credit Memo') ? -item.RemainingAmount : item.RemainingAmount,
+                    isDirectDebit: directDebitNamesSet.has(item.Name),
                 });
             }
         });
@@ -65,13 +68,22 @@ export default function PaymentPlanningPage() {
                     docNumber: 'Manual',
                     dueDate: t.startDate,
                     amount: t.amount,
+                    isDirectDebit: directDebitNamesSet.has(t.name),
                 });
             }
         });
 
         return items.filter(item => item.dueDate && (isBefore(item.dueDate, paymentDate) || isEqual(item.dueDate, paymentDate)));
-    }, [data, manualTransactions, paymentDate]);
+    }, [data, manualTransactions, paymentDate, directDebitNamesSet]);
     
+    useEffect(() => {
+        const directDebitPayableIds = allItems
+            .filter(item => item.type === 'outflow' && item.isDirectDebit)
+            .map(item => item.id);
+        
+        setSelectedPayables(new Set(directDebitPayableIds));
+    }, [allItems]);
+
     const groupAndCalculate = (
         items: PaymentPlanItem[],
         selectionSet: Set<string>,
@@ -144,7 +156,9 @@ export default function PaymentPlanningPage() {
     }, [allItems, selectedPayables, totals.payablesTotal]);
 
 
-    const handleSelect = (id: string, type: 'payable' | 'receivable') => {
+    const handleSelect = (id: string, type: 'payable' | 'receivable', isDirectDebit = false) => {
+        if (type === 'payable' && isDirectDebit) return; 
+
         const [selection, setter] = type === 'payable' ? [selectedPayables, setSelectedPayables] : [selectedReceivables, setSelectedReceivables];
         setter(prev => {
             const newSet = new Set(prev);
@@ -158,8 +172,11 @@ export default function PaymentPlanningPage() {
     };
     
     const handleGroupSelect = (groupItems: PaymentPlanItem[], type: 'payable' | 'receivable') => {
+        const nonDirectDebitItems = groupItems.filter(i => !(type === 'payable' && i.isDirectDebit));
+        if (nonDirectDebitItems.length === 0) return;
+
         const [selection, setter] = type === 'payable' ? [selectedPayables, setSelectedPayables] : [selectedReceivables, setSelectedReceivables];
-        const groupIds = groupItems.map(i => i.id);
+        const groupIds = nonDirectDebitItems.map(i => i.id);
         const areAllSelected = groupIds.every(id => selection.has(id));
 
         setter(prev => {
@@ -180,7 +197,16 @@ export default function PaymentPlanningPage() {
 
     const formatDate = (date: Date) => format(date, 'dd/MM/yyyy');
     
-    const AccordionColumnHeader = () => (
+    const PayablesAccordionColumnHeader = () => (
+        <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-muted-foreground">
+            <div className="col-span-5">Name</div>
+            <div className="col-span-2">Tags</div>
+            <div className="col-span-2 text-right">Total Due</div>
+            <div className="col-span-1 text-right">Selected</div>
+            <div className="col-span-2 text-right">Remaining</div>
+        </div>
+    );
+     const ReceivablesAccordionColumnHeader = () => (
         <div className="grid grid-cols-12 gap-4 px-4 py-2 text-sm font-semibold text-muted-foreground">
             <div className="col-span-6">Name</div>
             <div className="col-span-2 text-right">Total Due</div>
@@ -202,7 +228,7 @@ export default function PaymentPlanningPage() {
                         <Card className="mb-8">
                             <CardHeader>
                                 <CardTitle className="font-headline flex items-center gap-2"><HandCoins className="w-6 h-6"/>Planning Summary</CardTitle>
-                                <CardDescription>Select a payment date and choose items to see the impact on your balance.</CardDescription>
+                                <CardDescription>Select a payment date and choose items to see the impact on your balance. Direct Debits are selected automatically.</CardDescription>
                             </CardHeader>
                             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                                 <div className="space-y-2">
@@ -253,57 +279,72 @@ export default function PaymentPlanningPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <AccordionColumnHeader />
+                                    <PayablesAccordionColumnHeader />
                                     <div className="max-h-[60vh] overflow-y-auto pr-2 border-t">
                                         <Accordion type="multiple" className="w-full">
-                                            {payables.map(group => (
-                                                <AccordionItem value={group.name} key={group.name}>
-                                                    <AccordionTrigger className={cn("hover:no-underline p-2 rounded-md transition-colors", group.totalAmount > 0 && group.totalAmount - group.selectedAmount === 0 && 'bg-primary/10 hover:bg-primary/20')}>
-                                                        <div className="grid grid-cols-12 gap-4 items-center w-full">
-                                                          <div className="col-span-6 flex items-center gap-4">
-                                                            <Checkbox 
-                                                                onClick={(e) => { e.stopPropagation(); handleGroupSelect(group.items, 'payable') }}
-                                                                checked={group.items.every(i => selectedPayables.has(i.id))}
-                                                                indeterminate={group.items.some(i => selectedPayables.has(i.id)) && !group.items.every(i => selectedPayables.has(i.id))}
-                                                            />
-                                                            <span className="font-semibold text-left">{group.name}</span>
-                                                          </div>
-                                                          <div className="col-span-2 text-right font-mono">{formatCurrency(group.totalAmount)}</div>
-                                                          <div className="col-span-2 text-right font-mono text-destructive">{formatCurrency(group.selectedAmount)}</div>
-                                                          <div className="col-span-2 text-right font-mono text-muted-foreground">{formatCurrency(group.totalAmount - group.selectedAmount)}</div>
-                                                        </div>
-                                                    </AccordionTrigger>
-                                                    <AccordionContent>
-                                                        <Table>
-                                                            <TableHeader>
-                                                                <TableRow>
-                                                                    <TableHead className="w-[50px]"></TableHead>
-                                                                    <TableHead>Document</TableHead>
-                                                                    <TableHead>Due Date</TableHead>
-                                                                    <TableHead className="text-center">Days Overdue</TableHead>
-                                                                    <TableHead className="text-right">Amount</TableHead>
-                                                                </TableRow>
-                                                            </TableHeader>
-                                                            <TableBody>
-                                                                {group.items.map(item => {
-                                                                    const daysOverdue = differenceInCalendarDays(paymentDate, item.dueDate);
-                                                                    return (
-                                                                        <TableRow key={item.id} data-state={selectedPayables.has(item.id) ? "selected" : ""}>
-                                                                            <TableCell><Checkbox checked={selectedPayables.has(item.id)} onCheckedChange={() => handleSelect(item.id, 'payable')}/></TableCell>
-                                                                            <TableCell className="font-medium">{item.docType} #{item.docNumber}</TableCell>
-                                                                            <TableCell>{formatDate(item.dueDate)}</TableCell>
-                                                                            <TableCell className="text-center">
-                                                                                {daysOverdue > 0 ? <Badge variant="destructive">{daysOverdue}</Badge> : '-'}
-                                                                            </TableCell>
-                                                                            <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
-                                                                        </TableRow>
-                                                                    );
-                                                                })}
-                                                            </TableBody>
-                                                        </Table>
-                                                    </AccordionContent>
-                                                </AccordionItem>
-                                            ))}
+                                            {payables.map(group => {
+                                                const isDirectDebitGroup = group.items.some(i => i.isDirectDebit);
+                                                const allSelectableItems = group.items.filter(i => !i.isDirectDebit);
+                                                const allSelectableItemsSelected = allSelectableItems.length > 0 && allSelectableItems.every(i => selectedPayables.has(i.id));
+
+                                                return (
+                                                    <AccordionItem value={group.name} key={group.name}>
+                                                        <AccordionTrigger className={cn("hover:no-underline p-2 rounded-md transition-colors", group.totalAmount > 0 && group.totalAmount - group.selectedAmount === 0 && 'bg-primary/10 hover:bg-primary/20')}>
+                                                            <div className="grid grid-cols-12 gap-4 items-center w-full">
+                                                            <div className="col-span-5 flex items-center gap-4">
+                                                                <Checkbox 
+                                                                    onClick={(e) => { e.stopPropagation(); handleGroupSelect(group.items, 'payable') }}
+                                                                    checked={allSelectableItemsSelected}
+                                                                    disabled={allSelectableItems.length === 0}
+                                                                />
+                                                                <span className="font-semibold text-left">{group.name}</span>
+                                                            </div>
+                                                            <div className="col-span-2">
+                                                                {isDirectDebitGroup && <Badge variant="outline"><CreditCard className="w-3 h-3 mr-1.5" /> Direct Debit</Badge>}
+                                                            </div>
+                                                            <div className="col-span-2 text-right font-mono">{formatCurrency(group.totalAmount)}</div>
+                                                            <div className="col-span-1 text-right font-mono text-destructive">{formatCurrency(group.selectedAmount)}</div>
+                                                            <div className="col-span-2 text-right font-mono text-muted-foreground">{formatCurrency(group.totalAmount - group.selectedAmount)}</div>
+                                                            </div>
+                                                        </AccordionTrigger>
+                                                        <AccordionContent>
+                                                            <Table>
+                                                                <TableHeader>
+                                                                    <TableRow>
+                                                                        <TableHead className="w-[50px]"></TableHead>
+                                                                        <TableHead>Document</TableHead>
+                                                                        <TableHead>Due Date</TableHead>
+                                                                        <TableHead className="text-center">Days Overdue</TableHead>
+                                                                        <TableHead className="text-right">Amount</TableHead>
+                                                                    </TableRow>
+                                                                </TableHeader>
+                                                                <TableBody>
+                                                                    {group.items.map(item => {
+                                                                        const daysOverdue = differenceInCalendarDays(paymentDate, item.dueDate);
+                                                                        return (
+                                                                            <TableRow key={item.id} data-state={selectedPayables.has(item.id) ? "selected" : ""}>
+                                                                                <TableCell>
+                                                                                    <Checkbox 
+                                                                                        checked={selectedPayables.has(item.id)} 
+                                                                                        onCheckedChange={() => handleSelect(item.id, 'payable', item.isDirectDebit)}
+                                                                                        disabled={item.isDirectDebit}
+                                                                                    />
+                                                                                </TableCell>
+                                                                                <TableCell className="font-medium">{item.docType} #{item.docNumber}</TableCell>
+                                                                                <TableCell>{formatDate(item.dueDate)}</TableCell>
+                                                                                <TableCell className="text-center">
+                                                                                    {daysOverdue > 0 ? <Badge variant="destructive">{daysOverdue}</Badge> : '-'}
+                                                                                </TableCell>
+                                                                                <TableCell className="text-right font-mono">{formatCurrency(item.amount)}</TableCell>
+                                                                            </TableRow>
+                                                                        );
+                                                                    })}
+                                                                </TableBody>
+                                                            </Table>
+                                                        </AccordionContent>
+                                                    </AccordionItem>
+                                                )
+                                            })}
                                         </Accordion>
                                     </div>
                                 </CardContent>
@@ -317,7 +358,7 @@ export default function PaymentPlanningPage() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <AccordionColumnHeader />
+                                    <ReceivablesAccordionColumnHeader />
                                     <div className="max-h-[60vh] overflow-y-auto pr-2 border-t">
                                        <Accordion type="multiple" className="w-full">
                                             {receivables.map(group => (

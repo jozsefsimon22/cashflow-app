@@ -192,6 +192,7 @@ export interface PaymentPlanItem {
     docNumber: string;
     dueDate: Date;
     amount: number;
+    isDirectDebit: boolean;
 }
 
 export interface PaymentPlanSummary {
