@@ -40,6 +40,7 @@ export default function ExportPage() {
       intercompanyNames,
       directDebitNames,
       applyExclusions,
+      applyPrediction: false,
     });
   }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions, directDebitNames]);
 
