@@ -5,7 +5,7 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, ManualTransaction, WeeklyBreakdown, GroupedItems, ForecastItem } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDown, Users, Sparkles } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDown, Users, Sparkles, CreditCard } from 'lucide-react';
 import { SettingsContext } from "@/context/settings-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, isToday } from 'date-fns';
@@ -45,7 +45,8 @@ export default function WeeklyViewPage() {
     excludedNames, 
     startingBalance, 
     paidManualOccurrences, 
-    intercompanyNames 
+    intercompanyNames,
+    directDebitNames
   } = useContext(SettingsContext);
 
   const [isClient, setIsClient] = useState(false);
@@ -69,11 +70,12 @@ export default function WeeklyViewPage() {
       startingBalance,
       excludedNames,
       intercompanyNames,
+      directDebitNames,
       applyExclusions,
       applyPrediction,
     });
 
-  }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, applyExclusions, applyPrediction, isClient]);
+  }, [data, manualTransactions, paidManualOccurrences, startingBalance, excludedNames, intercompanyNames, directDebitNames, applyExclusions, applyPrediction, isClient]);
 
   const uniqueManualInflows = useMemo(() => {
     const seen = new Set();
@@ -388,6 +390,27 @@ export default function WeeklyViewPage() {
                                                 onMouseEnter={() => setHoveredColumn(index)}
                                                 onMouseLeave={() => setHoveredColumn(null)}
                                             >{formatCurrency(week.intercompanyPayable)}</TableCell>
+                                        )}
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
+                                           <div className="flex items-center gap-2">
+                                                <CreditCard className="w-4 h-4 text-muted-foreground"/> Direct Debit Payable
+                                            </div>
+                                        </TableCell>
+                                        {weeklyBreakdown.map((week, index) => 
+                                            <TableCell 
+                                                key={index} 
+                                                className={cn(
+                                                    "text-right font-mono cursor-pointer transition-colors", 
+                                                    week.isMonthEnd && "border-r-2 border-border",
+                                                    week.isCurrentWeek && "bg-primary/10",
+                                                    hoveredColumn === index && "bg-muted"
+                                                )}
+                                                onClick={() => handleCellClick({ title: `Direct Debit Payable - ${week.weekLabel}`, items: week.directDebitPayableItems, total: week.directDebitPayable, type: 'outflow' })}
+                                                onMouseEnter={() => setHoveredColumn(index)}
+                                                onMouseLeave={() => setHoveredColumn(null)}
+                                            >{formatCurrency(week.directDebitPayable)}</TableCell>
                                         )}
                                     </TableRow>
                                     {uniqueManualOutflows.map(manualOutflow => (

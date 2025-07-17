@@ -88,12 +88,14 @@ export interface WeeklyBreakdown {
   intercompanyReceivable: number;
   accountsPayable: number;
   intercompanyPayable: number;
+  directDebitPayable: number;
   manualInflows: (ManualTransaction & { dueDate: Date })[];
   manualOutflows: (ManualTransaction & { dueDate: Date })[];
   arItems: ForecastItem[];
   apItems: ForecastItem[];
   intercompanyArItems: ForecastItem[];
   intercompanyApItems: ForecastItem[];
+  directDebitPayableItems: ForecastItem[];
   totalInflow: number;
   totalOutflow: number;
   netFlow: number;
@@ -109,6 +111,7 @@ export interface ForecastEngineParams {
     startingBalance: number;
     excludedNames: string[];
     intercompanyNames: string[];
+    directDebitNames: string[];
     applyExclusions: boolean;
     applyPrediction: boolean;
 }
