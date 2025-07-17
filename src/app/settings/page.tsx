@@ -118,74 +118,73 @@ export default function SettingsPage() {
                 </div>
             </div>
             
-            <div className="space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Forecast Settings</CardTitle>
-                  <CardDescription>
-                    Configure the starting point and currency for your cash flow forecast.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-8">
-                  <div className="space-y-2">
-                    <Label htmlFor="starting-balance">Current Bank Balance</Label>
-                    <div className="relative">
-                       <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          id="starting-balance"
-                          type="number"
-                          placeholder="e.g., 5000"
-                          value={startingBalance || ''}
-                          onChange={handleBalanceChange}
-                          onBlur={handleBalanceBlur}
-                          className="pl-10"
-                        />
+            <Form {...columnForm}>
+              <form onSubmit={columnForm.handleSubmit(onColumnSubmit)} className="space-y-8">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Forecast Settings</CardTitle>
+                    <CardDescription>
+                      Configure the starting point and currency for your cash flow forecast.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-2">
+                      <Label htmlFor="starting-balance">Current Bank Balance</Label>
+                      <div className="relative">
+                         <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            id="starting-balance"
+                            type="number"
+                            placeholder="e.g., 5000"
+                            value={startingBalance || ''}
+                            onChange={handleBalanceChange}
+                            onBlur={handleBalanceBlur}
+                            className="pl-10"
+                          />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        This will be used as the starting point for the balance chart on the dashboard.
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      This will be used as the starting point for the balance chart on the dashboard.
-                    </p>
-                  </div>
-                   <div className="space-y-2">
-                      <FormField
-                        control={columnForm.control}
-                        name="currency"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Currency</FormLabel>
-                             <Select onValueChange={field.onChange} value={field.value} >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a currency" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="GBP">GBP (£)</SelectItem>
-                                <SelectItem value="USD">USD ($)</SelectItem>
-                                <SelectItem value="EUR">EUR (€)</SelectItem>
-                                <SelectItem value="SEK">SEK (kr)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                     <p className="text-sm text-muted-foreground">
-                      This will be used for all monetary values across the application.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+                     <div className="space-y-2">
+                        <FormField
+                          control={columnForm.control}
+                          name="currency"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Currency</FormLabel>
+                               <Select onValueChange={field.onChange} value={field.value} >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a currency" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="GBP">GBP (£)</SelectItem>
+                                  <SelectItem value="USD">USD ($)</SelectItem>
+                                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                                  <SelectItem value="SEK">SEK (kr)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                       <p className="text-sm text-muted-foreground">
+                        This will be used for all monetary values across the application.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>File Column Mapping</CardTitle>
-                  <CardDescription>
-                    Map the column names from your spreadsheet to the required fields. This ensures your data is parsed correctly.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Form {...columnForm}>
-                    <form onSubmit={columnForm.handleSubmit(onColumnSubmit)}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>File Column Mapping</CardTitle>
+                    <CardDescription>
+                      Map the column names from your spreadsheet to the required fields. This ensures your data is parsed correctly.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
                       <div className="border rounded-lg overflow-hidden">
                         <Table>
                           <TableHeader>
@@ -245,11 +244,10 @@ export default function SettingsPage() {
                       <div className="flex justify-end gap-2 mt-6">
                           <Button type="submit">Save Changes</Button>
                       </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </div>
+                  </CardContent>
+                </Card>
+              </form>
+            </Form>
         </main>
       </SidebarInset>
     </>
