@@ -245,6 +245,8 @@ export const calculateWeeklyBreakdown = ({
 
         breakdown.push({
             weekLabel: `w/c ${format(weekStart, 'dd/MM')}`,
+            weekStart,
+            weekEnd,
             accountsReceivable,
             intercompanyReceivable,
             accountsPayable,

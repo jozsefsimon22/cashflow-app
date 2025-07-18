@@ -87,6 +87,8 @@ export type ForecastItem = (CashFlowItem & { dueDate: Date, predictionAdjustment
 
 export interface WeeklyBreakdown {
   weekLabel: string;
+  weekStart?: Date;
+  weekEnd?: Date;
   accountsReceivable: number;
   intercompanyReceivable: number;
   accountsPayable: number;

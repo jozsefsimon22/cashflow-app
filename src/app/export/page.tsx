@@ -59,13 +59,22 @@ export default function ExportPage() {
         return;
       }
       
-      const breakdownRows = weeklyBreakdown.map(week => ({
-        Interval: week.weekLabel,
-        AR: week.totalInflow,
-        AP: week.totalOutflow,
-        Difference: week.netFlow,
-        'Accumulated liquidity': week.runningBalance
-      }));
+      const breakdownRows = weeklyBreakdown.map(week => {
+        let interval;
+        if (week.weekStart && week.weekEnd) {
+          interval = `${format(week.weekStart, 'yyMMdd')} - ${format(week.weekEnd, 'yyMMdd')}`;
+        } else {
+          interval = week.weekLabel; // Fallback for 'Overdue'
+        }
+
+        return {
+          Interval: interval,
+          AR: week.totalInflow,
+          AP: week.totalOutflow,
+          Difference: week.netFlow,
+          'Accumulated liquidity': week.runningBalance
+        };
+      });
 
       const header = ["Interval", "AR", "AP", "Difference", "Accumulated liquidity"];
       const startingBalanceRow = {
