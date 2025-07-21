@@ -4,8 +4,8 @@ import type { CashFlowItem, ManualTransaction, ManualTransactionOccurrence, Week
 import { addWeeks, addMonths, addQuarters, startOfToday, isBefore, startOfWeek, endOfWeek, isWithinInterval, format, differenceInCalendarDays, addDays } from 'date-fns';
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
-const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
-const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
+const INFLOW_TYPES: (CashFlowItem['Type'])[] = ['Invoice', 'Credit Memo'];
+const OUTFLOW_TYPES: (CashFlowItem['Type'])[] = ['Bill', 'Bill Credit'];
 
 interface ForecastEngineParams {
     data: CashFlowItem[] | null;

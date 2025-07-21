@@ -30,8 +30,8 @@ import { AppSidebar } from "@/components/app-sidebar";
 
 
 const INCLUDED_STATUSES = ['Open', 'Pending Approval', 'Unpaid'];
-const INFLOW_TYPES: (CashFlowItem['Type'])[] = ['Invoice', 'Bill Credit'];
-const OUTFLOW_TYPES: (CashFlowItem['Type'])[] = ['Bill', 'Credit Memo'];
+const INFLOW_TYPES: (CashFlowItem['Type'])[] = ['Invoice', 'Credit Memo'];
+const OUTFLOW_TYPES: (CashFlowItem['Type'])[] = ['Bill', 'Bill Credit'];
 const ROWS_PER_PAGE = 50;
 
 type SortKey = keyof CashFlowItem | 'Installment Number';
