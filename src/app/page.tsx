@@ -31,8 +31,8 @@ import { BreakdownChart } from '@/components/breakdown-chart';
 import { Badge } from '@/components/ui/badge';
 
 
-const INFLOW_TYPES = ['Invoice', 'Bill Credit'];
-const OUTFLOW_TYPES = ['Bill', 'Credit Memo'];
+const INFLOW_TYPES = ['Invoice', 'Credit Memo'];
+const OUTFLOW_TYPES = ['Bill', 'Bill Credit'];
 
 type SortKey = 'name' | 'amount';
 type SortDirection = 'asc' | 'desc';
