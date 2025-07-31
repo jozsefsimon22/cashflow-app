@@ -343,24 +343,24 @@ export default function WeeklyViewPage() {
                                                     })}
                                                 </TableRow>
                                             ))}
-                                            <TableRow className="bg-secondary">
-                                                <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Inflow</TableCell>
-                                                {weeklyBreakdown.map((week, index) => 
-                                                    <TableCell 
-                                                        key={index} 
-                                                        className={cn(
-                                                            "text-right font-mono font-bold text-primary transition-colors", 
-                                                            week.isMonthEnd && "border-r-2 border-border",
-                                                            week.isCurrentWeek && "bg-primary/10",
-                                                            hoveredColumn === index && ""
-                                                        )}
-                                                        onMouseEnter={() => setHoveredColumn(index)}
-                                                        onMouseLeave={() => setHoveredColumn(null)}
-                                                    >{formatCurrency(week.totalInflow)}</TableCell>
-                                                )}
-                                            </TableRow>
                                         </>
                                     )}
+                                     <TableRow className="bg-secondary">
+                                        <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Inflow</TableCell>
+                                        {weeklyBreakdown.map((week, index) => 
+                                            <TableCell 
+                                                key={index} 
+                                                className={cn(
+                                                    "text-right font-mono font-bold text-primary transition-colors", 
+                                                    week.isMonthEnd && "border-r-2 border-border",
+                                                    week.isCurrentWeek && "bg-primary/10",
+                                                    hoveredColumn === index && ""
+                                                )}
+                                                onMouseEnter={() => setHoveredColumn(index)}
+                                                onMouseLeave={() => setHoveredColumn(null)}
+                                            >{formatCurrency(week.totalInflow)}</TableCell>
+                                        )}
+                                    </TableRow>
                                 </TableBody>
                                 
                                 <TableBody>
@@ -472,24 +472,24 @@ export default function WeeklyViewPage() {
                                                     })}
                                                 </TableRow>
                                             ))}
-                                            <TableRow className="bg-secondary">
-                                                <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Outflow</TableCell>
-                                                {weeklyBreakdown.map((week, index) => 
-                                                    <TableCell 
-                                                        key={index} 
-                                                        className={cn(
-                                                            "text-right font-mono font-bold text-destructive transition-colors", 
-                                                            week.isMonthEnd && "border-r-2 border-border",
-                                                            week.isCurrentWeek && "bg-primary/10",
-                                                            hoveredColumn === index && ""
-                                                        )}
-                                                        onMouseEnter={() => setHoveredColumn(index)}
-                                                        onMouseLeave={() => setHoveredColumn(null)}
-                                                    >{formatCurrency(week.totalOutflow)}</TableCell>
-                                                )}
-                                            </TableRow>
                                         </>
                                     )}
+                                     <TableRow className="bg-secondary">
+                                        <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Outflow</TableCell>
+                                        {weeklyBreakdown.map((week, index) => 
+                                            <TableCell 
+                                                key={index} 
+                                                className={cn(
+                                                    "text-right font-mono font-bold text-destructive transition-colors", 
+                                                    week.isMonthEnd && "border-r-2 border-border",
+                                                    week.isCurrentWeek && "bg-primary/10",
+                                                    hoveredColumn === index && ""
+                                                )}
+                                                onMouseEnter={() => setHoveredColumn(index)}
+                                                onMouseLeave={() => setHoveredColumn(null)}
+                                            >{formatCurrency(week.totalOutflow)}</TableCell>
+                                        )}
+                                    </TableRow>
                                 </TableBody>
     
                                 <TableBody>
