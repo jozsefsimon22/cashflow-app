@@ -5,7 +5,7 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import type { CashFlowItem, ManualTransaction, WeeklyBreakdown, GroupedItems, ForecastItem } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDown, Users, Sparkles, CreditCard } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, CalendarDays, Package, Coins, ArrowUpDown, Users, Sparkles, CreditCard, ChevronDown } from 'lucide-react';
 import { SettingsContext } from "@/context/settings-context";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, isToday } from 'date-fns';
@@ -234,6 +234,7 @@ export default function WeeklyViewPage() {
                 <CardContent>
                     {isClient && (data || manualTransactions.length > 0) ? (
                         <div className="overflow-x-auto">
+                            <Accordion type="multiple" defaultValue={["inflow", "outflow"]} className="w-full">
                             <Table className="min-w-full">
                                 <TableHeader>
                                     <TableRow>
@@ -254,66 +255,25 @@ export default function WeeklyViewPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow className="bg-primary/5">
-                                        <TableCell colSpan={13 + 1} className="font-bold text-primary sticky left-0 bg-primary/5 z-10">
-                                            <div className="flex items-center gap-2">
-                                                <ArrowUpCircle className="w-5 h-5" /> Inflow
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell className="font-medium sticky left-0 bg-card z-10">
-                                           <div className="flex items-center gap-2">
-                                                <Package className="w-4 h-4 text-muted-foreground"/> Accounts Receivable
-                                            </div>
-                                        </TableCell>
-                                        {weeklyBreakdown.map((week, index) => 
-                                            <TableCell 
-                                                key={index} 
-                                                className={cn(
-                                                    "text-right font-mono cursor-pointer transition-colors", 
-                                                    week.isMonthEnd && "border-r-2 border-border",
-                                                    week.isCurrentWeek && "bg-primary/10",
-                                                    hoveredColumn === index && "bg-muted"
-                                                )}
-                                                onClick={() => handleCellClick({ title: `Accounts Receivable - ${week.weekLabel}`, items: week.arItems, total: week.accountsReceivable, type: 'inflow' })}
-                                                onMouseEnter={() => setHoveredColumn(index)}
-                                                onMouseLeave={() => setHoveredColumn(null)}
-                                            >{formatCurrency(week.accountsReceivable)}</TableCell>
-                                        )}
-                                    </TableRow>
-                                     <TableRow>
-                                        <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
-                                           <div className="flex items-center gap-2">
-                                                <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Receivable
-                                            </div>
-                                        </TableCell>
-                                        {weeklyBreakdown.map((week, index) => 
-                                            <TableCell 
-                                                key={index} 
-                                                className={cn(
-                                                    "text-right font-mono cursor-pointer transition-colors", 
-                                                    week.isMonthEnd && "border-r-2 border-border",
-                                                    week.isCurrentWeek && "bg-primary/10",
-                                                    hoveredColumn === index && "bg-muted"
-                                                )}
-                                                onClick={() => handleCellClick({ title: `Intercompany Receivable - ${week.weekLabel}`, items: week.intercompanyArItems, total: week.intercompanyReceivable, type: 'inflow' })}
-                                                onMouseEnter={() => setHoveredColumn(index)}
-                                                onMouseLeave={() => setHoveredColumn(null)}
-                                            >{formatCurrency(week.intercompanyReceivable)}</TableCell>
-                                        )}
-                                    </TableRow>
-                                    {uniqueManualInflows.map(manualInflow => (
-                                        <TableRow key={manualInflow.id}>
-                                            <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                    <AccordionItem value="inflow" className="border-b-0">
+                                        <TableRow className="bg-primary/5 hover:bg-primary/10">
+                                            <TableCell colSpan={13 + 1} className="font-bold text-primary sticky left-0 bg-primary/5 hover:bg-primary/10 z-10 p-0">
+                                                <AccordionTrigger className="p-4 hover:no-underline">
+                                                    <div className="flex items-center gap-2">
+                                                        <ArrowUpCircle className="w-5 h-5" /> Inflow
+                                                    </div>
+                                                </AccordionTrigger>
+                                            </TableCell>
+                                        </TableRow>
+                                        <AccordionContent asChild>
+                                        <>
+                                            <TableRow>
+                                                <TableCell className="font-medium sticky left-0 bg-card z-10">
                                                 <div className="flex items-center gap-2">
-                                                    <Package className="w-4 h-4 text-muted-foreground"/> {manualInflow.name}
-                                                </div>
-                                            </TableCell>
-                                            {weeklyBreakdown.map((week, index) => {
-                                                const items = week.manualInflows.filter(t => t.name === manualInflow.name);
-                                                const manualInflowTotal = items.reduce((sum, t) => sum + t.amount, 0);
-                                                return (
+                                                        <Package className="w-4 h-4 text-muted-foreground"/> Accounts Receivable
+                                                    </div>
+                                                </TableCell>
+                                                {weeklyBreakdown.map((week, index) => 
                                                     <TableCell 
                                                         key={index} 
                                                         className={cn(
@@ -322,114 +282,19 @@ export default function WeeklyViewPage() {
                                                             week.isCurrentWeek && "bg-primary/10",
                                                             hoveredColumn === index && "bg-muted"
                                                         )}
-                                                        onClick={() => handleCellClick({ title: `${manualInflow.name} - ${week.weekLabel}`, items: items, total: manualInflowTotal, type: 'inflow' })}
+                                                        onClick={() => handleCellClick({ title: `Accounts Receivable - ${week.weekLabel}`, items: week.arItems, total: week.accountsReceivable, type: 'inflow' })}
                                                         onMouseEnter={() => setHoveredColumn(index)}
                                                         onMouseLeave={() => setHoveredColumn(null)}
-                                                    >
-                                                        {formatCurrency(manualInflowTotal)}
-                                                    </TableCell>
-                                                )
-                                            })}
-                                        </TableRow>
-                                    ))}
-                                    <TableRow className="bg-secondary">
-                                        <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Inflow</TableCell>
-                                        {weeklyBreakdown.map((week, index) => 
-                                            <TableCell 
-                                                key={index} 
-                                                className={cn(
-                                                    "text-right font-mono font-bold text-primary transition-colors", 
-                                                    week.isMonthEnd && "border-r-2 border-border",
-                                                    week.isCurrentWeek && "bg-primary/10",
-                                                    hoveredColumn === index && ""
+                                                    >{formatCurrency(week.accountsReceivable)}</TableCell>
                                                 )}
-                                                onMouseEnter={() => setHoveredColumn(index)}
-                                                onMouseLeave={() => setHoveredColumn(null)}
-                                            >{formatCurrency(week.totalInflow)}</TableCell>
-                                        )}
-                                    </TableRow>
-    
-                                    <TableRow className="bg-destructive/5">
-                                        <TableCell colSpan={13 + 1} className="font-bold text-destructive sticky left-0 bg-destructive/5 z-10">
-                                            <div className="flex items-center gap-2">
-                                                <ArrowDownCircle className="w-5 h-5" /> Outflow
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell className="font-medium sticky left-0 bg-card z-10">
-                                            <div className="flex items-center gap-2">
-                                                <Package className="w-4 h-4 text-muted-foreground"/> Accounts Payable
-                                            </div>
-                                        </TableCell>
-                                        {weeklyBreakdown.map((week, index) => 
-                                            <TableCell 
-                                                key={index} 
-                                                className={cn(
-                                                    "text-right font-mono cursor-pointer transition-colors", 
-                                                    week.isMonthEnd && "border-r-2 border-border",
-                                                    week.isCurrentWeek && "bg-primary/10",
-                                                    hoveredColumn === index && "bg-muted"
-                                                )}
-                                                onClick={() => handleCellClick({ title: `Accounts Payable - ${week.weekLabel}`, items: week.apItems, total: week.accountsPayable, type: 'outflow' })}
-                                                onMouseEnter={() => setHoveredColumn(index)}
-                                                onMouseLeave={() => setHoveredColumn(null)}
-                                            >{formatCurrency(week.accountsPayable)}</TableCell>
-                                        )}
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
-                                           <div className="flex items-center gap-2">
-                                                <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Payable
-                                            </div>
-                                        </TableCell>
-                                        {weeklyBreakdown.map((week, index) => 
-                                            <TableCell 
-                                                key={index} 
-                                                className={cn(
-                                                    "text-right font-mono cursor-pointer transition-colors", 
-                                                    week.isMonthEnd && "border-r-2 border-border",
-                                                    week.isCurrentWeek && "bg-primary/10",
-                                                    hoveredColumn === index && "bg-muted"
-                                                )}
-                                                onClick={() => handleCellClick({ title: `Intercompany Payable - ${week.weekLabel}`, items: week.intercompanyApItems, total: week.intercompanyPayable, type: 'outflow' })}
-                                                onMouseEnter={() => setHoveredColumn(index)}
-                                                onMouseLeave={() => setHoveredColumn(null)}
-                                            >{formatCurrency(week.intercompanyPayable)}</TableCell>
-                                        )}
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
-                                           <div className="flex items-center gap-2">
-                                                <CreditCard className="w-4 h-4 text-muted-foreground"/> Direct Debit Payable
-                                            </div>
-                                        </TableCell>
-                                        {weeklyBreakdown.map((week, index) => 
-                                            <TableCell 
-                                                key={index} 
-                                                className={cn(
-                                                    "text-right font-mono cursor-pointer transition-colors", 
-                                                    week.isMonthEnd && "border-r-2 border-border",
-                                                    week.isCurrentWeek && "bg-primary/10",
-                                                    hoveredColumn === index && "bg-muted"
-                                                )}
-                                                onClick={() => handleCellClick({ title: `Direct Debit Payable - ${week.weekLabel}`, items: week.directDebitPayableItems, total: week.directDebitPayable, type: 'outflow' })}
-                                                onMouseEnter={() => setHoveredColumn(index)}
-                                                onMouseLeave={() => setHoveredColumn(null)}
-                                            >{formatCurrency(week.directDebitPayable)}</TableCell>
-                                        )}
-                                    </TableRow>
-                                    {uniqueManualOutflows.map(manualOutflow => (
-                                        <TableRow key={manualOutflow.id}>
-                                            <TableCell className="font-medium sticky left-0 bg-card z-10">
-                                               <div className="flex items-center gap-2">
-                                                    <Package className="w-4 h-4 text-muted-foreground"/> {manualOutflow.name}
-                                                </div>
-                                            </TableCell>
-                                            {weeklyBreakdown.map((week, index) => {
-                                                const items = week.manualOutflows.filter(t => t.name === manualOutflow.name);
-                                                const manualOutflowTotal = items.reduce((sum, t) => sum + t.amount, 0);
-                                                return (
+                                            </TableRow>
+                                            <TableRow>
+                                                <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
+                                                <div className="flex items-center gap-2">
+                                                        <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Receivable
+                                                    </div>
+                                                </TableCell>
+                                                {weeklyBreakdown.map((week, index) => 
                                                     <TableCell 
                                                         key={index} 
                                                         className={cn(
@@ -438,32 +303,184 @@ export default function WeeklyViewPage() {
                                                             week.isCurrentWeek && "bg-primary/10",
                                                             hoveredColumn === index && "bg-muted"
                                                         )}
-                                                        onClick={() => handleCellClick({ title: `${manualOutflow.name} - ${week.weekLabel}`, items: items, total: manualOutflowTotal, type: 'outflow' })}
+                                                        onClick={() => handleCellClick({ title: `Intercompany Receivable - ${week.weekLabel}`, items: week.intercompanyArItems, total: week.intercompanyReceivable, type: 'inflow' })}
                                                         onMouseEnter={() => setHoveredColumn(index)}
                                                         onMouseLeave={() => setHoveredColumn(null)}
-                                                    >
-                                                        {formatCurrency(manualOutflowTotal)}
-                                                    </TableCell>
-                                                );
-                                            })}
-                                        </TableRow>
-                                    ))}
-                                    <TableRow className="bg-secondary">
-                                        <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Outflow</TableCell>
-                                        {weeklyBreakdown.map((week, index) => 
-                                            <TableCell 
-                                                key={index} 
-                                                className={cn(
-                                                    "text-right font-mono font-bold text-destructive transition-colors", 
-                                                    week.isMonthEnd && "border-r-2 border-border",
-                                                    week.isCurrentWeek && "bg-primary/10",
-                                                    hoveredColumn === index && ""
+                                                    >{formatCurrency(week.intercompanyReceivable)}</TableCell>
                                                 )}
-                                                onMouseEnter={() => setHoveredColumn(index)}
-                                                onMouseLeave={() => setHoveredColumn(null)}
-                                            >{formatCurrency(week.totalOutflow)}</TableCell>
-                                        )}
-                                    </TableRow>
+                                            </TableRow>
+                                            {uniqueManualInflows.map(manualInflow => (
+                                                <TableRow key={manualInflow.id}>
+                                                    <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                                        <div className="flex items-center gap-2">
+                                                            <Package className="w-4 h-4 text-muted-foreground"/> {manualInflow.name}
+                                                        </div>
+                                                    </TableCell>
+                                                    {weeklyBreakdown.map((week, index) => {
+                                                        const items = week.manualInflows.filter(t => t.name === manualInflow.name);
+                                                        const manualInflowTotal = items.reduce((sum, t) => sum + t.amount, 0);
+                                                        return (
+                                                            <TableCell 
+                                                                key={index} 
+                                                                className={cn(
+                                                                    "text-right font-mono cursor-pointer transition-colors", 
+                                                                    week.isMonthEnd && "border-r-2 border-border",
+                                                                    week.isCurrentWeek && "bg-primary/10",
+                                                                    hoveredColumn === index && "bg-muted"
+                                                                )}
+                                                                onClick={() => handleCellClick({ title: `${manualInflow.name} - ${week.weekLabel}`, items: items, total: manualInflowTotal, type: 'inflow' })}
+                                                                onMouseEnter={() => setHoveredColumn(index)}
+                                                                onMouseLeave={() => setHoveredColumn(null)}
+                                                            >
+                                                                {formatCurrency(manualInflowTotal)}
+                                                            </TableCell>
+                                                        )
+                                                    })}
+                                                </TableRow>
+                                            ))}
+                                            <TableRow className="bg-secondary">
+                                                <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Inflow</TableCell>
+                                                {weeklyBreakdown.map((week, index) => 
+                                                    <TableCell 
+                                                        key={index} 
+                                                        className={cn(
+                                                            "text-right font-mono font-bold text-primary transition-colors", 
+                                                            week.isMonthEnd && "border-r-2 border-border",
+                                                            week.isCurrentWeek && "bg-primary/10",
+                                                            hoveredColumn === index && ""
+                                                        )}
+                                                        onMouseEnter={() => setHoveredColumn(index)}
+                                                        onMouseLeave={() => setHoveredColumn(null)}
+                                                    >{formatCurrency(week.totalInflow)}</TableCell>
+                                                )}
+                                            </TableRow>
+                                            </>
+                                        </AccordionContent>
+                                    </AccordionItem>
+                                    
+                                    <AccordionItem value="outflow" className="border-b-0">
+                                        <TableRow className="bg-destructive/5 hover:bg-destructive/10">
+                                            <TableCell colSpan={13+1} className="font-bold text-destructive sticky left-0 bg-destructive/5 hover:bg-destructive/10 z-10 p-0">
+                                                <AccordionTrigger className="p-4 hover:no-underline">
+                                                    <div className="flex items-center gap-2">
+                                                        <ArrowDownCircle className="w-5 h-5" /> Outflow
+                                                    </div>
+                                                </AccordionTrigger>
+                                            </TableCell>
+                                        </TableRow>
+                                        <AccordionContent asChild>
+                                        <>
+                                            <TableRow>
+                                                <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                                    <div className="flex items-center gap-2">
+                                                        <Package className="w-4 h-4 text-muted-foreground"/> Accounts Payable
+                                                    </div>
+                                                </TableCell>
+                                                {weeklyBreakdown.map((week, index) => 
+                                                    <TableCell 
+                                                        key={index} 
+                                                        className={cn(
+                                                            "text-right font-mono cursor-pointer transition-colors", 
+                                                            week.isMonthEnd && "border-r-2 border-border",
+                                                            week.isCurrentWeek && "bg-primary/10",
+                                                            hoveredColumn === index && "bg-muted"
+                                                        )}
+                                                        onClick={() => handleCellClick({ title: `Accounts Payable - ${week.weekLabel}`, items: week.apItems, total: week.accountsPayable, type: 'outflow' })}
+                                                        onMouseEnter={() => setHoveredColumn(index)}
+                                                        onMouseLeave={() => setHoveredColumn(null)}
+                                                    >{formatCurrency(week.accountsPayable)}</TableCell>
+                                                )}
+                                            </TableRow>
+                                            <TableRow>
+                                                <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
+                                                <div className="flex items-center gap-2">
+                                                        <Users className="w-4 h-4 text-muted-foreground"/> Intercompany Payable
+                                                    </div>
+                                                </TableCell>
+                                                {weeklyBreakdown.map((week, index) => 
+                                                    <TableCell 
+                                                        key={index} 
+                                                        className={cn(
+                                                            "text-right font-mono cursor-pointer transition-colors", 
+                                                            week.isMonthEnd && "border-r-2 border-border",
+                                                            week.isCurrentWeek && "bg-primary/10",
+                                                            hoveredColumn === index && "bg-muted"
+                                                        )}
+                                                        onClick={() => handleCellClick({ title: `Intercompany Payable - ${week.weekLabel}`, items: week.intercompanyApItems, total: week.intercompanyPayable, type: 'outflow' })}
+                                                        onMouseEnter={() => setHoveredColumn(index)}
+                                                        onMouseLeave={() => setHoveredColumn(null)}
+                                                    >{formatCurrency(week.intercompanyPayable)}</TableCell>
+                                                )}
+                                            </TableRow>
+                                            <TableRow>
+                                                <TableCell className="font-medium sticky left-0 bg-card z-10 pl-8">
+                                                <div className="flex items-center gap-2">
+                                                        <CreditCard className="w-4 h-4 text-muted-foreground"/> Direct Debit Payable
+                                                    </div>
+                                                </TableCell>
+                                                {weeklyBreakdown.map((week, index) => 
+                                                    <TableCell 
+                                                        key={index} 
+                                                        className={cn(
+                                                            "text-right font-mono cursor-pointer transition-colors", 
+                                                            week.isMonthEnd && "border-r-2 border-border",
+                                                            week.isCurrentWeek && "bg-primary/10",
+                                                            hoveredColumn === index && "bg-muted"
+                                                        )}
+                                                        onClick={() => handleCellClick({ title: `Direct Debit Payable - ${week.weekLabel}`, items: week.directDebitPayableItems, total: week.directDebitPayable, type: 'outflow' })}
+                                                        onMouseEnter={() => setHoveredColumn(index)}
+                                                        onMouseLeave={() => setHoveredColumn(null)}
+                                                    >{formatCurrency(week.directDebitPayable)}</TableCell>
+                                                )}
+                                            </TableRow>
+                                            {uniqueManualOutflows.map(manualOutflow => (
+                                                <TableRow key={manualOutflow.id}>
+                                                    <TableCell className="font-medium sticky left-0 bg-card z-10">
+                                                    <div className="flex items-center gap-2">
+                                                            <Package className="w-4 h-4 text-muted-foreground"/> {manualOutflow.name}
+                                                        </div>
+                                                    </TableCell>
+                                                    {weeklyBreakdown.map((week, index) => {
+                                                        const items = week.manualOutflows.filter(t => t.name === manualOutflow.name);
+                                                        const manualOutflowTotal = items.reduce((sum, t) => sum + t.amount, 0);
+                                                        return (
+                                                            <TableCell 
+                                                                key={index} 
+                                                                className={cn(
+                                                                    "text-right font-mono cursor-pointer transition-colors", 
+                                                                    week.isMonthEnd && "border-r-2 border-border",
+                                                                    week.isCurrentWeek && "bg-primary/10",
+                                                                    hoveredColumn === index && "bg-muted"
+                                                                )}
+                                                                onClick={() => handleCellClick({ title: `${manualOutflow.name} - ${week.weekLabel}`, items: items, total: manualOutflowTotal, type: 'outflow' })}
+                                                                onMouseEnter={() => setHoveredColumn(index)}
+                                                                onMouseLeave={() => setHoveredColumn(null)}
+                                                            >
+                                                                {formatCurrency(manualOutflowTotal)}
+                                                            </TableCell>
+                                                        );
+                                                    })}
+                                                </TableRow>
+                                            ))}
+                                            <TableRow className="bg-secondary">
+                                                <TableCell className="font-bold text-foreground sticky left-0 bg-secondary z-10">Total Outflow</TableCell>
+                                                {weeklyBreakdown.map((week, index) => 
+                                                    <TableCell 
+                                                        key={index} 
+                                                        className={cn(
+                                                            "text-right font-mono font-bold text-destructive transition-colors", 
+                                                            week.isMonthEnd && "border-r-2 border-border",
+                                                            week.isCurrentWeek && "bg-primary/10",
+                                                            hoveredColumn === index && ""
+                                                        )}
+                                                        onMouseEnter={() => setHoveredColumn(index)}
+                                                        onMouseLeave={() => setHoveredColumn(null)}
+                                                    >{formatCurrency(week.totalOutflow)}</TableCell>
+                                                )}
+                                            </TableRow>
+                                        </>
+                                        </AccordionContent>
+                                    </AccordionItem>
     
                                     <TableRow className="border-t-2 border-border">
                                         <TableCell className="font-bold text-foreground sticky left-0 bg-card z-10">
@@ -508,6 +525,7 @@ export default function WeeklyViewPage() {
                                     </TableRow>
                                 </TableBody>
                             </Table>
+                            </Accordion>
                         </div>
                     ) : (
                        <div className="text-center text-muted-foreground py-10">
