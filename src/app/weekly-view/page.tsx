@@ -61,6 +61,11 @@ export default function WeeklyViewPage() {
     setIsClient(true);
   }, []);
 
+  useEffect(() => {
+    setApplyExclusions(columnConfig.defaultApplyExclusions);
+    setApplyPrediction(columnConfig.defaultApplyPrediction);
+  }, [columnConfig.defaultApplyExclusions, columnConfig.defaultApplyPrediction]);
+
   const weeklyBreakdown = useMemo((): WeeklyBreakdown[] => {
     if (!isClient) return [];
     

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo, useState, useEffect } from "react";
 import { SettingsContext } from "@/context/settings-context";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset } from "@/components/ui/sidebar";
@@ -47,6 +47,10 @@ export default function BalanceSummaryPage() {
   const [sortConfig, setSortConfig] = useState<{ key: SortKey, direction: SortDirection }>({ key: 'netBalance', direction: 'desc' });
   const [selectedEntity, setSelectedEntity] = useState<BalanceSummary | null>(null);
   const [balanceFilter, setBalanceFilter] = useState<'all' | 'receivables' | 'payables' | 'both'>('all');
+
+  useEffect(() => {
+    setApplyExclusions(columnConfig.defaultApplyExclusions);
+  }, [columnConfig.defaultApplyExclusions]);
 
 
   const { forecastData } = useMemo(() => {
