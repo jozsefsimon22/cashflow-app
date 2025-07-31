@@ -55,6 +55,8 @@ export default function WeeklyViewPage() {
   const [applyPrediction, setApplyPrediction] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'amount', direction: 'desc' });
   const [hoveredColumn, setHoveredColumn] = useState<number | null>(null);
+  const [isInflowOpen, setIsInflowOpen] = useState(true);
+  const [isOutflowOpen, setIsOutflowOpen] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -233,7 +235,6 @@ export default function WeeklyViewPage() {
                 <CardContent>
                     {isClient && (data || manualTransactions.length > 0) ? (
                         <div className="overflow-x-auto">
-                            <Accordion type="multiple" defaultValue={["inflow", "outflow"]} asChild>
                             <Table className="min-w-full">
                                 <TableHeader>
                                     <TableRow>
@@ -253,18 +254,23 @@ export default function WeeklyViewPage() {
                                         ))}
                                     </TableRow>
                                 </TableHeader>
-                                <AccordionItem value="inflow" asChild>
-                                  <TableBody>
-                                        <TableRow className="bg-primary/5 hover:bg-primary/10">
-                                            <TableCell colSpan={13 + 1} className="font-bold text-primary sticky left-0 bg-primary/5 hover:bg-primary/10 z-10 p-0">
-                                                <AccordionTrigger className="p-4 hover:no-underline">
-                                                    <div className="flex items-center gap-2">
-                                                        <ArrowUpCircle className="w-5 h-5" /> Inflow
-                                                    </div>
-                                                </AccordionTrigger>
-                                            </TableCell>
-                                        </TableRow>
-                                        <AccordionContent asChild>
+                                
+                                <TableBody>
+                                    <TableRow 
+                                        className="bg-primary/5 hover:bg-primary/10 cursor-pointer"
+                                        onClick={() => setIsInflowOpen(!isInflowOpen)}
+                                    >
+                                        <TableCell colSpan={13 + 1} className="font-bold text-primary sticky left-0 bg-primary/5 hover:bg-primary/10 z-10 p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <ArrowUpCircle className="w-5 h-5" /> Inflow
+                                                </div>
+                                                <ChevronDown className={cn("h-5 w-5 transition-transform", !isInflowOpen && "-rotate-90")} />
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                    
+                                    {isInflowOpen && (
                                         <>
                                             <TableRow>
                                                 <TableCell className="font-medium sticky left-0 bg-card z-10">
@@ -353,23 +359,26 @@ export default function WeeklyViewPage() {
                                                     >{formatCurrency(week.totalInflow)}</TableCell>
                                                 )}
                                             </TableRow>
-                                            </>
-                                        </AccordionContent>
-                                    </TableBody>
-                                </AccordionItem>
+                                        </>
+                                    )}
+                                </TableBody>
                                 
-                                <AccordionItem value="outflow" asChild>
-                                  <TableBody>
-                                        <TableRow className="bg-destructive/5 hover:bg-destructive/10">
-                                            <TableCell colSpan={13+1} className="font-bold text-destructive sticky left-0 bg-destructive/5 hover:bg-destructive/10 z-10 p-0">
-                                                <AccordionTrigger className="p-4 hover:no-underline">
-                                                    <div className="flex items-center gap-2">
-                                                        <ArrowDownCircle className="w-5 h-5" /> Outflow
-                                                    </div>
-                                                </AccordionTrigger>
-                                            </TableCell>
-                                        </TableRow>
-                                        <AccordionContent asChild>
+                                <TableBody>
+                                    <TableRow 
+                                        className="bg-destructive/5 hover:bg-destructive/10 cursor-pointer"
+                                        onClick={() => setIsOutflowOpen(!isOutflowOpen)}
+                                    >
+                                        <TableCell colSpan={13+1} className="font-bold text-destructive sticky left-0 bg-destructive/5 hover:bg-destructive/10 z-10 p-4">
+                                             <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <ArrowDownCircle className="w-5 h-5" /> Outflow
+                                                </div>
+                                                <ChevronDown className={cn("h-5 w-5 transition-transform", !isOutflowOpen && "-rotate-90")} />
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+
+                                    {isOutflowOpen && (
                                         <>
                                             <TableRow>
                                                 <TableCell className="font-medium sticky left-0 bg-card z-10">
@@ -480,9 +489,8 @@ export default function WeeklyViewPage() {
                                                 )}
                                             </TableRow>
                                         </>
-                                        </AccordionContent>
-                                    </TableBody>
-                                </AccordionItem>
+                                    )}
+                                </TableBody>
     
                                 <TableBody>
                                   <TableRow className="border-t-2 border-border">
@@ -528,7 +536,6 @@ export default function WeeklyViewPage() {
                                   </TableRow>
                                 </TableBody>
                             </Table>
-                            </Accordion>
                         </div>
                     ) : (
                        <div className="text-center text-muted-foreground py-10">
