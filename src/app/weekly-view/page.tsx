@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useContext, useEffect, useState, useMemo } from 'react';
@@ -234,7 +233,7 @@ export default function WeeklyViewPage() {
                 <CardContent>
                     {isClient && (data || manualTransactions.length > 0) ? (
                         <div className="overflow-x-auto">
-                            <Accordion type="multiple" defaultValue={["inflow", "outflow"]} className="w-full">
+                            <Accordion type="multiple" defaultValue={["inflow", "outflow"]} asChild>
                             <Table className="min-w-full">
                                 <TableHeader>
                                     <TableRow>
@@ -254,8 +253,8 @@ export default function WeeklyViewPage() {
                                         ))}
                                     </TableRow>
                                 </TableHeader>
-                                <TableBody>
-                                    <AccordionItem value="inflow" className="border-b-0">
+                                <AccordionItem value="inflow" asChild>
+                                  <TableBody>
                                         <TableRow className="bg-primary/5 hover:bg-primary/10">
                                             <TableCell colSpan={13 + 1} className="font-bold text-primary sticky left-0 bg-primary/5 hover:bg-primary/10 z-10 p-0">
                                                 <AccordionTrigger className="p-4 hover:no-underline">
@@ -334,7 +333,7 @@ export default function WeeklyViewPage() {
                                                             >
                                                                 {formatCurrency(manualInflowTotal)}
                                                             </TableCell>
-                                                        )
+                                                        );
                                                     })}
                                                 </TableRow>
                                             ))}
@@ -356,9 +355,11 @@ export default function WeeklyViewPage() {
                                             </TableRow>
                                             </>
                                         </AccordionContent>
-                                    </AccordionItem>
-                                    
-                                    <AccordionItem value="outflow" className="border-b-0">
+                                    </TableBody>
+                                </AccordionItem>
+                                
+                                <AccordionItem value="outflow" asChild>
+                                  <TableBody>
                                         <TableRow className="bg-destructive/5 hover:bg-destructive/10">
                                             <TableCell colSpan={13+1} className="font-bold text-destructive sticky left-0 bg-destructive/5 hover:bg-destructive/10 z-10 p-0">
                                                 <AccordionTrigger className="p-4 hover:no-underline">
@@ -480,49 +481,51 @@ export default function WeeklyViewPage() {
                                             </TableRow>
                                         </>
                                         </AccordionContent>
-                                    </AccordionItem>
+                                    </TableBody>
+                                </AccordionItem>
     
-                                    <TableRow className="border-t-2 border-border">
-                                        <TableCell className="font-bold text-foreground sticky left-0 bg-card z-10">
-                                            <div className="flex items-center gap-2">
-                                                <Coins className="w-5 h-5" /> Net Cash Flow
-                                            </div>
-                                        </TableCell>
-                                        {weeklyBreakdown.map((week, index) => (
-                                            <TableCell 
-                                                key={index} 
-                                                className={cn(
-                                                    "text-right font-mono font-bold transition-colors", week.netFlow >= 0 ? "text-primary" : "text-destructive", 
-                                                    week.isMonthEnd && "border-r-2 border-border",
-                                                    week.isCurrentWeek && "bg-primary/10",
-                                                    hoveredColumn === index && "bg-muted"
-                                                )}
-                                                onMouseEnter={() => setHoveredColumn(index)}
-                                                onMouseLeave={() => setHoveredColumn(null)}
-                                            >{formatCurrency(week.netFlow)}</TableCell>
-                                        ))}
-                                    </TableRow>
-                                    <TableRow className="border-t-2 border-border bg-secondary">
-                                        <TableCell className="font-extrabold text-foreground sticky left-0 bg-secondary z-10">
-                                            <div className="flex items-center gap-2">
-                                                <Coins className="w-5 h-5" /> Running Balance
-                                            </div>
-                                        </TableCell>
-                                        {weeklyBreakdown.map((week, index) => (
-                                            <TableCell 
-                                                key={index} 
-                                                className={cn(
-                                                    "text-right font-mono font-extrabold transition-colors", 
-                                                    week.runningBalance >= 0 ? "text-foreground" : "text-destructive", 
-                                                    week.isMonthEnd && "border-r-2 border-border",
-                                                    week.isCurrentWeek && "bg-primary/10",
-                                                     hoveredColumn === index && ""
-                                                )}
-                                                onMouseEnter={() => setHoveredColumn(index)}
-                                                onMouseLeave={() => setHoveredColumn(null)}
-                                            >{formatCurrency(week.runningBalance)}</TableCell>
-                                        ))}
-                                    </TableRow>
+                                <TableBody>
+                                  <TableRow className="border-t-2 border-border">
+                                      <TableCell className="font-bold text-foreground sticky left-0 bg-card z-10">
+                                          <div className="flex items-center gap-2">
+                                              <Coins className="w-5 h-5" /> Net Cash Flow
+                                          </div>
+                                      </TableCell>
+                                      {weeklyBreakdown.map((week, index) => (
+                                          <TableCell 
+                                              key={index} 
+                                              className={cn(
+                                                  "text-right font-mono font-bold transition-colors", week.netFlow >= 0 ? "text-primary" : "text-destructive", 
+                                                  week.isMonthEnd && "border-r-2 border-border",
+                                                  week.isCurrentWeek && "bg-primary/10",
+                                                  hoveredColumn === index && "bg-muted"
+                                              )}
+                                              onMouseEnter={() => setHoveredColumn(index)}
+                                              onMouseLeave={() => setHoveredColumn(null)}
+                                          >{formatCurrency(week.netFlow)}</TableCell>
+                                      ))}
+                                  </TableRow>
+                                  <TableRow className="border-t-2 border-border bg-secondary">
+                                      <TableCell className="font-extrabold text-foreground sticky left-0 bg-secondary z-10">
+                                          <div className="flex items-center gap-2">
+                                              <Coins className="w-5 h-5" /> Running Balance
+                                          </div>
+                                      </TableCell>
+                                      {weeklyBreakdown.map((week, index) => (
+                                          <TableCell 
+                                              key={index} 
+                                              className={cn(
+                                                  "text-right font-mono font-extrabold transition-colors", 
+                                                  week.runningBalance >= 0 ? "text-foreground" : "text-destructive", 
+                                                  week.isMonthEnd && "border-r-2 border-border",
+                                                  week.isCurrentWeek && "bg-primary/10",
+                                                   hoveredColumn === index && ""
+                                              )}
+                                              onMouseEnter={() => setHoveredColumn(index)}
+                                              onMouseLeave={() => setHoveredColumn(null)}
+                                          >{formatCurrency(week.runningBalance)}</TableCell>
+                                      ))}
+                                  </TableRow>
                                 </TableBody>
                             </Table>
                             </Accordion>
